@@ -137,7 +137,11 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         try:
             spreadsheet_url = goal_manager.set_new_goal(user_id, goal_text, deadline, available_time)
             await update.message.reply_text(
-                f"Ваша цель '{goal_text}' установлена! План сохранён. Ссылка на таблицу: {spreadsheet_url}\nИспользуйте /today, чтобы увидеть задачу на сегодня, и /check для отметки выполнения."
+                f"✅ Ваша цель *{goal_text}* установлена! План сохранён. \n"
+                f"📄 [Открыть таблицу]({spreadsheet_url})\n\n"
+                "Используйте /today, чтобы увидеть задачу на сегодня, и /check для отметки выполнения.",
+                parse_mode="Markdown",
+                disable_web_page_preview=True,
             )
         except Exception as e:
             await update.message.reply_text("Произошла ошибка при создании цели. Попробуйте позже.")

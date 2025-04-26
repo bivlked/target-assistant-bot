@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 
 from core.goal_manager import GoalManager, STATUS_DONE, STATUS_NOT_DONE, STATUS_PARTIAL
+from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
 CHOOSING_STATUS = 0
 
@@ -18,8 +19,8 @@ def build_task_handlers(goal_manager: GoalManager):
         task = goal_manager.get_today_task(update.effective_user.id)
         if task:
             text = (
-                f"📅 Задача на сегодня ({task['Date']}, {task['DayOfWeek']}):\n\n"
-                f"📝 {task['Task']}\n\nСтатус: {task['Status']}"
+                f"📅 Задача на сегодня ({task[COL_DATE]}, {task[COL_DAYOFWEEK]}):\n\n"
+                f"📝 {task[COL_TASK]}\n\nСтатус: {task[COL_STATUS]}"
             )
         else:
             text = "Сначала установите цель с помощью /setgoal."
@@ -49,9 +50,9 @@ def build_task_handlers(goal_manager: GoalManager):
             msg_lines.append("")
             msg_lines.append("📝 *Ближайшие задачи*:")
             for i, task in enumerate(upcoming, 1):
-                date = task.get("Date") or task.get("date")
-                text = task.get("Task") or task.get("text")
-                status = task.get("Status") or task.get("status")
+                date = task.get(COL_DATE) or task.get("date")
+                text = task.get(COL_TASK) or task.get("text")
+                status = task.get(COL_STATUS) or task.get("status")
                 status_emoji = "✅" if status == "Выполнено" else "⬜"
                 msg_lines.append(f"{status_emoji} {i}. {date}: {text}")
 
@@ -68,7 +69,7 @@ def build_task_handlers(goal_manager: GoalManager):
         if not task:
             await update.message.reply_text("Не удалось найти задачу на сегодня. Установите цель с помощью /setgoal.")
             return ConversationHandler.END
-        if task["Status"] == STATUS_DONE:
+        if task[COL_STATUS] == STATUS_DONE:
             await update.message.reply_text("Отличная работа! Задача на сегодня уже выполнена. ✅")
             return ConversationHandler.END
 
@@ -82,7 +83,7 @@ def build_task_handlers(goal_manager: GoalManager):
             ]
         )
         await update.message.reply_text(
-            f"Как сегодня прошел день по задаче:\n\n📝 {task['Task']}\n\nОтметьте статус:",
+            f"Как сегодня прошел день по задаче:\n\n📝 {task[COL_TASK]}\n\nОтметьте статус:",
             reply_markup=keyboard,
         )
         return CHOOSING_STATUS
