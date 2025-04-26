@@ -75,6 +75,7 @@ class GoalManager:
         self.sheets.update_task_status(user_id, date_str, status)
 
     def get_goal_status_details(self, user_id: int):
+        # Старая строковая статистика (для совместимости)
         return self.sheets.get_statistics(user_id)
 
     def generate_motivation_message(self, user_id: int):
@@ -86,4 +87,14 @@ class GoalManager:
     # Сброс
     # -------------------------------------------------
     def reset_user(self, user_id: int):
-        self.sheets.delete_spreadsheet(user_id) 
+        self.sheets.delete_spreadsheet(user_id)
+
+    # --- Новый, расширенный статус ----------------------
+    def get_detailed_status(self, user_id: int):
+        """Возвращает подробную статистику, аналоги /status у второй команды."""
+        stats = self.sheets.get_extended_statistics(user_id)
+        goal_info = self.sheets.get_goal_info(user_id)
+        return {
+            "goal": goal_info.get("Goal Text", "—"),
+            **stats,
+        } 

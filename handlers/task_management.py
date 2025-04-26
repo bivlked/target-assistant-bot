@@ -26,8 +26,40 @@ def build_task_handlers(goal_manager: GoalManager):
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        text = goal_manager.get_goal_status_details(update.effective_user.id)
-        await update.message.reply_text(text)
+        data = goal_manager.get_detailed_status(update.effective_user.id)
+
+        # Если цели ещё нет
+        if not data.get("goal"):
+            await update.message.reply_text("У вас пока нет цели. Используйте /setgoal, чтобы её установить.")
+            return
+
+        # Формируем красивый отчёт
+        msg_lines: list[str] = []
+        msg_lines.append(f"🎯 *Цель*: {data['goal']}")
+        msg_lines.append("")
+        msg_lines.append(
+            f"📊 *Прогресс*: {data['progress_percent']}%  (✅ {data['completed_days']}/{data['total_days']} дней)"
+        )
+        msg_lines.append(
+            f"⏱ *Прошло*: {data['days_passed']} дн.   |   ⌛️ *Осталось*: {data['days_left']} дн."
+        )
+
+        upcoming = data.get("upcoming_tasks", [])
+        if upcoming:
+            msg_lines.append("")
+            msg_lines.append("📝 *Ближайшие задачи*:")
+            for i, task in enumerate(upcoming, 1):
+                date = task.get("Date") or task.get("date")
+                text = task.get("Task") or task.get("text")
+                status = task.get("Status") or task.get("status")
+                status_emoji = "✅" if status == "Выполнено" else "⬜"
+                msg_lines.append(f"{status_emoji} {i}. {date}: {text}")
+
+        # Ссылка на таблицу
+        msg_lines.append("")
+        msg_lines.append(f"📈 [Открыть таблицу]({data['sheet_url']})")
+
+        await update.message.reply_text("\n".join(msg_lines), parse_mode="Markdown", disable_web_page_preview=True)
 
     # ------------- CHECK -------------
 
