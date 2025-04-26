@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 
 from utils.helpers import format_date, get_day_of_week
+from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
 # Типы строк статуса
 STATUS_NOT_DONE = "Не выполнено"
@@ -48,10 +49,10 @@ class GoalManager:
             date = today + timedelta(days=day_offset)
             full_plan.append(
                 {
-                    "Date": format_date(date),
-                    "DayOfWeek": get_day_of_week(date),
-                    "Task": item["task"],
-                    "Status": STATUS_NOT_DONE,
+                    COL_DATE: format_date(date),
+                    COL_DAYOFWEEK: get_day_of_week(date),
+                    COL_TASK: item["task"],
+                    COL_STATUS: STATUS_NOT_DONE,
                 }
             )
 

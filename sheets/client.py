@@ -12,9 +12,18 @@ from config import google
 
 logger = logging.getLogger(__name__)
 
-# Константы названий листов
-GOAL_INFO_SHEET = "GoalInfo"
-PLAN_SHEET = "Plan"
+# -- Названия листов (рус.) --
+GOAL_INFO_SHEET = "Цель"
+PLAN_SHEET = "План"
+
+# -- Заголовки колонок для листа План --
+COL_DATE = "Дата"
+COL_DAYOFWEEK = "День недели"
+COL_TASK = "Задача"
+COL_STATUS = "Статус"
+
+# Для импорта другими модулями
+PLAN_HEADERS = (COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS)
 
 RETRY = retry(
     retry=retry_if_exception_type(APIError),
@@ -82,14 +91,22 @@ class SheetsManager:
         ws = sh.worksheet(GOAL_INFO_SHEET)
         rows = [[k, v, ""] for k, v in goal_data.items()]
         ws.update("A1", rows)
+        # форматирование
+        try:
+            ws.format("A:A", {"textFormat": {"bold": True}})
+            if hasattr(ws, "columns_auto_resize"):
+                ws.columns_auto_resize(1, 3)
+        except Exception:
+            pass
         return sh.url
 
     @RETRY
     def save_plan(self, user_id: int, plan: List[dict[str, Any]]):
         sh = self._get_spreadsheet(user_id)
         ws = sh.worksheet(PLAN_SHEET)
-        header = [["Date", "DayOfWeek", "Task", "Status"]]
-        rows = [[p["Date"], p["DayOfWeek"], p["Task"], p["Status"]] for p in plan]
+
+        header = [list(PLAN_HEADERS)]
+        rows = [[p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan]
         ws.update("A1", header + rows)
 
         # --- Красивое форматирование ---------------------
@@ -120,7 +137,7 @@ class SheetsManager:
         ws = sh.worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         for row in data:
-            if row.get("Date") == target_date:
+            if row.get(COL_DATE) == target_date:
                 return row
         return None
 
@@ -130,7 +147,7 @@ class SheetsManager:
         ws = sh.worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         for idx, row in enumerate(data, start=2):  # включая заголовок в первой строке
-            if row.get("Date") == target_date:
+            if row.get(COL_DATE) == target_date:
                 ws.update_cell(idx, 4, status)  # 4-й столбец Status
                 break
 
@@ -140,7 +157,7 @@ class SheetsManager:
         ws = sh.worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         total = len(data)
-        done = sum(1 for r in data if r["Status"] == "Выполнено")
+        done = sum(1 for r in data if r[COL_STATUS] == "Выполнено")
         percent = int(done / total * 100) if total else 0
         remaining = total - done
         return f"Выполнено {done} из {total} ({percent}%), осталось {remaining} дней"
@@ -176,7 +193,7 @@ class SheetsManager:
         plan_rows = ws_plan.get_all_records()
 
         total_days = len(plan_rows)
-        completed_days = sum(1 for r in plan_rows if r.get("Status") == "Выполнено")
+        completed_days = sum(1 for r in plan_rows if r.get(COL_STATUS) == "Выполнено")
         progress_percent = int(completed_days / total_days * 100) if total_days else 0
 
         # Определяем прошедшие/оставшиеся дни относительно первой строки
@@ -184,12 +201,12 @@ class SheetsManager:
         from utils.helpers import format_date  # избежать циклического импорта
 
         today_str = format_date(datetime.now())
-        days_passed = sum(1 for r in plan_rows if r.get("Date") < today_str)
+        days_passed = sum(1 for r in plan_rows if r.get(COL_DATE) < today_str)
         days_left = total_days - days_passed
 
         # Ближайшие задачи, которые еще не выполнены и дата >= сегодня
-        upcoming = [r for r in plan_rows if r.get("Date") >= today_str]
-        upcoming_sorted = sorted(upcoming, key=lambda r: r.get("Date"))[:upcoming_count]
+        upcoming = [r for r in plan_rows if r.get(COL_DATE) >= today_str]
+        upcoming_sorted = sorted(upcoming, key=lambda r: r.get(COL_DATE))[:upcoming_count]
 
         return {
             "total_days": total_days,
@@ -200,3 +217,16 @@ class SheetsManager:
             "upcoming_tasks": upcoming_sorted,
             "sheet_url": sh.url,
         } 
+
+    # Форматирование Goal sheet после сохранения
+    @RETRY
+    def _format_goal_sheet(self, user_id: int):
+        """Применяет жирный стиль к A:A и авторазмер колонок на листе Цель."""
+        try:
+            sh = self._get_spreadsheet(user_id)
+            ws = sh.worksheet(GOAL_INFO_SHEET)
+            ws.format("A:A", {"textFormat": {"bold": True}})
+            if hasattr(ws, "columns_auto_resize"):
+                ws.columns_auto_resize(1, 3)
+        except Exception:
+            pass 

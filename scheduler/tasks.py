@@ -8,6 +8,7 @@ from telegram import Bot
 
 from config import scheduler_cfg
 from utils.helpers import get_day_of_week
+from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,8 @@ class Scheduler:
             task = self.goal_manager.get_today_task(user_id)
             if task:
                 text = (
-                    f"📅 Задача на сегодня ({task['Date']}, {task['DayOfWeek']}):\n\n"
-                    f"📝 {task['Task']}\n\nСтатус: {task['Status']}"
+                    f"📅 Задача на сегодня ({task[COL_DATE]}, {task[COL_DAYOFWEEK]}):\n\n"
+                    f"📝 {task[COL_TASK]}\n\nСтатус: {task[COL_STATUS]}"
                 )
             else:
                 text = "На сегодня задач нет. Установите новую цель командой /setgoal."
