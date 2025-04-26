@@ -92,6 +92,21 @@ class SheetsManager:
         rows = [[p["Date"], p["DayOfWeek"], p["Task"], p["Status"]] for p in plan]
         ws.update("A1", header + rows)
 
+        # --- Красивое форматирование ---------------------
+        # 1. Сделать шапку жирной и по центру
+        try:
+            ws.format("A1:D1", {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"})
+        except Exception:
+            # Не критично, если форматирование не поддерживается
+            pass
+
+        # 2. Авто-ширина столбцов (если API доступен)
+        if hasattr(ws, "columns_auto_resize"):
+            try:
+                ws.columns_auto_resize(1, 4)
+            except Exception:
+                pass
+
     @RETRY
     def get_goal_info(self, user_id: int):
         sh = self._get_spreadsheet(user_id)
@@ -141,3 +156,47 @@ class SheetsManager:
             self.gc.del_spreadsheet(sh.id)
         except gspread.SpreadsheetNotFound:
             return 
+
+    # -------------------------------------------------
+    # Дополнительные методы для расширенной статистики
+    # -------------------------------------------------
+
+    @RETRY
+    def get_spreadsheet_url(self, user_id: int) -> str:
+        """Возвращает URL таблицы пользователя (создает при необходимости)."""
+        return self._get_spreadsheet(user_id).url
+
+    @RETRY
+    def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
+        """Возвращает подробную статистику и ближайшие задачи."""
+        sh = self._get_spreadsheet(user_id)
+        ws_plan = sh.worksheet(PLAN_SHEET)
+
+        # Все строки (словари) без заголовка
+        plan_rows = ws_plan.get_all_records()
+
+        total_days = len(plan_rows)
+        completed_days = sum(1 for r in plan_rows if r.get("Status") == "Выполнено")
+        progress_percent = int(completed_days / total_days * 100) if total_days else 0
+
+        # Определяем прошедшие/оставшиеся дни относительно первой строки
+        from datetime import datetime
+        from utils.helpers import format_date  # избежать циклического импорта
+
+        today_str = format_date(datetime.now())
+        days_passed = sum(1 for r in plan_rows if r.get("Date") < today_str)
+        days_left = total_days - days_passed
+
+        # Ближайшие задачи, которые еще не выполнены и дата >= сегодня
+        upcoming = [r for r in plan_rows if r.get("Date") >= today_str]
+        upcoming_sorted = sorted(upcoming, key=lambda r: r.get("Date"))[:upcoming_count]
+
+        return {
+            "total_days": total_days,
+            "completed_days": completed_days,
+            "progress_percent": progress_percent,
+            "days_passed": days_passed,
+            "days_left": days_left,
+            "upcoming_tasks": upcoming_sorted,
+            "sheet_url": sh.url,
+        } 

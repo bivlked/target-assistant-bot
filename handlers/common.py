@@ -6,20 +6,7 @@ from telegram.ext import CommandHandler, MessageHandler, filters
 
 from core.goal_manager import GoalManager
 from scheduler.tasks import Scheduler
-
-WELCOME_TEXT = (
-    "Привет! Я бот-помощник для достижения целей. Используйте /setgoal чтобы начать."
-)
-HELP_TEXT = (
-    "/start - начать работу\n"
-    "/setgoal - установить новую цель\n"
-    "/today - задача на сегодня\n"
-    "/check - отметить выполнение\n"
-    "/status - статус цели\n"
-    "/motivation - мотивационное сообщение\n"
-    "/cancel - отменить текущую операцию\n"
-    "/reset - удалить данные и начать заново"
-)
+from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, UNKNOWN_TEXT
 
 
 def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
@@ -33,23 +20,23 @@ def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(HELP_TEXT)
+    await update.message.reply_text(HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True)
 
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Операция отменена.")
+    await update.message.reply_text(CANCEL_TEXT)
 
 
 def reset_handler(goal_manager: GoalManager):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         goal_manager.reset_user(update.effective_user.id)
-        await update.message.reply_text("Все ваши данные удалены. Используйте /setgoal, чтобы начать заново.")
+        await update.message.reply_text("🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново.")
 
     return _handler
 
 
 def unknown_handler():
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text("Я ещё не знаю такую команду, но учусь каждый день 🚀")
+        await update.message.reply_text(UNKNOWN_TEXT)
 
     return _handler 
