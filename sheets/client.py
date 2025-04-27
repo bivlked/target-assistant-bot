@@ -95,6 +95,7 @@ class SheetsManager:
         try:
             ws.format("A:A", {"textFormat": {"bold": True}})
             if hasattr(ws, "columns_auto_resize"):
+                # Автоширина всех трёх колонок (A:C)
                 ws.columns_auto_resize(1, 3)
         except Exception:
             pass
