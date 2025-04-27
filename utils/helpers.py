@@ -6,7 +6,7 @@ from config import scheduler_cfg
 
 def format_date(date_obj: datetime, tz: str | None = None) -> str:
     tzinfo = pytz.timezone(tz or scheduler_cfg.timezone)
-    return date_obj.astimezone(tzinfo).strftime("%Y-%m-%d")
+    return date_obj.astimezone(tzinfo).strftime("%d.%m.%Y")
 
 
 def get_day_of_week(date_obj: datetime, tz: str | None = None) -> str:

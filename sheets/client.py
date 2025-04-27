@@ -113,6 +113,8 @@ class SheetsManager:
         # 1. Сделать шапку жирной и по центру
         try:
             ws.format("A1:D1", {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"})
+            # 1.1 Центрируем весь столбец Дата (A)
+            ws.format("A:A", {"horizontalAlignment": "CENTER"})
         except Exception:
             # Не критично, если форматирование не поддерживается
             pass
@@ -196,17 +198,28 @@ class SheetsManager:
         completed_days = sum(1 for r in plan_rows if r.get(COL_STATUS) == "Выполнено")
         progress_percent = int(completed_days / total_days * 100) if total_days else 0
 
-        # Определяем прошедшие/оставшиеся дни относительно первой строки
+        # --- Работа с датами в формате dd.mm.yyyy -------------------------
+        # Импортируем здесь, чтобы избежать циклических зависимостей
         from datetime import datetime
-        from utils.helpers import format_date  # избежать циклического импорта
+        from utils.helpers import format_date  # локальный импорт
 
-        today_str = format_date(datetime.now())
-        days_passed = sum(1 for r in plan_rows if r.get(COL_DATE) < today_str)
+        def _parse(date_str: str):
+            try:
+                return datetime.strptime(date_str, "%d.%m.%Y")
+            except ValueError:
+                try:
+                    return datetime.strptime(date_str, "%Y-%m-%d")
+                except ValueError:
+                    return None
+
+        today_dt = datetime.strptime(format_date(datetime.now()), "%d.%m.%Y")
+
+        days_passed = sum(1 for r in plan_rows if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) < today_dt)
         days_left = total_days - days_passed
 
         # Ближайшие задачи, которые еще не выполнены и дата >= сегодня
-        upcoming = [r for r in plan_rows if r.get(COL_DATE) >= today_str]
-        upcoming_sorted = sorted(upcoming, key=lambda r: r.get(COL_DATE))[:upcoming_count]
+        upcoming = [r for r in plan_rows if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) >= today_dt]
+        upcoming_sorted = sorted(upcoming, key=lambda r: _parse(r.get(COL_DATE)))[:upcoming_count]
 
         return {
             "total_days": total_days,

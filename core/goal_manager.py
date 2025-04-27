@@ -58,10 +58,10 @@ class GoalManager:
 
         # 4. Сохраняем в Sheets
         goal_info = {
-            "Goal Text": goal_text,
-            "Deadline Date": deadline_str,
-            "Available Time": available_time_str,
-            "Start Date": format_date(today),
+            "Глобальная цель": goal_text,
+            "Дата достижения": deadline_str,
+            "Затраты в день": available_time_str,
+            "Начало выполнения": format_date(today),
         }
         spreadsheet_url = self.sheets.save_goal_info(user_id, goal_info)
         self.sheets.save_plan(user_id, full_plan)
@@ -82,7 +82,7 @@ class GoalManager:
     def generate_motivation_message(self, user_id: int):
         goal_info = self.sheets.get_goal_info(user_id)
         stats = self.sheets.get_statistics(user_id)
-        return self.llm.generate_motivation(goal_info["Goal Text"], stats)
+        return self.llm.generate_motivation(goal_info.get("Глобальная цель", ""), stats)
 
     # -------------------------------------------------
     # Сброс
@@ -96,6 +96,6 @@ class GoalManager:
         stats = self.sheets.get_extended_statistics(user_id)
         goal_info = self.sheets.get_goal_info(user_id)
         return {
-            "goal": goal_info.get("Goal Text", "—"),
+            "goal": goal_info.get("Глобальная цель", "—"),
             **stats,
         } 
