@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    container_name: target-assistant-bot
+    env_file:
+      - env.example  # скопируйте/переименуйте в .env для приватного развёртывания
+    volumes:
+      - ./google_credentials.json:/app/google_credentials.json:ro
+    restart: unless-stopped 

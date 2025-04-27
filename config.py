@@ -52,7 +52,7 @@ class SchedulerConfig:
 
 @dataclass(frozen=True)
 class LoggingConfig:
-    level: str = os.getenv("LOG_LEVEL", "INFO")
+    level: str = os.getenv("LOG_LEVEL", "WARNING")
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 

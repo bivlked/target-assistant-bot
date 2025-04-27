@@ -1,0 +1,37 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+
+# Виртуальные окружения
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Логи
+*.log
+
+# Файлы окружения и секреты
+.env
+.env.*
+*.env
+*.json
+google_credentials.json
+
+# Документы (конфиденциальные)
+*.docx
+*.pdf
+Техническое*
+Краткое*
+Пояснение*
+
+# Старые каталоги
+OLD/
+AnotherCrewCode/
+
+# ОС
+.DS_Store
+Thumbs.db 

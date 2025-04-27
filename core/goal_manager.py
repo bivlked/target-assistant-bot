@@ -59,7 +59,7 @@ class GoalManager:
         # 4. Сохраняем в Sheets
         goal_info = {
             "Глобальная цель": goal_text,
-            "Дата достижения": deadline_str,
+            "Срок выполнения": deadline_str,
             "Затраты в день": available_time_str,
             "Начало выполнения": format_date(today),
         }
