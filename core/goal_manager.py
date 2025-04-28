@@ -123,4 +123,68 @@ class GoalManager:
         return {
             "goal": goal_info.get("Глобальная цель", "—"),
             **stats,
-        } 
+        }
+
+    # -----------------------------------------------------------------
+    # Async-версия (использует sheets_async / llm_async, если доступны)
+    # -----------------------------------------------------------------
+    async def set_new_goal_async(
+        self,
+        user_id: int,
+        goal_text: str,
+        deadline_str: str,
+        available_time_str: str,
+    ) -> str:
+        """Асинхронная версия создания новой цели."""
+
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+
+        async def _maybe_await(value):  # helper to await if coroutine
+            if asyncio.iscoroutine(value):
+                return await value
+            return value
+
+        # 1. clear data
+        if self.sheets_async:
+            await self.sheets_async.clear_user_data(user_id)  # type: ignore[attr-defined]
+        else:
+            await loop.run_in_executor(None, self.sheets_sync.clear_user_data, user_id)  # type: ignore[arg-type]
+
+        # 2. LLM generate plan
+        if self.llm_async:
+            plan_json = await self.llm_async.generate_plan(goal_text, deadline_str, available_time_str)  # type: ignore[attr-defined]
+        else:
+            plan_json = await loop.run_in_executor(None, self.llm_sync.generate_plan, goal_text, deadline_str, available_time_str)  # type: ignore[arg-type]
+
+        today = datetime.now()
+        full_plan = []
+        for item in plan_json:
+            day_offset = item["day"] - 1
+            date = today + timedelta(days=day_offset)
+            full_plan.append(
+                {
+                    COL_DATE: format_date(date),
+                    COL_DAYOFWEEK: get_day_of_week(date),
+                    COL_TASK: item["task"],
+                    COL_STATUS: STATUS_NOT_DONE,
+                }
+            )
+
+        goal_info = {
+            "Глобальная цель": goal_text,
+            "Срок выполнения": deadline_str,
+            "Затраты в день": available_time_str,
+            "Начало выполнения": format_date(today),
+        }
+
+        # 4. Save to sheets
+        if self.sheets_async:
+            spreadsheet_url = await self.sheets_async.save_goal_info(user_id, goal_info)  # type: ignore[arg-type]
+            await self.sheets_async.save_plan(user_id, full_plan)  # type: ignore[arg-type]
+        else:
+            spreadsheet_url = await loop.run_in_executor(None, self.sheets_sync.save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
+            await loop.run_in_executor(None, self.sheets_sync.save_plan, user_id, full_plan)  # type: ignore[arg-type]
+
+        return spreadsheet_url 
