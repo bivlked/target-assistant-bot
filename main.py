@@ -9,6 +9,7 @@ from config import telegram, logging_cfg
 from core.goal_manager import GoalManager
 from llm.client import LLMClient
 from sheets.client import SheetsManager
+from sheets.async_client import AsyncSheetsManager
 from scheduler.tasks import Scheduler
 from handlers.common import start_handler, help_handler, cancel_handler, reset_handler, unknown_handler
 from handlers.goal_setting import build_setgoal_conv
@@ -63,8 +64,9 @@ def main():
 
     # Инициализация зависимостей
     sheets_manager = SheetsManager()
+    sheets_async = AsyncSheetsManager()
     llm_client = LLMClient()
-    goal_manager = GoalManager(sheets_manager, llm_client)
+    goal_manager = GoalManager(sheets_sync=sheets_manager, sheets_async=sheets_async, llm_sync=llm_client)
     scheduler = Scheduler(goal_manager)
 
     # Запуск планировщика
@@ -90,6 +92,12 @@ def main():
     application.add_handler(CommandHandler("status", status_handler))
     application.add_handler(CommandHandler("motivation", motivation_handler))
     application.add_handler(check_conv)
+
+    # async today handler
+    from handlers.task_management_async import build_async_handlers
+
+    today_async_handler = build_async_handlers(goal_manager)
+    application.add_handler(today_async_handler)
 
     # неизвестные команды – фильтруем все, кроме перечисленных
     known_cmds = r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
