@@ -1,4 +1,4 @@
-python-telegram-bot==20.9.1
+python-telegram-bot==20.8.1
 openai>=1.13,<2.0
 APScheduler>=3.10,<4.0
 python-dotenv>=1.0
