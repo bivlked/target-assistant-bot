@@ -8,7 +8,7 @@ gspread-formatting>=1.1
 google-auth>=2.29
 google-auth-oauthlib>=1.0
 google-api-python-client>=2.123
-gspread-asyncio>=2.3
+gspread-asyncio==2.0.0
 tenacity>=8.2
 structlog>=24.1
 prometheus-client>=0.20
