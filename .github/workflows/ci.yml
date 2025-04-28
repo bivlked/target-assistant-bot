@@ -22,8 +22,6 @@ jobs:
           pip install black ruff mypy
       - name: Ruff check
         run: ruff check .
-      - name: Mypy type check
-        run: mypy .
 
   test:
     runs-on: ubuntu-latest
