@@ -2,9 +2,16 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Optional
 
 from utils.helpers import format_date, get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
+
+if TYPE_CHECKING:  # избегаем циклов импорта
+    from sheets.client import SheetsManager
+    from sheets.async_client import AsyncSheetsManager
+    from llm.client import LLMClient
+    from llm.async_client import AsyncLLMClient
 
 # Типы строк статуса
 STATUS_NOT_DONE = "Не выполнено"
@@ -15,11 +22,29 @@ logger = logging.getLogger(__name__)
 
 
 class GoalManager:
-    """Класс-обёртка над бизнес-логикой для целей пользователя."""
+    """Бизнес-логика с поддержкой sync и async клиентов."""
 
-    def __init__(self, sheets_manager: "SheetsManager", llm_client: "LLMClient"):
-        self.sheets = sheets_manager
-        self.llm = llm_client
+    def __init__(
+        self,
+        sheets_sync: "SheetsManager | None" = None,
+        llm_sync: "LLMClient | None" = None,
+        sheets_async: "AsyncSheetsManager | None" = None,
+        llm_async: "AsyncLLMClient | None" = None,
+    ):
+        if not (sheets_sync or sheets_async):
+            raise ValueError("Требуется sheets_sync или sheets_async")
+        if not (llm_sync or llm_async):
+            raise ValueError("Требуется llm_sync или llm_async")
+
+        # сохраняем
+        self.sheets_sync = sheets_sync
+        self.sheets_async = sheets_async
+        self.llm_sync = llm_sync
+        self.llm_async = llm_async
+
+        # для существующего кода остаётся общий атрибут
+        self.sheets = sheets_sync or sheets_async  # type: ignore[assignment]
+        self.llm = llm_sync or llm_async  # type: ignore[assignment]
 
     # -------------------------------------------------
     # Методы API, вызываемые из Telegram-обработчиков
