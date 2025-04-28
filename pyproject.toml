@@ -28,7 +28,7 @@ dependencies = [
 line-length = 100
 target-version = "py310"
 extend-select = ["E", "F"]
-ignore = ["F401", "F841", "E402", "F821"]
+ignore = ["F401", "F841", "E402", "F821", "E501"]
 
 [tool.mypy]
 python_version = "3.10"
