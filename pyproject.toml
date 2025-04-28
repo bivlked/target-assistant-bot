@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 keywords = ["telegram", "bot", "goals", "openai", "google-sheets"]
 dependencies = [
-    "python-telegram-bot>=20.9",
+    "python-telegram-bot>=20.8",
     "openai>=1.13",
     "APScheduler>=3.10",
     "python-dotenv>=1.0",
@@ -27,6 +27,8 @@ dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-select = ["E", "F"]
+ignore = ["F401", "F841", "E402", "F821", "E501"]
 
 [tool.mypy]
 python_version = "3.10"
