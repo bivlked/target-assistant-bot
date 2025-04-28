@@ -27,7 +27,8 @@ def test_get_statistics(monkeypatch):
 
     fake_spreadsheet = _FakeSpreadsheet(records)
 
-    manager = SheetsManager()
+    # Создаём экземпляр SheetsManager без выполнения __init__, чтобы избежать реального подключения к Google
+    manager = object.__new__(SheetsManager)  # type: ignore[arg-type]
 
     # Подменяем приватный метод _get_spreadsheet, чтобы он возвращал фейковый объект
     monkeypatch.setattr(manager, "_get_spreadsheet", lambda user_id: fake_spreadsheet)
