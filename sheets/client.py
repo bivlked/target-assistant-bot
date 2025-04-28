@@ -127,6 +127,14 @@ class SheetsManager:
             except Exception:
                 pass
 
+        # 3. Закрепляем (замораживаем) первую строку с заголовками, чтобы она всегда была видна
+        try:
+            if hasattr(ws, "freeze"):
+                ws.freeze(rows=1)
+        except Exception:
+            # Игнорируем, если метод freeze недоступен или вызвал ошибку
+            pass
+
     @RETRY
     def get_goal_info(self, user_id: int):
         sh = self._get_spreadsheet(user_id)
