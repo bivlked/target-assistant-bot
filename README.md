@@ -53,6 +53,40 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+## Деплой на сервер (systemd)
+
+1. Клонируйте репозиторий и установите окружение:
+
+```bash
+sudo apt update && sudo apt install -y python3 python3-venv git
+sudo useradd -m targetbot
+sudo -iu targetbot
+
+# клонируем бот
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Скопируйте ваши `google_credentials.json` и заполните `.env` (можно взять шаблон `env.example`).
+
+3. Скопируйте unit-файл и перезапустите службу:
+
+```bash
+sudo cp deploy/targetbot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now targetbot.service
+```
+
+4. (Опционально) Установите автo-обновление:
+
+```bash
+sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
+# каждые 15 минут проверяем обновления
+echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
+```
+
 ## Документация
 
 * [Руководство пользователя](docs/user_guide.md)

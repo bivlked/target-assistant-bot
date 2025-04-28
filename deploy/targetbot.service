@@ -1,0 +1,16 @@
+[Unit]
+Description=Target Assistant Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/target-assistant-bot
+EnvironmentFile=/root/target-assistant-bot/.env
+ExecStart=/usr/bin/python /root/target-assistant-bot/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,22 @@
+python-telegram-bot==20.9
+openai>=1.13,<2.0
+APScheduler>=3.10,<4.0
+python-dotenv>=1.0
+pytz>=2024.1
+gspread>=6.0
+gspread-formatting>=1.1
+google-auth>=2.29
+google-auth-oauthlib>=1.0
+google-api-python-client>=2.123
+gspread-asyncio>=2.3
+tenacity>=8.2
+structlog>=24.1
+prometheus-client>=0.20
+sentry-sdk>=1.43
+# --- Dev & тесты ---
+black>=24.4
+ruff>=0.4
+mypy>=1.10
+pytest>=8.0
+pytest-asyncio>=0.23
+pytest-cov>=5.0 
