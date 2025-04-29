@@ -12,4 +12,9 @@ repos:
     rev: v1.10.0
     hooks:
       - id: mypy
-        additional_dependencies: ['types-pytz'] 
+        additional_dependencies: ['types-pytz']
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"] 
