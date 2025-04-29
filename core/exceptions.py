@@ -3,7 +3,9 @@ class BotError(Exception):
 
     def __init__(self, message: str, user_friendly: str | None = None):
         super().__init__(message)
-        self.user_friendly = user_friendly or "Произошла ошибка. Попробуйте позже."  # noqa: D401
+        self.user_friendly = (
+            user_friendly or "Произошла ошибка. Попробуйте позже."
+        )  # noqa: D401
 
 
 class StorageError(BotError):
@@ -15,4 +17,4 @@ class LLMError(BotError):
 
 
 class RateLimitExceeded(BotError):
-    """Превышен лимит запросов.""" 
+    """Превышен лимит запросов."""

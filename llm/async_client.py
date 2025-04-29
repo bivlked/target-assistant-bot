@@ -5,7 +5,12 @@ import logging
 from typing import Any, List
 
 from openai import AsyncOpenAI, APIError
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from tenacity import (
+    retry,
+    wait_exponential,
+    stop_after_attempt,
+    retry_if_exception_type,
+)
 
 from config import openai_cfg
 
@@ -34,7 +39,9 @@ class AsyncLLMClient:
 
     # --------------------------- Публичные -----------------------------
     @RETRY
-    async def generate_plan(self, goal_text: str, deadline_str: str, available_time_str: str):
+    async def generate_plan(
+        self, goal_text: str, deadline_str: str, available_time_str: str
+    ):
         prompt = (
             "Составь план достижения цели '{goal}' с дедлайном '{deadline}' "
             "и ежедневным временем '{time}' в формате JSON".format(
@@ -47,4 +54,4 @@ class AsyncLLMClient:
             temperature=0.7,
         )
         content = resp.choices[0].message.content
-        return self._extract_plan(content) 
+        return self._extract_plan(content)

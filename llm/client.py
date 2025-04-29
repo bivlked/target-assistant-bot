@@ -65,7 +65,9 @@ class LLMClient:
     # -------------------------------------------------
     # Публичные методы
     # -------------------------------------------------
-    def generate_plan(self, goal_text: str, deadline: str, time: str) -> List[dict[str, Any]]:
+    def generate_plan(
+        self, goal_text: str, deadline: str, time: str
+    ) -> List[dict[str, Any]]:
         prompt = PLAN_PROMPT.format(goal_text=goal_text, deadline=deadline, time=time)
         content = self._chat_completion(prompt)
         logger.debug("LLM raw plan response: %s", content[:2000])
@@ -75,7 +77,9 @@ class LLMClient:
             except json.JSONDecodeError:
                 data = self._extract_plan(content)
             # простая валидация
-            if not isinstance(data, list) or not all("day" in item and "task" in item for item in data):
+            if not isinstance(data, list) or not all(
+                "day" in item and "task" in item for item in data
+            ):
                 raise ValueError("Неверный формат JSON от LLM")
             return data
         except (json.JSONDecodeError, ValueError) as e:
@@ -83,5 +87,7 @@ class LLMClient:
             raise
 
     def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
-        prompt = MOTIVATION_PROMPT.format(goal_text=goal_text, progress_summary=progress_summary)
-        return self._chat_completion(prompt) 
+        prompt = MOTIVATION_PROMPT.format(
+            goal_text=goal_text, progress_summary=progress_summary
+        )
+        return self._chat_completion(prompt)

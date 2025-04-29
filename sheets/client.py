@@ -5,7 +5,12 @@ from typing import Any, List
 
 import gspread  # type: ignore
 from google.oauth2.service_account import Credentials  # type: ignore
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from tenacity import (
+    retry,
+    wait_exponential,
+    stop_after_attempt,
+    retry_if_exception_type,
+)
 from gspread.exceptions import APIError  # type: ignore
 
 from config import google
@@ -31,13 +36,16 @@ RETRY = retry(
     stop=stop_after_attempt(3),
 )
 
+
 class SheetsManager:
     def __init__(self):
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
         ]
-        creds = Credentials.from_service_account_file(google.credentials_path, scopes=scopes)
+        creds = Credentials.from_service_account_file(
+            google.credentials_path, scopes=scopes
+        )
         self.gc = gspread.authorize(creds)
 
     # -------------------------------------------------
@@ -59,9 +67,11 @@ class SheetsManager:
                 pass
             # Делимся таблицей — любой, у кого есть ссылка, может редактировать
             try:
-                sh.share('', perm_type="anyone", role="writer", with_link=True)
+                sh.share("", perm_type="anyone", role="writer", with_link=True)
             except Exception as e:
-                logger.warning("Не удалось установить публичный доступ к таблице: %s", e)
+                logger.warning(
+                    "Не удалось установить публичный доступ к таблице: %s", e
+                )
             return sh
 
     # -------------------------------------------------
@@ -71,7 +81,7 @@ class SheetsManager:
         sh = self._get_spreadsheet(user_id)
         # удостоверимся, что доступ открыт даже если таблица существовала
         try:
-            sh.share('', perm_type="anyone", role="writer", with_link=True)
+            sh.share("", perm_type="anyone", role="writer", with_link=True)
         except Exception:
             pass
 
@@ -82,7 +92,9 @@ class SheetsManager:
             try:
                 ws = sh.worksheet(title)
             except gspread.WorksheetNotFound:
-                ws = sh.add_worksheet(title=title, rows=10, cols=3 if title == GOAL_INFO_SHEET else 4)
+                ws = sh.add_worksheet(
+                    title=title, rows=10, cols=3 if title == GOAL_INFO_SHEET else 4
+                )
             ws.clear()
 
     @RETRY
@@ -107,13 +119,17 @@ class SheetsManager:
         ws = sh.worksheet(PLAN_SHEET)
 
         header = [list(PLAN_HEADERS)]
-        rows = [[p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan]
+        rows = [
+            [p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan
+        ]
         ws.update("A1", header + rows)
 
         # --- Красивое форматирование ---------------------
         # 1. Сделать шапку жирной и по центру
         try:
-            ws.format("A1:D1", {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"})
+            ws.format(
+                "A1:D1", {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"}
+            )
             # 1.1 Центрируем весь столбец Дата (A)
             ws.format("A:A", {"horizontalAlignment": "CENTER"})
         except Exception:
@@ -183,7 +199,7 @@ class SheetsManager:
             sh = self.gc.open(name)
             self.gc.del_spreadsheet(sh.id)
         except gspread.SpreadsheetNotFound:
-            return 
+            return
 
     # -------------------------------------------------
     # Дополнительные методы для расширенной статистики
@@ -223,12 +239,22 @@ class SheetsManager:
 
         today_dt = datetime.strptime(format_date(datetime.now()), "%d.%m.%Y")
 
-        days_passed = sum(1 for r in plan_rows if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) < today_dt)
+        days_passed = sum(
+            1
+            for r in plan_rows
+            if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) < today_dt
+        )
         days_left = total_days - days_passed
 
         # Ближайшие задачи, которые еще не выполнены и дата >= сегодня
-        upcoming = [r for r in plan_rows if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) >= today_dt]
-        upcoming_sorted = sorted(upcoming, key=lambda r: _parse(r.get(COL_DATE)))[:upcoming_count]
+        upcoming = [
+            r
+            for r in plan_rows
+            if _parse(r.get(COL_DATE)) and _parse(r.get(COL_DATE)) >= today_dt
+        ]
+        upcoming_sorted = sorted(upcoming, key=lambda r: _parse(r.get(COL_DATE)))[
+            :upcoming_count
+        ]
 
         return {
             "total_days": total_days,
@@ -238,7 +264,7 @@ class SheetsManager:
             "days_left": days_left,
             "upcoming_tasks": upcoming_sorted,
             "sheet_url": sh.url,
-        } 
+        }
 
     # Форматирование Goal sheet после сохранения
     @RETRY
@@ -251,4 +277,4 @@ class SheetsManager:
             if hasattr(ws, "columns_auto_resize"):
                 ws.columns_auto_resize(1, 3)
         except Exception:
-            pass 
+            pass

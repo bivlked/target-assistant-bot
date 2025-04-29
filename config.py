@@ -39,7 +39,9 @@ class OpenAIConfig:
 
 @dataclass(frozen=True)
 class GoogleConfig:
-    credentials_path: str = os.getenv("GOOGLE_CREDENTIALS_PATH", "google_credentials.json")
+    credentials_path: str = os.getenv(
+        "GOOGLE_CREDENTIALS_PATH", "google_credentials.json"
+    )
 
 
 @dataclass(frozen=True)
@@ -60,4 +62,4 @@ telegram = TelegramConfig()
 openai_cfg = OpenAIConfig()
 google = GoogleConfig()
 scheduler_cfg = SchedulerConfig()
-logging_cfg = LoggingConfig() 
+logging_cfg = LoggingConfig()

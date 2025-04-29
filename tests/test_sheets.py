@@ -37,4 +37,4 @@ def test_get_statistics(monkeypatch):
     stats = manager.get_statistics(user_id=123)
 
     # Assert
-    assert "Выполнено 2 из 3" in stats 
+    assert "Выполнено 2 из 3" in stats

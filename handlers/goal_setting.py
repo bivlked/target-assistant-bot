@@ -26,6 +26,7 @@ AVAILABLE_TIME: Final = 2
 # Валидация пользовательского ввода
 # ------------------------------
 
+
 def _validate_deadline(text: str):
     """Проверка, что пользователь указал срок <= 90 дней.
     Поддерживает как цифры, так и словесные числа ("один", "два" ...).
@@ -55,7 +56,7 @@ def _validate_deadline(text: str):
         }
         num = None
         for w, val in words_map.items():
-            if re.search(fr"\b{w}\b", txt):
+            if re.search(rf"\b{w}\b", txt):
                 num = val
                 break
         # 3. Если число явно не указано, но есть слово 'месяц/неделя/день' – подразумеваем 1
@@ -93,6 +94,7 @@ async def _ask_available_time(update: Update):
 # Функция построения ConversationHandler
 # ------------------------------
 
+
 def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
@@ -103,7 +105,9 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         if len(text) < 10:
-            await update.message.reply_text("Пожалуйста, опишите цель подробнее (минимум 10 символов).")
+            await update.message.reply_text(
+                "Пожалуйста, опишите цель подробнее (минимум 10 символов)."
+            )
             return TEXT_GOAL
         context.user_data["goal_text"] = text
         await _ask_deadline(update)
@@ -117,7 +121,9 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
             if days > 90:
                 raise ValueError
         except ValueError:
-            await update.message.reply_text("Некорректный срок. Попробуйте ещё раз и убедитесь, что срок <= 3 месяцев.")
+            await update.message.reply_text(
+                "Некорректный срок. Попробуйте ещё раз и убедитесь, что срок <= 3 месяцев."
+            )
             return DEADLINE
 
         context.user_data["deadline"] = text
@@ -127,7 +133,9 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def input_available_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         context.user_data["available_time"] = text
-        await update.message.reply_text("Генерирую для вас персональный план... Это может занять некоторое время.")
+        await update.message.reply_text(
+            "Генерирую для вас персональный план... Это может занять некоторое время."
+        )
 
         goal_text = context.user_data["goal_text"]
         deadline = context.user_data["deadline"]
@@ -135,7 +143,9 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         user_id = update.effective_user.id
 
         try:
-            spreadsheet_url = goal_manager.set_new_goal(user_id, goal_text, deadline, available_time)
+            spreadsheet_url = goal_manager.set_new_goal(
+                user_id, goal_text, deadline, available_time
+            )
             await update.message.reply_text(
                 f"✅ Ваша цель *{goal_text}* установлена! План сохранён. \n"
                 f"📄 [Открыть таблицу]({spreadsheet_url})\n\n"
@@ -144,7 +154,9 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
                 disable_web_page_preview=True,
             )
         except Exception as e:
-            await update.message.reply_text("Произошла ошибка при создании цели. Попробуйте позже.")
+            await update.message.reply_text(
+                "Произошла ошибка при создании цели. Попробуйте позже."
+            )
             raise
         return ConversationHandler.END
 
@@ -157,10 +169,12 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         states={
             TEXT_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_goal)],
             DEADLINE: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_deadline)],
-            AVAILABLE_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_available_time)],
+            AVAILABLE_TIME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, input_available_time)
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         block=True,
         name="setgoal_conv",
         persistent=False,
-    ) 
+    )

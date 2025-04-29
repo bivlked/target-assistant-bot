@@ -47,7 +47,9 @@ async def _update_commands(force: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Настройка стандартных команд BotFather.")
+    parser = argparse.ArgumentParser(
+        description="Настройка стандартных команд BotFather."
+    )
     parser.add_argument(
         "--force",
         action="store_true",
@@ -59,4 +61,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

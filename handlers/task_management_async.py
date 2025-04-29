@@ -33,4 +33,4 @@ def build_async_handlers(goal_manager: GoalManager) -> CommandHandler:
             text = "Сначала установите цель с помощью /setgoal."
         await update.message.reply_text(text)
 
-    return CommandHandler("today_async", today_async) 
+    return CommandHandler("today_async", today_async)

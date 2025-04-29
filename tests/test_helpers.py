@@ -12,4 +12,4 @@ def test_format_date_default_tz():
 def test_get_day_of_week_ru():
     """get_day_of_week() возвращает название дня недели на русском."""
     dt = datetime(2024, 1, 15)  # Понедельник
-    assert get_day_of_week(dt) == "Понедельник" 
+    assert get_day_of_week(dt) == "Понедельник"

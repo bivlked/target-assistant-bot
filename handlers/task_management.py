@@ -31,7 +31,9 @@ def build_task_handlers(goal_manager: GoalManager):
 
         # Если цели ещё нет
         if not data.get("goal"):
-            await update.message.reply_text("У вас пока нет цели. Используйте /setgoal, чтобы её установить.")
+            await update.message.reply_text(
+                "У вас пока нет цели. Используйте /setgoal, чтобы её установить."
+            )
             return
 
         # Формируем красивый отчёт
@@ -60,24 +62,32 @@ def build_task_handlers(goal_manager: GoalManager):
         msg_lines.append("")
         msg_lines.append(f"📈 [Открыть таблицу]({data['sheet_url']})")
 
-        await update.message.reply_text("\n".join(msg_lines), parse_mode="Markdown", disable_web_page_preview=True)
+        await update.message.reply_text(
+            "\n".join(msg_lines), parse_mode="Markdown", disable_web_page_preview=True
+        )
 
     # ------------- CHECK -------------
 
     async def check_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         task = goal_manager.get_today_task(update.effective_user.id)
         if not task:
-            await update.message.reply_text("Не удалось найти задачу на сегодня. Установите цель с помощью /setgoal.")
+            await update.message.reply_text(
+                "Не удалось найти задачу на сегодня. Установите цель с помощью /setgoal."
+            )
             return ConversationHandler.END
         if task[COL_STATUS] == STATUS_DONE:
-            await update.message.reply_text("Отличная работа! Задача на сегодня уже выполнена. ✅")
+            await update.message.reply_text(
+                "Отличная работа! Задача на сегодня уже выполнена. ✅"
+            )
             return ConversationHandler.END
 
         keyboard = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton("✅ Выполнено", callback_data=STATUS_DONE),
-                    InlineKeyboardButton("❌ Не выполнено", callback_data=STATUS_NOT_DONE),
+                    InlineKeyboardButton(
+                        "❌ Не выполнено", callback_data=STATUS_NOT_DONE
+                    ),
                 ],
                 [InlineKeyboardButton("🤔 Частично", callback_data=STATUS_PARTIAL)],
             ]
@@ -110,4 +120,4 @@ def build_task_handlers(goal_manager: GoalManager):
         persistent=False,
     )
 
-    return today, status, motivation, check_conv 
+    return today, status, motivation, check_conv

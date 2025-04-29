@@ -76,7 +76,9 @@ class Scheduler:
 
     def _send_evening_reminder(self, bot: Bot, user_id: int):
         try:
-            bot.send_message(chat_id=user_id, text="Не забудьте отметить прогресс командой /check! ✍️")
+            bot.send_message(
+                chat_id=user_id, text="Не забудьте отметить прогресс командой /check! ✍️"
+            )
         except Exception as e:
             logger.error("Ошибка при отправке вечернего напоминания: %s", e)
 
@@ -85,4 +87,4 @@ class Scheduler:
             msg = self.goal_manager.generate_motivation_message(user_id)
             bot.send_message(chat_id=user_id, text=msg)
         except Exception as e:
-            logger.error("Ошибка при отправке мотивационного сообщения: %s", e) 
+            logger.error("Ошибка при отправке мотивационного сообщения: %s", e)

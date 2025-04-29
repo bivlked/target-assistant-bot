@@ -187,4 +187,4 @@ class GoalManager:
             spreadsheet_url = await loop.run_in_executor(None, self.sheets_sync.save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
             await loop.run_in_executor(None, self.sheets_sync.save_plan, user_id, full_plan)  # type: ignore[arg-type]
 
-        return spreadsheet_url 
+        return spreadsheet_url

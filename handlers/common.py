@@ -20,7 +20,9 @@ def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True)
+    await update.message.reply_text(
+        HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True
+    )
 
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,7 +32,9 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def reset_handler(goal_manager: GoalManager):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         goal_manager.reset_user(update.effective_user.id)
-        await update.message.reply_text("🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново.")
+        await update.message.reply_text(
+            "🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново."
+        )
 
     return _handler
 
@@ -39,4 +43,4 @@ def unknown_handler():
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(UNKNOWN_TEXT)
 
-    return _handler 
+    return _handler

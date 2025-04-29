@@ -38,6 +38,7 @@ _WORDS_MAP = {
 # Эвристический парсер (быстрый, без сети)
 # ---------------------------------------------------------------------------
 
+
 def _heuristic_days(text: str) -> Optional[int]:
     txt = text.lower()
 
@@ -52,7 +53,7 @@ def _heuristic_days(text: str) -> Optional[int]:
         # 2. Словесное число
         num = None
         for w, val in _WORDS_MAP.items():
-            if re.search(fr"\b{w}\b", txt):
+            if re.search(rf"\b{w}\b", txt):
                 num = val
                 break
         # 3. Если число не найдено и присутствует ключевое слово — считаем 1
@@ -80,6 +81,7 @@ def _heuristic_days(text: str) -> Optional[int]:
 
 _client: Optional[OpenAI] = None
 
+
 def _get_client() -> OpenAI:
     global _client
     if _client is None:
@@ -87,13 +89,17 @@ def _get_client() -> OpenAI:
     return _client
 
 
-@retry(wait=wait_exponential(multiplier=1, min=1, max=4), stop=stop_after_attempt(2), reraise=False)
+@retry(
+    wait=wait_exponential(multiplier=1, min=1, max=4),
+    stop=stop_after_attempt(2),
+    reraise=False,
+)
 def _llm_days(text: str) -> Optional[int]:
     """Спросить у LLM сколько дней содержит фраза. Возвращает int или None."""
     prompt = (
         "Определи количество календарных дней, содержащихся во фразе на русском языке. "
-        "Ответь ТОЛЬКО JSON формата {\"days\": <число>} без пояснений.\n\n"
-        f"Фраза: \"{text}\""
+        'Ответь ТОЛЬКО JSON формата {"days": <число>} без пояснений.\n\n'
+        f'Фраза: "{text}"'
     )
     try:
         response = _get_client().chat.completions.create(
@@ -120,6 +126,7 @@ def _llm_days(text: str) -> Optional[int]:
 # Публичная функция
 # ---------------------------------------------------------------------------
 
+
 def parse_period(text: str) -> int:
     """Возвращает количество дней. Бросает ValueError при неудаче."""
     days = _heuristic_days(text)
@@ -127,4 +134,4 @@ def parse_period(text: str) -> int:
         days = _llm_days(text)
     if days is None:
         raise ValueError("Не удалось распознать срок.")
-    return days 
+    return days

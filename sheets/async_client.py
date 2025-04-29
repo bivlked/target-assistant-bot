@@ -14,14 +14,18 @@ class AsyncSheetsManager:
     не переписывая сразу всю логику работы с Google Sheets.
     """
 
-    def __init__(self, max_workers: int = 4, loop: Optional[asyncio.AbstractEventLoop] = None):
+    def __init__(
+        self, max_workers: int = 4, loop: Optional[asyncio.AbstractEventLoop] = None
+    ):
         self._sync = SheetsManager()
         self._loop = loop or asyncio.get_event_loop()
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
     # ---------------------------- proxy helpers ---------------------------
     async def _run(self, func, *args, **kwargs):  # noqa: D401
-        return await self._loop.run_in_executor(self._executor, lambda: func(*args, **kwargs))
+        return await self._loop.run_in_executor(
+            self._executor, lambda: func(*args, **kwargs)
+        )
 
     # ----------------------------- Публичные API --------------------------
     async def create_spreadsheet(self, user_id: int):
@@ -37,4 +41,4 @@ class AsyncSheetsManager:
         return await self._run(self._sync.get_statistics, user_id)
 
     async def get_spreadsheet_url(self, user_id: int) -> str:
-        return await self._run(self._sync.get_spreadsheet_url, user_id) 
+        return await self._run(self._sync.get_spreadsheet_url, user_id)

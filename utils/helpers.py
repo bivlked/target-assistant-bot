@@ -21,4 +21,4 @@ def get_day_of_week(date_obj: datetime, tz: str | None = None) -> str:
         "Saturday": "Суббота",
         "Sunday": "Воскресенье",
     }
-    return mapping.get(day, day) 
+    return mapping.get(day, day)
