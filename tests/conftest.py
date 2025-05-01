@@ -28,8 +28,22 @@ class _DummySpreadsheet:
         }
         self.sheet1 = self.worksheets["Sheet1"]
 
+    # -- Методы, имитирующие gspread API --
     def worksheet(self, title):  # noqa: D401
-        raise importlib.import_module("gspread").WorksheetNotFound()
+        if title not in self.worksheets:
+            raise importlib.import_module("gspread").WorksheetNotFound()
+        return self.worksheets[title]
+
+    def add_worksheet(self, title, rows, cols):  # noqa: D401
+        ws = _DummyWorksheet(title)
+        self.worksheets[title] = ws
+        return ws
+
+    def del_worksheet(self, ws):  # noqa: D401
+        self.worksheets.pop(ws.title, None)
+
+    def share(self, *args, **kwargs):  # noqa: D401
+        pass
 
 
 class _DummyGSpreadClient:
