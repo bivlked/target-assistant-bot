@@ -174,6 +174,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        allow_reentry=True,
         block=True,
         name="setgoal_conv",
         persistent=False,

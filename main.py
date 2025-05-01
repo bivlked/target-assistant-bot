@@ -25,18 +25,8 @@ from core.exceptions import BotError
 from utils.sentry_integration import setup_sentry
 
 # ---------------------------------------------------------------------------
-# Временный патч для python-telegram-bot 20.8 на Python 3.13
-# Ошибка AttributeError: '_Updater__polling_cleanup_cb' — отсутствует слот
-# Исправлено в PTB 20.9+, но пока ставим динамический патч, добавляющий слот.
+# PTB >=20.9 содержит фикс слота __polling_cleanup_cb, дополнительный патч не нужен.
 # ---------------------------------------------------------------------------
-from telegram.ext import _updater as _tg_up
-
-if hasattr(_tg_up, "Updater"):
-    updater_cls = _tg_up.Updater
-    missing_slot = "_Updater__polling_cleanup_cb"
-    if hasattr(updater_cls, "__slots__") and missing_slot not in updater_cls.__slots__:
-        # расширяем кортеж слотов
-        updater_cls.__slots__ = (*updater_cls.__slots__, missing_slot)
 
 # ---------------------------------
 # Настройка логирования
@@ -83,9 +73,7 @@ def main():
     scheduler.start()
 
     # Создание приложения Telegram
-    application = (
-        Application.builder().token(telegram.token).concurrent_updates(True).build()
-    )
+    application = Application.builder().token(telegram.token).build()
 
     # Регистрация обработчиков
     application.add_handler(CommandHandler("help", help_handler))

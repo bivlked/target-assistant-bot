@@ -40,5 +40,9 @@ class AsyncSheetsManager:
     async def get_statistics(self, user_id: int):
         return await self._run(self._sync.get_statistics, user_id)
 
+    async def get_task_for_date(self, user_id: int, target_date: str):
+        """Возвращает задачу на указанную дату (обёртка sync)."""
+        return await self._run(self._sync.get_task_for_date, user_id, target_date)
+
     async def get_spreadsheet_url(self, user_id: int) -> str:
         return await self._run(self._sync.get_spreadsheet_url, user_id)

@@ -23,16 +23,16 @@ def build_task_handlers(goal_manager: GoalManager):
                 f"📝 {task[COL_TASK]}\n\nСтатус: {task[COL_STATUS]}"
             )
         else:
-            text = "Сначала установите цель с помощью /setgoal."
+            text = "У вас пока нет целей. Установите её с помощью /setgoal."
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = goal_manager.get_detailed_status(update.effective_user.id)
 
-        # Если цели ещё нет
-        if not data.get("goal"):
+        # Нет данных о цели или план пустой
+        if not data.get("goal") or data.get("total_days", 0) == 0:
             await update.message.reply_text(
-                "У вас пока нет цели. Используйте /setgoal, чтобы её установить."
+                "У вас пока нет цели или план ещё не создан. Используйте /setgoal, чтобы начать."
             )
             return
 
@@ -72,7 +72,7 @@ def build_task_handlers(goal_manager: GoalManager):
         task = goal_manager.get_today_task(update.effective_user.id)
         if not task:
             await update.message.reply_text(
-                "Не удалось найти задачу на сегодня. Установите цель с помощью /setgoal."
+                "У вас пока нет цели или задач на сегодня. Сначала выполните /setgoal."
             )
             return ConversationHandler.END
         if task[COL_STATUS] == STATUS_DONE:

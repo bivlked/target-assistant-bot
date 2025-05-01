@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
 import re
+import logging
 
 # Загружаем переменные окружения из .env файла, если он существует
 load_dotenv()
@@ -39,9 +40,50 @@ class OpenAIConfig:
 
 @dataclass(frozen=True)
 class GoogleConfig:
-    credentials_path: str = os.getenv(
-        "GOOGLE_CREDENTIALS_PATH", "google_credentials.json"
-    )
+    """Конфигурация доступа к Google API.
+
+    Если в переменной окружения GOOGLE_CREDENTIALS_PATH указан относительный путь
+    (или она не установлена), он будет преобразован в абсолютный путь внутри
+    директории проекта. Это избавляет от проблем, когда бот запускается из
+    любого каталога или на другой ОС (Windows vs Linux).
+    """
+
+    _raw_path: str = os.getenv("GOOGLE_CREDENTIALS_PATH", "google_credentials.json")
+
+    @property
+    def credentials_path(self) -> str:  # type: ignore[override]
+        """Абсолютный путь к файлу сервисного аккаунта.
+
+        • Если указан абсолютный путь (например, `/opt/...`), возвращаем как есть.
+        • В противном случае считаем, что путь относительный к `BASE_DIR`.
+        Проверяем существование файла и, если его нет, подсказываем, что делать.
+        """
+
+        path = Path(self._raw_path)
+        if not path.is_absolute():
+            path = BASE_DIR / path
+
+        if not path.exists():
+            # Пробуем резервный путь — файл в корне проекта, если из env не найден
+            fallback = BASE_DIR / "google_credentials.json"
+            if fallback.exists():
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    "Файл учетных данных Google не найден по пути '%s'. "
+                    "Использую '%s' вместо него.",
+                    path,
+                    fallback,
+                )
+                path = fallback
+            else:
+                raise FileNotFoundError(
+                    f"Файл учетных данных Google не найден ни по пути '{path}', "
+                    f"ни по резервному '{fallback}'. "
+                    "Укажите корректный путь в переменной окружения GOOGLE_CREDENTIALS_PATH "
+                    "или поместите файл 'google_credentials.json' в корень проекта."
+                )
+
+        return str(path)
 
 
 @dataclass(frozen=True)
