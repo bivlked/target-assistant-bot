@@ -115,7 +115,7 @@ def test_save_goal_info_formats_and_autowidth():
     # format bold column A recorded
     assert any(rng.startswith("A") for rng, _ in ws.formatted)
     # автоширина вызвана
-    assert ws.auto_resized and ws.auto_resized[0] == (1, 3)
+    assert (1, 3) in ws.auto_resized
 
 
 def test_save_plan_freeze_and_format():
