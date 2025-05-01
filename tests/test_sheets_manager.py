@@ -97,31 +97,6 @@ class DummyGSpreadClient:
 # ----------------- Tests -----------------
 
 
-@pytest.fixture(autouse=True)
-def patch_gspread(monkeypatch):
-    """Патчим gspread.authorize и Credentials для изоляции от сети."""
-
-    # Импортируем gspread, создаём фиктивные исключения
-    import gspread
-
-    class _NotFound(Exception):
-        pass
-
-    gspread.SpreadsheetNotFound = _NotFound  # type: ignore[attr-defined]
-    gspread.WorksheetNotFound = _NotFound  # type: ignore[attr-defined]
-
-    dummy_gc = DummyGSpreadClient()
-    monkeypatch.setattr("gspread.authorize", lambda creds: dummy_gc)
-
-    # Credentials
-    monkeypatch.setattr(
-        "google.oauth2.service_account.Credentials.from_service_account_file",
-        lambda *a, **kw: None,
-    )
-
-    yield
-
-
 def _make_manager():
     from sheets.client import SheetsManager  # re-import after patching
 
