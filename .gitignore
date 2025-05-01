@@ -34,7 +34,17 @@ AnotherCrewCode/
 
 # ОС
 .DS_Store
+# Системные файлы Windows/Mac
 Thumbs.db
 
 # Исключения
-!Персональный ассистент для помощи в достижении поставленных целей.pdf 
+!Персональный ассистент для помощи в достижении поставленных целей.pdf
+
+# Кеши инструментов / тестов
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache_ggshield
+.coverage*
+htmlcov/
+coverage.xml 
