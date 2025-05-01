@@ -18,7 +18,7 @@ from config import google
 logger = logging.getLogger(__name__)
 
 # -- Названия листов (рус.) --
-GOAL_INFO_SHEET = "Цель"
+GOAL_INFO_SHEET = "Информация о цели"
 PLAN_SHEET = "План"
 
 # -- Заголовки колонок для листа План --
@@ -54,7 +54,51 @@ class SheetsManager:
     def _get_spreadsheet(self, user_id: int):
         name = f"TargetAssistant_{user_id}"
         try:
-            return self.gc.open(name)
+            sh = self.gc.open(name)
+            # Таблица уже существует; далее убедимся, что листы переименованы и созданы при необходимости
+            # Делимся таблицей — любой, у кого есть ссылка, может редактировать (на случай, если доступ не выставлен)
+            try:
+                sh.share("", perm_type="anyone", role="writer", with_link=True)
+            except Exception:
+                pass
+
+            # --- Если таблица уже существует, убеждаемся, что листы имеют актуальные названия ----
+            try:
+                # Карта возможных старых названий → новые
+                rename_map = {
+                    "Цель": GOAL_INFO_SHEET,
+                    "GoalInfo": GOAL_INFO_SHEET,
+                    "Plan": PLAN_SHEET,
+                }
+
+                for old_title, new_title in rename_map.items():
+                    try:
+                        ws_old = sh.worksheet(old_title)
+                        if ws_old.title != new_title:
+                            ws_old.update_title(new_title)
+                    except gspread.WorksheetNotFound:
+                        # Старого листа нет – ок, создаём если нужно ниже
+                        pass
+
+                # Убеждаемся, что требуемые листы существуют
+                try:
+                    sh.worksheet(GOAL_INFO_SHEET)
+                except gspread.WorksheetNotFound:
+                    ws_new = sh.add_worksheet(title=GOAL_INFO_SHEET, rows=10, cols=3)
+                    if hasattr(ws_new, "columns_auto_resize"):
+                        try:
+                            ws_new.columns_auto_resize(1, 1)
+                        except Exception:
+                            pass
+
+                try:
+                    sh.worksheet(PLAN_SHEET)
+                except gspread.WorksheetNotFound:
+                    sh.add_worksheet(title=PLAN_SHEET, rows=400, cols=4)
+            except Exception as e:
+                logger.warning("Ошибка проверки/переименования листов: %s", e)
+
+            return sh
         except gspread.SpreadsheetNotFound:
             sh = self.gc.create(name)
             # Сделать листы
@@ -128,7 +172,13 @@ class SheetsManager:
         # 1. Сделать шапку жирной и по центру
         try:
             ws.format(
-                "A1:D1", {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"}
+                "A1:D1",
+                {
+                    "textFormat": {"bold": True},
+                    "horizontalAlignment": "CENTER",
+                    # Светло-оранжевая заливка (RGB 255,229,204)
+                    "backgroundColor": {"red": 1, "green": 0.898, "blue": 0.8},
+                },
             )
             # 1.1 Центрируем весь столбец Дата (A)
             ws.format("A:A", {"horizontalAlignment": "CENTER"})
@@ -269,7 +319,7 @@ class SheetsManager:
     # Форматирование Goal sheet после сохранения
     @RETRY
     def _format_goal_sheet(self, user_id: int):
-        """Применяет жирный стиль к A:A и авторазмер колонок на листе Цель."""
+        """Применяет жирный стиль к A:A и авторазмер колонок на листе 'Информация о цели'."""
         try:
             sh = self._get_spreadsheet(user_id)
             ws = sh.worksheet(GOAL_INFO_SHEET)
