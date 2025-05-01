@@ -101,4 +101,15 @@ def patch_gspread(monkeypatch):
         lambda *a, **kw: None,
     )
 
+    # --- Заглушка credentials path ---
+    from pathlib import Path
+    import config as _cfg
+
+    dummy_file = Path.cwd() / "dummy_credentials.json"
+    if not dummy_file.exists():
+        dummy_file.write_text("{}")
+
+    # Переписываем путь внутри экземпляра GoogleConfig
+    monkeypatch.setattr(_cfg.google, "_raw_path", str(dummy_file), raising=True)
+
     yield
