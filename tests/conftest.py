@@ -17,6 +17,22 @@ import pytest
 class _DummyWorksheet:
     def __init__(self, title):
         self.title = title
+        self.formatted = []
+        self.auto_resized = []
+        self.frozen = False
+
+    # методы, вызываемые SheetsManager
+    def format(self, rng, fmt):  # noqa: D401
+        self.formatted.append((rng, fmt))
+
+    def columns_auto_resize(self, start, end):  # noqa: D401
+        self.auto_resized.append((start, end))
+
+    def freeze(self, rows=1):  # noqa: D401
+        self.frozen = True
+
+    def update(self, rng, rows):  # noqa: D401
+        pass
 
 
 class _DummySpreadsheet:
