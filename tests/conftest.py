@@ -34,6 +34,9 @@ class _DummyWorksheet:
     def update(self, rng, rows):  # noqa: D401
         pass
 
+    def update_title(self, new):  # noqa: D401
+        self.title = new
+
 
 class _DummySpreadsheet:
     def __init__(self, name):
