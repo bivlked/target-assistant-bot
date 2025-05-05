@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+import asyncio
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
@@ -16,8 +17,16 @@ logger = logging.getLogger(__name__)
 class Scheduler:
     def __init__(self, goal_manager):
         self.goal_manager = goal_manager
-        self.scheduler = AsyncIOScheduler(timezone=scheduler_cfg.timezone)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
+        self.scheduler = AsyncIOScheduler(
+            timezone=scheduler_cfg.timezone,
+            event_loop=loop,
+        )
     def add_user_jobs(self, bot: Bot, user_id: int):
         # Утреннее напоминание с задачей
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))

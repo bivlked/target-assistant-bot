@@ -109,6 +109,12 @@ def patch_gspread(monkeypatch):
     if not dummy_file.exists():
         dummy_file.write_text("{}")
 
+    # Создаём также fallback-файл, который ищет GoogleConfig по умолчанию,
+    # чтобы тесты не падали, даже если monkeypatch _raw_path не применится
+    fallback_file = PROJECT_ROOT / "google_credentials.json"
+    if not fallback_file.exists():
+        fallback_file.write_text("{}")
+
     # Переписываем путь внутри экземпляра GoogleConfig
     monkeypatch.setattr(_cfg.google, "_raw_path", str(dummy_file), raising=True)
 
