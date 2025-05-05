@@ -38,7 +38,7 @@ class OpenAIConfig:
     max_retries: int = int(os.getenv("OPENAI_MAX_RETRIES", "2"))
 
 
-@dataclass(frozen=True)
+@dataclass
 class GoogleConfig:
     """Конфигурация доступа к Google API.
 
