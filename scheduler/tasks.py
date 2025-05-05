@@ -17,19 +17,16 @@ logger = logging.getLogger(__name__)
 class Scheduler:
     def __init__(self, goal_manager):
         self.goal_manager = goal_manager
-        # Создаём отдельный цикл, чтобы работать в sync-контекстах (например, unit-тесты или
-        # инициализация до запуска главного event-loop).
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        self.scheduler_loop = loop
         self.scheduler = AsyncIOScheduler(
-            timezone=scheduler_cfg.timezone, event_loop=loop
+            timezone=scheduler_cfg.timezone,
+            event_loop=loop,
         )
-
     def add_user_jobs(self, bot: Bot, user_id: int):
         # Утреннее напоминание с задачей
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
