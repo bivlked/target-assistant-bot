@@ -46,5 +46,6 @@ Thumbs.db
 .ruff_cache/
 .cache_ggshield
 .coverage*
+!.coveragerc
 htmlcov/
 coverage.xml 

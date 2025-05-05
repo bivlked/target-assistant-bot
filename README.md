@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)
 ![Tests](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.10-3.12-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 Персональный Telegram-бот-ассистент, который помогает формулировать цели, разбивать их на ежедневные задачи и отслеживать прогресс с сохранением в Google Sheets.
