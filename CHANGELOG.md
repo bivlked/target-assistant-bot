@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2 — 2025-05-05
+
+### Added
+* Миграция планировщика на `AsyncIOScheduler` (асинхронный режим по умолчанию).
+* Матрица тестов GitHub-Actions для Python 3.10–3.12 (`tests.yml`).
+* Отчёт о покрытии кода публикуется в Codecov.
+* Заглушки `google_credentials.json` и fallback-файл для стабильного CI.
+* Бейджи `Tests` и актуальные версии Python в README.
+
+### Changed
+* `GoogleConfig` больше не `frozen=True` — позволяет monkeypatch в тестах.
+* README: уточнены названия листов, пути запуска, обновлены ссылки.
+* Тесты `SheetsManager` расширены, фиктивные файлы создаются через `conftest.py`.
+* Удалена зависимость `six`; APScheduler зафиксирован на 3.11.
+
+### Removed
+* Удалена устаревшая ветка `chore/update-changelog-1.1` из origin.
+
 ## 1.1 — 2025-05-02
 
 ### Added
