@@ -8,7 +8,7 @@ graph TD
     D --> E[sheets/client.py]
     D --> F[llm/client.py]
     B --> G[scheduler/tasks.py]
-    G --> D
+    G -->|async| D
     subgraph Внешние сервисы
         H[Google Sheets API]
         I[OpenAI API]
@@ -26,7 +26,7 @@ graph TD
 | `core/goal_manager.py` | Бизнес-логика: постановка цели, получение задач, мотивации |
 | `sheets/client.py` | Работа с Google Sheets через `gspread` и автоматическое форматирование |
 | `llm/` | Запросы к OpenAI (генерация плана, мотивации) |
-| `scheduler/` | Фоновые напоминания `apscheduler` (утро/вечер, мотивация) |
+| `scheduler/` | Фоновые напоминания `AsyncIOScheduler` (утро/вечер, мотивация) |
 | `utils/` | Утилиты (форматирование дат, парсинг периода) |
 
 ## Поток данных
@@ -36,8 +36,9 @@ graph TD
 4. `/check` обновляет статус задачи в таблице.
 
 ## Внешние зависимости
-* Python ≥3.10
+* Python 3.10–3.12
 * Google Service Account JSON
 * OpenAI API key
+* Dependency Injector `wired` (планируется)
 
 Сеть должна быть доступна к `api.telegram.org`, `sheets.googleapis.com`, `api.openai.com`. 
