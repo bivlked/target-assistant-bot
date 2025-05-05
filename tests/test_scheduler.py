@@ -27,9 +27,9 @@ class DummyGoalManager:
 
 class DummyBot:
     def __init__(self):
-        self.sent = []
+        self.sent: list[dict] = []
 
-    def send_message(self, **kwargs):  # noqa: D401
+    async def send_message(self, **kwargs):  # noqa: D401
         self.sent.append(kwargs)
 
 
@@ -53,11 +53,12 @@ def test_add_user_jobs(scheduler_instance):
     assert job.args[1] == 123  # user_id
 
 
-def test_send_today_task(scheduler_instance):
+@pytest.mark.asyncio
+async def test_send_today_task(scheduler_instance):
     sched, gm = scheduler_instance
     bot = DummyBot()
 
-    sched._send_today_task(bot, 555)
+    await sched._send_today_task(bot, 555)
 
     # goal_manager вызван
     assert gm.called["get_today_task"] == 555
@@ -66,11 +67,12 @@ def test_send_today_task(scheduler_instance):
     assert "📅 Задача на сегодня" in bot.sent[0]["text"]
 
 
-def test_send_motivation(scheduler_instance):
+@pytest.mark.asyncio
+async def test_send_motivation(scheduler_instance):
     sched, gm = scheduler_instance
     bot = DummyBot()
 
-    sched._send_motivation(bot, 777)
+    await sched._send_motivation(bot, 777)
 
     assert gm.called["generate_motivation_message"] == 777
     assert bot.sent[0]["text"] == "Keep going!"

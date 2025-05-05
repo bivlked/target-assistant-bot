@@ -15,12 +15,30 @@ DEFAULT_COMMANDS: List[BotCommand] = [
     BotCommand("setgoal", "🎯 Установить новую цель"),
     BotCommand("today", "📅 Задача на сегодня"),
     BotCommand("today_async", "⚡ Асинхронная задача на сегодня (тест)"),
-    BotCommand("check", "✍️ Отметить выполнение"),
-    BotCommand("status", "📊 Посмотреть прогресс"),
-    BotCommand("motivation", "💡 Мотивационное сообщение"),
-    BotCommand("cancel", "⛔ Отменить ввод"),
-    BotCommand("reset", "🗑️ Сбросить все данные"),
+    BotCommand("check", "✍️ Отметить выполнение задачи"),
+    BotCommand("status", "📊 Посмотреть прогресс в достижении цели"),
+    BotCommand("motivation", "💡 Мотивирующее сообщение"),
+    BotCommand("cancel", "⛔ Отменить текущую операцию"),
+    BotCommand("reset", "🗑️ Сбросить все цели (удалить данные полностью)"),
 ]
+
+# --- Описание бота (Bot API >= 6.1) ---
+SHORT_DESCRIPTION = "✅ Личный ассистент: ставьте цели и достигайте их!"
+
+FULL_DESCRIPTION = (
+    "🎯 Target Assistant Bot помогает сформулировать цель, разбить её на ежедневные задачи и "
+    "отслеживать прогресс в Google Sheets.\n\n"
+    "Основные команды:\n"
+    "• /setgoal — постановка цели с поддержкой AI\n"
+    "• /today — задача на сегодня\n"
+    "• /today_async — асинхронная задача (тест)\n"
+    "• /check — отметить выполнение задачи\n"
+    "• /status — прогресс в достижении цели\n"
+    "• /motivation — мотивирующее сообщение\n"
+    "• /cancel — отменить текущую операцию\n"
+    "• /reset — сбросить все цели и данные\n\n"
+    "Давайте достигать целей вместе!"
+)
 
 
 async def _update_commands(force: bool = False):
@@ -36,15 +54,27 @@ async def _update_commands(force: bool = False):
 
     bot = Bot(token=token)
 
-    current = await bot.get_my_commands()
-    if not force and set((c.command, c.description) for c in current) == set(
+    # --- Обновляем команды ---
+    current_cmds = await bot.get_my_commands()
+    if force or set((c.command, c.description) for c in current_cmds) != set(
         (c.command, c.description) for c in DEFAULT_COMMANDS
     ):
-        print("ℹ️ Команды уже актуальны – обновление не требуется.")
-        return
+        await bot.set_my_commands(DEFAULT_COMMANDS)
+        print("✅ Команды обновлены.")
+    else:
+        print("ℹ️ Команды уже актуальны – пропущено.")
 
-    await bot.set_my_commands(DEFAULT_COMMANDS)
-    print("✅ Команды успешно обновлены в BotFather!")
+    # --- Обновляем короткое описание ---
+    short_desc = await bot.get_my_short_description()
+    if force or (short_desc.short_description or "") != SHORT_DESCRIPTION:
+        await bot.set_my_short_description(short_description=SHORT_DESCRIPTION)
+        print("✅ SHORT_DESCRIPTION обновлено.")
+
+    # --- Обновляем полное описание ---
+    full_desc = await bot.get_my_description()
+    if force or (full_desc.description or "") != FULL_DESCRIPTION:
+        await bot.set_my_description(description=FULL_DESCRIPTION)
+        print("✅ FULL_DESCRIPTION обновлено.")
 
 
 def main():
