@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1 — 2025-05-02
+
+### Added
+* Интеграция структурированного логгирования `structlog` и отправка ошибок в Sentry.
+* CI-workflow GitHub Actions с прогоном тестов и линтера.
+* Асинхронные клиенты Google Sheets и GoalManager (`set_new_goal_async`).
+* Заглушка пути `google_credentials.json` в тестах для независимости окружения.
+
+### Changed
+* Расширены мок-классы `DummySpreadsheet` и `DummyWorksheet` для полного покрытия API.
+* Исправлены smoke-тесты, обновлена проверка `auto_resize`.
+
+### Docs
+* README дополнен разделами Docker Compose и systemd.
+* Обновлена архитектурная документация.
+
 ## 1.0 — initial release
 
 ### Added
