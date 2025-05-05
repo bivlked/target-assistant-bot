@@ -1,0 +1,7 @@
+[run]
+omit =
+    handlers/*
+    sheets/*
+    deploy/*
+    setup_commands.py
+    main.py 
