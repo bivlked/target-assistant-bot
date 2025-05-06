@@ -1,23 +1,29 @@
 from __future__ import annotations
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
     ContextTypes,
     ConversationHandler,
-    CommandHandler,
-    CallbackQueryHandler,
 )
 
-from core.goal_manager import GoalManager, STATUS_DONE, STATUS_NOT_DONE, STATUS_PARTIAL
+from core.goal_manager import (
+    GoalManager,
+    STATUS_DONE,
+    STATUS_NOT_DONE,
+    STATUS_PARTIAL,
+)
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
-from datetime import datetime
 from utils.helpers import format_date
 
 CHOOSING_STATUS = 0
 
 
 def build_task_handlers(goal_manager: GoalManager):
-    async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
         task = await goal_manager.get_today_task_async(update.effective_user.id)
         if task:
             text = (
@@ -28,7 +34,7 @@ def build_task_handlers(goal_manager: GoalManager):
             text = "У вас пока нет целей. Установите её с помощью /setgoal."
         await update.message.reply_text(text)
 
-    async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
         data = await goal_manager.get_detailed_status_async(update.effective_user.id)
 
         # Нет данных о цели или план пустой
@@ -70,7 +76,9 @@ def build_task_handlers(goal_manager: GoalManager):
 
     # ------------- CHECK -------------
 
-    async def check_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def check_entry(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
         task = await goal_manager.get_today_task_async(update.effective_user.id)
         if not task:
             await update.message.reply_text(
@@ -100,18 +108,22 @@ def build_task_handlers(goal_manager: GoalManager):
         )
         return CHOOSING_STATUS
 
-    async def check_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def check_button(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
         query = update.callback_query
         await query.answer()
-        status = query.data
-        # Пакетное обновление (сейчас одна дата, но даёт задел)
+        status_val = query.data
         await goal_manager.batch_update_task_statuses_async(
-            update.effective_user.id, {format_date(datetime.now()): status}
+            update.effective_user.id,
+            {format_date(datetime.now()): status_val},
         )
         await query.edit_message_text("Статус обновлен! 💪")
         return ConversationHandler.END
 
-    async def motivation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def motivation(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
         msg = await goal_manager.generate_motivation_message_async(
             update.effective_user.id
         )
@@ -119,9 +131,7 @@ def build_task_handlers(goal_manager: GoalManager):
 
     check_conv = ConversationHandler(
         entry_points=[CommandHandler("check", check_entry)],
-        states={
-            CHOOSING_STATUS: [CallbackQueryHandler(check_button)],
-        },
+        states={CHOOSING_STATUS: [CallbackQueryHandler(check_button)]},
         fallbacks=[],
         name="check_conv",
         persistent=False,

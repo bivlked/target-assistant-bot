@@ -141,11 +141,6 @@ class GoalManager:
 
         loop = asyncio.get_event_loop()
 
-        async def _maybe_await(value):  # helper to await if coroutine
-            if asyncio.iscoroutine(value):
-                return await value
-            return value
-
         # 1. clear data
         if self.sheets_async:
             await self.sheets_async.clear_user_data(user_id)  # type: ignore[attr-defined]
@@ -227,11 +222,6 @@ class GoalManager:
         """Асинхронная версия generate_motivation_message."""
         import asyncio
 
-        async def _maybe_await(value):
-            if asyncio.iscoroutine(value):
-                return await value
-            return value
-
         if self.sheets_async:
             goal_info = await self.sheets_async.get_goal_info(user_id)  # type: ignore[attr-defined]
             stats = await self.sheets_async.get_statistics(user_id)  # type: ignore[attr-defined]
@@ -244,9 +234,13 @@ class GoalManager:
             return await self.llm_async.generate_motivation(
                 goal_info.get("Глобальная цель", ""), stats  # type: ignore[attr-defined]
             )
-        return await _maybe_await(
-            loop.run_in_executor(None, self.llm_sync.generate_motivation, goal_info.get("Глобальная цель", ""), stats)  # type: ignore[arg-type]
-        )
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            self.llm_sync.generate_motivation,
+            goal_info.get("Глобальная цель", ""),
+            stats,
+        )  # type: ignore[arg-type]
 
     async def batch_update_task_statuses_async(
         self, user_id: int, updates: dict[str, str]
