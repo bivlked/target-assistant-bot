@@ -167,10 +167,16 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     return ConversationHandler(
         entry_points=[CommandHandler("setgoal", start)],
         states={
-            TEXT_GOAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_goal)],
-            DEADLINE: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_deadline)],
+            TEXT_GOAL: [
+                MessageHandler(filters.Text() & ~filters.Command(), input_goal)
+            ],
+            DEADLINE: [
+                MessageHandler(filters.Text() & ~filters.Command(), input_deadline)
+            ],
             AVAILABLE_TIME: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, input_available_time)
+                MessageHandler(
+                    filters.Text() & ~filters.Command(), input_available_time
+                )
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
