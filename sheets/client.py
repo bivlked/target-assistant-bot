@@ -38,7 +38,23 @@ RETRY = retry(
 
 
 class SheetsManager:
+    """Синхронный клиент Google Sheets.
+
+    Экономит усилия на работе напрямую с API *gspread* и инкапсулирует всю
+    доменно-специфичную логику (создание/получение таблиц, чтение и запись
+    данных, форматирование листов, вычисление статистики). Методы
+    декорированы ретраем Tenacity для устойчивой работы с нестабильной
+    сетью/квотами Google.
+    """
+
     def __init__(self):
+        """Авторизуется в Google API и инициализирует объект `gspread`.
+
+        Данные сервисного аккаунта берутся из ``config.google.credentials_path``.
+        Поддерживаются скopes как для Google Sheets, так и для Google Drive –
+        это позволяет открывать общий доступ к таблице через метод
+        :py:meth:`gspread.Spreadsheet.share`.
+        """
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
@@ -101,6 +117,7 @@ class SheetsManager:
     # Публичные методы
     # -------------------------------------------------
     def create_spreadsheet(self, user_id: int):
+        """Создаёт (или открывает) таблицу пользователя и открывает к ней доступ.*"""  # noqa: D401,E501
         sh = self._get_spreadsheet(user_id)
         try:
             sh.share("", perm_type="anyone", role="writer", with_link=True)
@@ -109,6 +126,7 @@ class SheetsManager:
 
     @RETRY
     def clear_user_data(self, user_id: int):
+        """Очищает оба листа пользователя, сохраняя структуру таблицы."""
         sh = self._get_spreadsheet(user_id)
         for title in (GOAL_INFO_SHEET, PLAN_SHEET):
             try:
@@ -121,6 +139,7 @@ class SheetsManager:
 
     @RETRY
     def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
+        """Записывает блок «Информация о цели» и возвращает URL таблицы."""
         sh = self._get_spreadsheet(user_id)
         ws = sh.worksheet(GOAL_INFO_SHEET)
         rows = [[k, v, ""] for k, v in goal_data.items()]
@@ -135,6 +154,7 @@ class SheetsManager:
 
     @RETRY
     def save_plan(self, user_id: int, plan: List[dict[str, Any]]):
+        """Сохраняет список ежедневных задач в лист *План* и форматирует шапку."""
         sh = self._get_spreadsheet(user_id)
         ws = sh.worksheet(PLAN_SHEET)
         header = [list(PLAN_HEADERS)]
@@ -167,12 +187,17 @@ class SheetsManager:
 
     @RETRY
     def get_goal_info(self, user_id: int):
+        """Возвращает словарь с параметрами цели (лист *Информация о цели*)."""
         ws = self._get_spreadsheet(user_id).worksheet(GOAL_INFO_SHEET)
         data = ws.get_all_values()
         return {row[0]: row[1] for row in data if row}
 
     @RETRY
     def get_task_for_date(self, user_id: int, target_date: str):
+        """Ищет задачу на указанную дату в листе *План*.
+
+        Возвращает dict строки таблицы или *None*, если задача не найдена.
+        """
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         for row in ws.get_all_records():
             if row.get(COL_DATE) == target_date:
@@ -181,6 +206,7 @@ class SheetsManager:
 
     @RETRY
     def update_task_status(self, user_id: int, target_date: str, status: str):
+        """Обновляет поле *Статус* задачи в указанную дату."""
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         for idx, row in enumerate(data, start=2):
@@ -190,6 +216,7 @@ class SheetsManager:
 
     @RETRY
     def get_statistics(self, user_id: int):
+        """Краткая строковая статистика выполнения плана."""
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         total = len(data)
@@ -200,6 +227,7 @@ class SheetsManager:
 
     @RETRY
     def delete_spreadsheet(self, user_id: int):
+        """Навсегда удаляет таблицу пользователя из Google Drive."""
         name = f"TargetAssistant_{user_id}"
         try:
             sh = self.gc.open(name)
@@ -210,6 +238,7 @@ class SheetsManager:
     # --- batch update statuses ---
     @RETRY
     def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
+        """Пакетно обновляет статусы задач в несколько дат одной операцией."""
         """Обновляет статусы нескольких дат одной операцией."""
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
@@ -226,11 +255,21 @@ class SheetsManager:
     # --- Дополнительные методы статистики и форматирования ------------------
     @RETRY
     def get_spreadsheet_url(self, user_id: int) -> str:
-        """Возвращает URL таблицы пользователя (создаёт при необходимости)."""
+        """Возвращает URL таблицы (создаёт её при необходимости)."""
         return self._get_spreadsheet(user_id).url
 
     @RETRY
     def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
+        """Расширенная статистика + список ближайших задач.
+
+        Параметры
+        ----------
+        user_id: int
+            Telegram-ID пользователя.
+        upcoming_count: int, default = 5
+            Сколько ближайших (по дате) задач вернуть в списке
+            ``upcoming_tasks``.
+        """
         """Подробная статистика прогресса + ближайшие задачи.
 
         Возвращает dict с ключами total_days, completed_days, progress_percent,

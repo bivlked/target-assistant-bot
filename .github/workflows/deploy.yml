@@ -1,0 +1,21 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # деплой при публикации версии
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверка доступа по SSH и деплой
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT }}
+          # Запускаем скрипт обновления кода и перезапуска systemd
+          script: |
+            sudo /usr/local/bin/update-bot.sh 

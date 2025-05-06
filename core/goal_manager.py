@@ -50,6 +50,19 @@ class GoalManager:
     # Методы API, вызываемые из Telegram-обработчиков
     # -------------------------------------------------
     def setup_user(self, user_id: int) -> None:
+        """Создаёт (или открывает) Google-таблицу для пользователя.
+
+        Метод вызывается хендлером `/start` для первичной инициализации
+        инфраструктуры. Если таблица уже существует, она просто будет
+        открыта. Сам объект *GoalManager* проксирует вызов к
+        ``SheetsManager.create_spreadsheet`` (или его async-варианту).
+
+        Параметры
+        ----------
+        user_id: int
+            Telegram-ID пользователя, по которому формируется уникальное
+            имя таблицы вида ``TargetAssistant_<user_id>``.
+        """
         self.sheets.create_spreadsheet(user_id)
 
     def set_new_goal(
@@ -93,18 +106,30 @@ class GoalManager:
         return spreadsheet_url
 
     def get_today_task(self, user_id: int):
+        """Возвращает задачу, запланированную на текущий день."""
         date_str = format_date(datetime.now())
         return self.sheets.get_task_for_date(user_id, date_str)
 
     def update_today_task_status(self, user_id: int, status: str):
+        """Отмечает статус сегодняшней задачи.
+
+        Аргументы
+        ---------
+        user_id: int
+            Telegram-ID пользователя.
+        status: str
+            Строка-метка из ``STATUS_*`` (например, «Выполнено»).
+        """
         date_str = format_date(datetime.now())
         self.sheets.update_task_status(user_id, date_str, status)
 
     def get_goal_status_details(self, user_id: int):
+        """Краткая строковая статистика прогресса (совместимость)."""
         # Старая строковая статистика (для совместимости)
         return self.sheets.get_statistics(user_id)
 
     def generate_motivation_message(self, user_id: int):
+        """Генерирует мотивирующее сообщение через LLM."""
         goal_info = self.sheets.get_goal_info(user_id)
         stats = self.sheets.get_statistics(user_id)
         return self.llm.generate_motivation(goal_info.get("Глобальная цель", ""), stats)
@@ -113,6 +138,7 @@ class GoalManager:
     # Сброс
     # -------------------------------------------------
     def reset_user(self, user_id: int):
+        """Полностью удаляет Google-таблицу пользователя."""
         self.sheets.delete_spreadsheet(user_id)
 
     # --- Новый, расширенный статус ----------------------
@@ -268,6 +294,7 @@ class GoalManager:
         await loop.run_in_executor(None, self.sheets_sync.create_spreadsheet, user_id)  # type: ignore[arg-type]
 
     async def reset_user_async(self, user_id: int):  # noqa: D401
+        """Асинхронная версия :py:meth:`reset_user`."""
         import asyncio
 
         if self.sheets_async:

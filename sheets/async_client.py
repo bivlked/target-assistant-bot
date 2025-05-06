@@ -8,21 +8,37 @@ from sheets.client import SheetsManager  # существующий синхро
 
 
 class AsyncSheetsManager:
-    """Асинхронная обёртка над SheetsManager, выполняющая вызовы в ThreadPoolExecutor.
+    """Асинхронная обёртка над :class:`sheets.client.SheetsManager`.
 
-    Это минимальная адаптация, позволяющая постепенно мигрировать код на async/await,
-    не переписывая сразу всю логику работы с Google Sheets.
+    Все публичные методы синхронного клиента автоматически проксируются в
+    корутины, которые выполняются в пуле потоков ``ThreadPoolExecutor``. Это
+    обеспечивает *неблокирующее* взаимодействие с Google API и позволяет
+    постепенно мигрировать кодовой базу в сторону **async/await** без
+    переписывания всей бизнес-логики сразу.
     """
 
     def __init__(
         self, max_workers: int = 4, loop: Optional[asyncio.AbstractEventLoop] = None
     ):
+        """Создаёт обёртку.
+
+        Параметры
+        ----------
+        max_workers: int
+            Количество потоков, в которых будут выполняться блокирующие
+            обращения к Google API.
+        loop: asyncio.AbstractEventLoop | None
+            Event-loop, в контексте которого запускаются корутины.
+            Если *None*, используется «текущий» loop, возвращаемый
+            :pyfunc:`asyncio.get_event_loop`.
+        """
         self._sync = SheetsManager()
         self._loop = loop or asyncio.get_event_loop()
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
     # ---------------------------- proxy helpers ---------------------------
     async def _run(self, func, *args, **kwargs):  # noqa: D401
+        """Выполняет блокирующую функцию *func* в пуле потоков."""
         return await self._loop.run_in_executor(
             self._executor, lambda: func(*args, **kwargs)
         )
@@ -48,9 +64,9 @@ class AsyncSheetsManager:
         return await self._run(self._sync.get_spreadsheet_url, user_id)
 
     def __getattr__(self, name):
-        """Автоматически проксирует любой sync-метод как async-корутину.
-
-        Это даёт полное покрытие API SheetsManager без ручного дублирования.
+        """Магия для проксирования: любой вызов вида ``await client.foo()``
+        будет прозрачно перенаправлен на ``SheetsManager.foo`` внутри
+        ThreadPoolExecutor.
         """
         sync_attr = getattr(self._sync, name)
         if callable(sync_attr):

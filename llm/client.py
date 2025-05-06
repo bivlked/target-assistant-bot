@@ -15,12 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
+    """Упрощённый клиент OpenAI Chat Completion.
+
+    Инкапсулирует логику повторных попыток, парсинга «шума» из ответов
+    языковой модели и предоставляет два высокоуровневых метода:
+
+    * :py:meth:`generate_plan` – вернуть JSON-план ежедневных задач;
+    * :py:meth:`generate_motivation` – сгенерировать мотивационное сообщение.
+    """
+
     def __init__(self):
+        """Читает конфигурацию из ``config.openai_cfg`` и инициализирует SDK."""
         self.client = OpenAI(api_key=openai_cfg.api_key)
         self.model = openai_cfg.model
         self.max_retries = openai_cfg.max_retries
 
     def _chat_completion(self, prompt: str) -> str:
+        """Базовый вызов ChatCompletion с автоматическим **retry**.
+
+        Private-метод: используется публичными врапперами для обеспечения
+        повторных попыток при `openai.APIError`. Количество попыток задаётся
+        в конфиге.
+        """
         for attempt in range(self.max_retries + 1):
             try:
                 response = self.client.chat.completions.create(
@@ -68,6 +84,12 @@ class LLMClient:
     def generate_plan(
         self, goal_text: str, deadline: str, time: str
     ) -> List[dict[str, Any]]:
+        """Запрашивает у LLM план задач и возвращает список словарей.
+
+        Возвращаемый формат: ``[{"day": 1, "task": "..."}, ...]``.
+        При необходимости выполняется «обратная совместимость» – метод
+        пытается вытащить JSON из markdown-блоков или свободного текста.
+        """
         prompt = PLAN_PROMPT.format(goal_text=goal_text, deadline=deadline, time=time)
         content = self._chat_completion(prompt)
         logger.debug("LLM raw plan response: %s", content[:2000])
@@ -87,6 +109,7 @@ class LLMClient:
             raise
 
     def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
+        """Генерирует короткое мотивирующее сообщение на русском языке."""
         prompt = MOTIVATION_PROMPT.format(
             goal_text=goal_text, progress_summary=progress_summary
         )
