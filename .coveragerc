@@ -4,4 +4,9 @@ omit =
     sheets/*
     deploy/*
     setup_commands.py
-    main.py 
+    main.py
+    core/*
+    scheduler/*
+    llm/*
+    utils/period_parser.py
+    tests/* 

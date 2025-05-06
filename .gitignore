@@ -51,4 +51,19 @@ htmlcov/
 coverage.xml
 
 # Локальный план разработки
+
+# Исключения
+!Персональный ассистент для помощи в достижении поставленных целей.pdf
+
+# Кеши инструментов / тестов
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache_ggshield
+.coverage*
+!.coveragerc
+htmlcov/
+coverage.xml
+
+# Локальный план разработки
 LOCAL_DEV_PLAN.md 
