@@ -9,6 +9,8 @@ updates:
     ignore:
       - dependency-name: "python-telegram-bot"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "gspread"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
