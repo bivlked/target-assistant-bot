@@ -107,7 +107,7 @@ def main():
     known_cmds = (
         r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
     )
-    unknown_cmd_filter = filters.COMMAND & ~filters.Regex(known_cmds)
+    unknown_cmd_filter = filters.Command() & ~filters.Regex(known_cmds)
     application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler()))
 
     # Запуск бота
