@@ -20,6 +20,7 @@ class _DummyWorksheet:
         self.formatted = []
         self.auto_resized = []
         self.frozen = False
+        self.data = []  # хранение последних записанных данных
 
     # методы, вызываемые SheetsManager
     def format(self, rng, fmt):  # noqa: D401
@@ -32,10 +33,28 @@ class _DummyWorksheet:
         self.frozen = True
 
     def update(self, rng, rows):  # noqa: D401
-        pass
+        # сохраняем данные для последующего чтения
+        self.data = rows
 
     def update_title(self, new):  # noqa: D401
         self.title = new
+
+    # для get_extended_statistics требуется
+    def get_all_records(self):  # noqa: D401
+        if not self.data:
+            return []
+        header = self.data[0]
+        return [dict(zip(header, row)) for row in self.data[1:]]
+
+    def get_all_values(self):  # noqa: D401
+        return self.data
+
+    def update_cell(self, row, col, val):  # noqa: D401
+        # simplistic mutation for tests
+        try:
+            self.data[row - 1][col - 1] = val
+        except Exception:
+            pass
 
 
 class _DummySpreadsheet:
