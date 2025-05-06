@@ -97,12 +97,6 @@ def main():
     application.add_handler(CommandHandler("motivation", motivation_handler))
     application.add_handler(check_conv)
 
-    # async today handler
-    from handlers.task_management_async import build_async_handlers
-
-    today_async_handler = build_async_handlers(goal_manager)
-    application.add_handler(today_async_handler)
-
     # неизвестные команды – фильтруем все, кроме перечисленных
     known_cmds = (
         r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
