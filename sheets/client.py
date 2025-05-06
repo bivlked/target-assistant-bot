@@ -328,3 +328,31 @@ class SheetsManager:
                 ws.columns_auto_resize(1, 3)
         except Exception:
             pass
+
+    @RETRY
+    def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
+        """Обновляет статусы нескольких дат одной операцией.
+
+        updates: {"01.05.2025": "Выполнено", ...}
+        При небольшом количестве дат используем последовательные update_cell;
+        при необходимости можно оптимизировать batchUpdate запросом.
+        """
+        sh = self._get_spreadsheet(user_id)
+        ws = sh.worksheet(PLAN_SHEET)
+        data = ws.get_all_records()
+
+        # Карта дата→row_index для быстрого доступа (строки начинаются с 2)
+        row_map: dict[str, int] = {}
+        for idx, row in enumerate(data, start=2):
+            dt = row.get(COL_DATE)
+            if dt:
+                row_map[dt] = idx
+
+        reqs: list[tuple[int, str]] = []
+        for date_str, status in updates.items():
+            row_idx = row_map.get(date_str)
+            if row_idx:
+                reqs.append((row_idx, status))
+        # Пакетно — но простым циклом, gspread не имеет native batch_update_cell значений
+        for row_idx, status in reqs:
+            ws.update_cell(row_idx, 4, status)  # 4-й столбец Status

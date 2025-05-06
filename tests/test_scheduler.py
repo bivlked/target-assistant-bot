@@ -11,7 +11,7 @@ class DummyGoalManager:
         self.called = {}
 
     # --- methods used by Scheduler ---
-    def get_today_task(self, user_id):  # noqa: D401
+    async def get_today_task_async(self, user_id):  # noqa: D401
         self.called["get_today_task"] = user_id
         return {
             COL_DATE: "01.05.2025",
@@ -21,6 +21,10 @@ class DummyGoalManager:
         }
 
     def generate_motivation_message(self, user_id):  # noqa: D401
+        self.called["generate_motivation_message"] = user_id
+        return "Keep going!"
+
+    async def generate_motivation_message_async(self, user_id):  # noqa: D401
         self.called["generate_motivation_message"] = user_id
         return "Keep going!"
 

@@ -10,13 +10,15 @@ from telegram.ext import (
 
 from core.goal_manager import GoalManager, STATUS_DONE, STATUS_NOT_DONE, STATUS_PARTIAL
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
+from datetime import datetime
+from utils.helpers import format_date
 
 CHOOSING_STATUS = 0
 
 
 def build_task_handlers(goal_manager: GoalManager):
     async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        task = goal_manager.get_today_task(update.effective_user.id)
+        task = await goal_manager.get_today_task_async(update.effective_user.id)
         if task:
             text = (
                 f"📅 Задача на сегодня ({task[COL_DATE]}, {task[COL_DAYOFWEEK]}):\n\n"
@@ -27,7 +29,7 @@ def build_task_handlers(goal_manager: GoalManager):
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        data = goal_manager.get_detailed_status(update.effective_user.id)
+        data = await goal_manager.get_detailed_status_async(update.effective_user.id)
 
         # Нет данных о цели или план пустой
         if not data.get("goal") or data.get("total_days", 0) == 0:
@@ -69,7 +71,7 @@ def build_task_handlers(goal_manager: GoalManager):
     # ------------- CHECK -------------
 
     async def check_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        task = goal_manager.get_today_task(update.effective_user.id)
+        task = await goal_manager.get_today_task_async(update.effective_user.id)
         if not task:
             await update.message.reply_text(
                 "У вас пока нет цели или задач на сегодня. Сначала выполните /setgoal."
@@ -102,12 +104,17 @@ def build_task_handlers(goal_manager: GoalManager):
         query = update.callback_query
         await query.answer()
         status = query.data
-        goal_manager.update_today_task_status(update.effective_user.id, status)
+        # Пакетное обновление (сейчас одна дата, но даёт задел)
+        await goal_manager.batch_update_task_statuses_async(
+            update.effective_user.id, {format_date(datetime.now()): status}
+        )
         await query.edit_message_text("Статус обновлен! 💪")
         return ConversationHandler.END
 
     async def motivation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        msg = goal_manager.generate_motivation_message(update.effective_user.id)
+        msg = await goal_manager.generate_motivation_message_async(
+            update.effective_user.id
+        )
         await update.message.reply_text(msg)
 
     check_conv = ConversationHandler(

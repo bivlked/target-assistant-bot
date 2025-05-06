@@ -27,6 +27,7 @@ class Scheduler:
             timezone=scheduler_cfg.timezone,
             event_loop=loop,
         )
+
     def add_user_jobs(self, bot: Bot, user_id: int):
         # Утреннее напоминание с задачей
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
@@ -74,7 +75,7 @@ class Scheduler:
     # -------------------------------------------------
     async def _send_today_task(self, bot: Bot, user_id: int):
         try:
-            task = self.goal_manager.get_today_task(user_id)
+            task = await self.goal_manager.get_today_task_async(user_id)
             if task:
                 text = (
                     f"📅 Задача на сегодня ({task[COL_DATE]}, {task[COL_DAYOFWEEK]}):\n\n"
@@ -96,7 +97,7 @@ class Scheduler:
 
     async def _send_motivation(self, bot: Bot, user_id: int):
         try:
-            msg = self.goal_manager.generate_motivation_message(user_id)
+            msg = await self.goal_manager.generate_motivation_message_async(user_id)
             await bot.send_message(chat_id=user_id, text=msg)
         except Exception as e:
             logger.error("Ошибка при отправке мотивационного сообщения: %s", e)

@@ -42,4 +42,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
-          fail_ci_if_error: false 
+          fail_ci_if_error: false
+
+      - name: Check placeholders (CI)
+        run: python scripts/forbid_placeholders.py 

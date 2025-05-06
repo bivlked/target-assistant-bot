@@ -17,4 +17,11 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline"] 
+        args: ["--baseline", ".secrets.baseline"]
+  - repo: local
+    hooks:
+      - id: forbid-placeholders
+        name: "Forbid placeholder tokens"
+        entry: python scripts/forbid_placeholders.py
+        language: python
+        types: [python, text, yaml, markdown] 
