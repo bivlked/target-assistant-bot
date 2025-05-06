@@ -114,7 +114,9 @@ class SheetsManager:
             try:
                 ws = sh.worksheet(title)
             except gspread.WorksheetNotFound:
-                ws = sh.add_worksheet(title=title, rows=10, cols=3 if title == GOAL_INFO_SHEET else 4)
+                ws = sh.add_worksheet(
+                    title=title, rows=10, cols=3 if title == GOAL_INFO_SHEET else 4
+                )
             ws.clear()
 
     @RETRY
@@ -136,7 +138,9 @@ class SheetsManager:
         sh = self._get_spreadsheet(user_id)
         ws = sh.worksheet(PLAN_SHEET)
         header = [list(PLAN_HEADERS)]
-        rows = [[p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan]
+        rows = [
+            [p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan
+        ]
         ws.update("A1", header + rows)
         try:
             ws.format(
@@ -218,3 +222,79 @@ class SheetsManager:
             row_idx = row_map.get(date_str)
             if row_idx:
                 ws.update_cell(row_idx, 4, status)
+
+    # --- Дополнительные методы статистики и форматирования ------------------
+    @RETRY
+    def get_spreadsheet_url(self, user_id: int) -> str:
+        """Возвращает URL таблицы пользователя (создаёт при необходимости)."""
+        return self._get_spreadsheet(user_id).url
+
+    @RETRY
+    def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
+        """Подробная статистика прогресса + ближайшие задачи.
+
+        Возвращает dict с ключами total_days, completed_days, progress_percent,
+        days_passed, days_left, upcoming_tasks (список), sheet_url.
+        """
+        sh = self._get_spreadsheet(user_id)
+        ws_plan = sh.worksheet(PLAN_SHEET)
+
+        plan_rows = ws_plan.get_all_records()
+        total_days = len(plan_rows)
+        completed_days = sum(1 for r in plan_rows if r.get(COL_STATUS) == "Выполнено")
+        progress_percent = int(completed_days / total_days * 100) if total_days else 0
+
+        # --- работа с датами
+        from datetime import datetime as _dt
+        from utils.helpers import (
+            format_date as _fmt,
+        )  # локальный импорт, чтобы избежать циклов
+
+        def _parse(date_str: str):
+            for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+                try:
+                    return _dt.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            return None
+
+        today_dt = _dt.strptime(_fmt(_dt.now()), "%d.%m.%Y")
+
+        days_passed = sum(
+            1
+            for r in plan_rows
+            if _parse(r.get(COL_DATE, "")) and _parse(r.get(COL_DATE)) < today_dt
+        )
+        days_left = total_days - days_passed
+
+        upcoming = [
+            r
+            for r in plan_rows
+            if _parse(r.get(COL_DATE, "")) and _parse(r.get(COL_DATE)) >= today_dt
+        ]
+        upcoming_sorted = sorted(upcoming, key=lambda r: _parse(r.get(COL_DATE)))[
+            :upcoming_count
+        ]
+
+        return {
+            "total_days": total_days,
+            "completed_days": completed_days,
+            "progress_percent": progress_percent,
+            "days_passed": days_passed,
+            "days_left": days_left,
+            "upcoming_tasks": upcoming_sorted,
+            "sheet_url": sh.url,
+        }
+
+    # Форматирование Goal sheet после сохранения
+    @RETRY
+    def _format_goal_sheet(self, user_id: int):
+        """Жирный шрифт и авторазмер колонок на листе Информация о цели."""
+        try:
+            sh = self._get_spreadsheet(user_id)
+            ws = sh.worksheet(GOAL_INFO_SHEET)
+            ws.format("A:A", {"textFormat": {"bold": True}})
+            if hasattr(ws, "columns_auto_resize"):
+                ws.columns_auto_resize(1, 3)
+        except Exception:
+            pass

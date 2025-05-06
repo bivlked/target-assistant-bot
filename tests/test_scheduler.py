@@ -8,8 +8,9 @@ from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
 class DummyGoalManager:
     def __init__(self):
-        self.called = {}
+        self.called: dict[str, int] = {}
 
+    # --- методы, используемые Scheduler ---
     def get_today_task(self, user_id):  # noqa: D401
         self.called["get_today_task"] = user_id
         return {
@@ -20,6 +21,7 @@ class DummyGoalManager:
         }
 
     async def get_today_task_async(self, user_id):  # noqa: D401
+        # просто обёртка вокруг sync-метода
         return self.get_today_task(user_id)
 
     def generate_motivation_message(self, user_id):  # noqa: D401
@@ -27,6 +29,7 @@ class DummyGoalManager:
         return "Keep going!"
 
     async def generate_motivation_message_async(self, user_id):  # noqa: D401
+        # обёртка вокруг sync-метода
         return self.generate_motivation_message(user_id)
 
 

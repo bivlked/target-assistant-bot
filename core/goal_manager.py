@@ -188,7 +188,11 @@ class GoalManager:
     # Новые async-версии часто вызываемых методов
     # -------------------------------------------------
     async def get_today_task_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия get_today_task."""
+        """Асинхронная версия get_today_task.
+
+        Использует sheets_async, если он инициализирован, иначе запускает
+        синхронный метод в executor, чтобы не блокировать event loop.
+        """
         import asyncio
 
         date_str = format_date(datetime.now())
@@ -199,7 +203,9 @@ class GoalManager:
             None, self.sheets_sync.get_task_for_date, user_id, date_str  # type: ignore[arg-type]
         )
 
-    async def update_today_task_status_async(self, user_id: int, status: str):  # noqa: D401
+    async def update_today_task_status_async(
+        self, user_id: int, status: str
+    ):  # noqa: D401
         """Асинхронная версия update_today_task_status."""
         import asyncio
 
@@ -229,13 +235,56 @@ class GoalManager:
                 goal_info.get("Глобальная цель", ""), stats  # type: ignore[attr-defined]
             )
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.llm_sync.generate_motivation, goal_info.get("Глобальная цель", ""), stats)  # type: ignore[arg-type]
+        return await loop.run_in_executor(
+            None,
+            self.llm_sync.generate_motivation,
+            goal_info.get("Глобальная цель", ""),
+            stats,
+        )  # type: ignore[arg-type]
 
-    async def batch_update_task_statuses_async(self, user_id: int, updates: dict[str, str]):
+    async def batch_update_task_statuses_async(
+        self, user_id: int, updates: dict[str, str]
+    ):
         """Пакетное обновление статусов (используется /check)."""
         import asyncio
+
         if self.sheets_async:
             await self.sheets_async.batch_update_task_statuses(user_id, updates)  # type: ignore[attr-defined]
             return
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.sheets_sync.batch_update_task_statuses, user_id, updates)  # type: ignore[arg-type]
+
+    # -------------------------------------------------
+    # Новые async-версии дополнительных методов
+    # -------------------------------------------------
+    async def setup_user_async(self, user_id: int):  # noqa: D401
+        """Асинхронная версия setup_user."""
+        import asyncio
+
+        if self.sheets_async:
+            await self.sheets_async.create_spreadsheet(user_id)  # type: ignore[attr-defined]
+            return
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.sheets_sync.create_spreadsheet, user_id)  # type: ignore[arg-type]
+
+    async def reset_user_async(self, user_id: int):  # noqa: D401
+        import asyncio
+
+        if self.sheets_async:
+            await self.sheets_async.delete_spreadsheet(user_id)  # type: ignore[attr-defined]
+            return
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.sheets_sync.delete_spreadsheet, user_id)  # type: ignore[arg-type]
+
+    async def get_detailed_status_async(self, user_id: int):  # noqa: D401
+        """Асинхронная версия get_detailed_status."""
+        import asyncio
+
+        if self.sheets_async:
+            stats = await self.sheets_async.get_extended_statistics(user_id)  # type: ignore[attr-defined]
+            goal_info = await self.sheets_async.get_goal_info(user_id)  # type: ignore[attr-defined]
+        else:
+            loop = asyncio.get_event_loop()
+            stats = await loop.run_in_executor(None, self.sheets_sync.get_extended_statistics, user_id)  # type: ignore[arg-type]
+            goal_info = await loop.run_in_executor(None, self.sheets_sync.get_goal_info, user_id)  # type: ignore[arg-type]
+        return {"goal": goal_info.get("Глобальная цель", "—"), **stats}

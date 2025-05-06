@@ -35,7 +35,7 @@ def build_task_handlers(goal_manager: GoalManager):
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
-        data = goal_manager.get_detailed_status(update.effective_user.id)
+        data = await goal_manager.get_detailed_status_async(update.effective_user.id)
 
         # Нет данных о цели или план пустой
         if not data.get("goal") or data.get("total_days", 0) == 0:
@@ -76,7 +76,9 @@ def build_task_handlers(goal_manager: GoalManager):
 
     # ------------- CHECK -------------
 
-    async def check_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+    async def check_entry(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
         task = await goal_manager.get_today_task_async(update.effective_user.id)
         if not task:
             await update.message.reply_text(
@@ -93,7 +95,9 @@ def build_task_handlers(goal_manager: GoalManager):
             [
                 [
                     InlineKeyboardButton("✅ Выполнено", callback_data=STATUS_DONE),
-                    InlineKeyboardButton("❌ Не выполнено", callback_data=STATUS_NOT_DONE),
+                    InlineKeyboardButton(
+                        "❌ Не выполнено", callback_data=STATUS_NOT_DONE
+                    ),
                 ],
                 [InlineKeyboardButton("🤔 Частично", callback_data=STATUS_PARTIAL)],
             ]
@@ -104,7 +108,9 @@ def build_task_handlers(goal_manager: GoalManager):
         )
         return CHOOSING_STATUS
 
-    async def check_button(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+    async def check_button(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
         query = update.callback_query
         await query.answer()
         status_val = query.data
@@ -115,8 +121,12 @@ def build_task_handlers(goal_manager: GoalManager):
         await query.edit_message_text("Статус обновлен! 💪")
         return ConversationHandler.END
 
-    async def motivation(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
-        msg = await goal_manager.generate_motivation_message_async(update.effective_user.id)
+    async def motivation(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):  # noqa: D401
+        msg = await goal_manager.generate_motivation_message_async(
+            update.effective_user.id
+        )
         await update.message.reply_text(msg)
 
     check_conv = ConversationHandler(

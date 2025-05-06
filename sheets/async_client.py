@@ -46,3 +46,21 @@ class AsyncSheetsManager:
 
     async def get_spreadsheet_url(self, user_id: int) -> str:
         return await self._run(self._sync.get_spreadsheet_url, user_id)
+
+    def __getattr__(self, name):
+        """Автоматически проксирует любой sync-метод как async-корутину.
+
+        Это даёт полное покрытие API SheetsManager без ручного дублирования.
+        """
+        sync_attr = getattr(self._sync, name)
+        if callable(sync_attr):
+
+            async def _async_proxy(*args, **kwargs):  # type: ignore[override]
+                return await self._run(sync_attr, *args, **kwargs)
+
+            return _async_proxy
+        return sync_attr
+
+    # Позволяет корректно завершать пул потоков при необходимости
+    async def aclose(self):  # noqa: D401
+        self._executor.shutdown(wait=True)

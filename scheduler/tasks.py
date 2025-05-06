@@ -68,6 +68,7 @@ class Scheduler:
             self.scheduler.start()
 
     async def _send_today_task(self, bot: Bot, user_id: int):
+        """Отправляет задачу на сегодня (если есть)."""
         try:
             if hasattr(self.goal_manager, "get_today_task_async"):
                 task = await self.goal_manager.get_today_task_async(user_id)  # type: ignore[attr-defined]
@@ -87,12 +88,14 @@ class Scheduler:
     async def _send_evening_reminder(self, bot: Bot, user_id: int):
         try:
             await bot.send_message(
-                chat_id=user_id, text="Не забудьте отметить прогресс командой /check! ✍️"
+                chat_id=user_id,
+                text="Не забудьте отметить прогресс командой /check! ✍️",
             )
         except Exception as e:
             logger.error("Ошибка при отправке вечернего напоминания: %s", e)
 
     async def _send_motivation(self, bot: Bot, user_id: int):
+        """Отправляет мотивационное сообщение."""
         try:
             if hasattr(self.goal_manager, "generate_motivation_message_async"):
                 msg = await self.goal_manager.generate_motivation_message_async(user_id)  # type: ignore[attr-defined]

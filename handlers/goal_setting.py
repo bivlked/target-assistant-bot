@@ -143,7 +143,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         user_id = update.effective_user.id
 
         try:
-            spreadsheet_url = goal_manager.set_new_goal(
+            spreadsheet_url = await goal_manager.set_new_goal_async(
                 user_id, goal_text, deadline, available_time
             )
             await update.message.reply_text(

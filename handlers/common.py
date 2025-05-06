@@ -12,7 +12,7 @@ from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, UNKNOWN_TEXT
 def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
-        goal_manager.setup_user(user_id)
+        await goal_manager.setup_user_async(user_id)
         scheduler.add_user_jobs(context.bot, user_id)
         await update.message.reply_text(WELCOME_TEXT)
 
@@ -31,7 +31,7 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def reset_handler(goal_manager: GoalManager):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        goal_manager.reset_user(update.effective_user.id)
+        await goal_manager.reset_user_async(update.effective_user.id)
         await update.message.reply_text(
             "🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново."
         )

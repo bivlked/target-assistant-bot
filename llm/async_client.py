@@ -55,3 +55,17 @@ class AsyncLLMClient:
         )
         content = resp.choices[0].message.content
         return self._extract_plan(content)
+
+    @RETRY
+    async def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
+        prompt = (
+            "Ты - мотивационный коуч. Пользователь работает над целью: {goal}. "
+            "Текущий прогресс: {progress}. "
+            "Напиши вдохновляющее сообщение на русском из 2–3 коротких предложений (до 150 символов)."
+        ).format(goal=goal_text, progress=progress_summary)
+        resp = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        return resp.choices[0].message.content.strip()
