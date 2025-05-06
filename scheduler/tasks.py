@@ -27,8 +27,8 @@ class Scheduler:
             timezone=scheduler_cfg.timezone,
             event_loop=loop,
         )
+
     def add_user_jobs(self, bot: Bot, user_id: int):
-        # Утреннее напоминание с задачей
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
         self.scheduler.add_job(
             self._send_today_task,
@@ -41,7 +41,6 @@ class Scheduler:
             coalesce=True,
         )
 
-        # Вечернее напоминание о чек-ин
         hour, minute = map(int, scheduler_cfg.evening_time.split(":"))
         self.scheduler.add_job(
             self._send_evening_reminder,
@@ -54,7 +53,6 @@ class Scheduler:
             coalesce=True,
         )
 
-        # Мотивационное сообщение
         self.scheduler.add_job(
             self._send_motivation,
             "interval",
@@ -69,12 +67,8 @@ class Scheduler:
         if not self.scheduler.running:
             self.scheduler.start()
 
-    # -------------------------------------------------
-    # Внутренние методы
-    # -------------------------------------------------
     async def _send_today_task(self, bot: Bot, user_id: int):
         try:
-            # Поддержка как нового async-API, так и старого sync (для тестовых заглушек)
             if hasattr(self.goal_manager, "get_today_task_async"):
                 task = await self.goal_manager.get_today_task_async(user_id)  # type: ignore[attr-defined]
             else:
@@ -100,7 +94,6 @@ class Scheduler:
 
     async def _send_motivation(self, bot: Bot, user_id: int):
         try:
-            # Поддержка как нового async-API, так и старого sync (для тестовых заглушек)
             if hasattr(self.goal_manager, "generate_motivation_message_async"):
                 msg = await self.goal_manager.generate_motivation_message_async(user_id)  # type: ignore[attr-defined]
             else:
