@@ -151,13 +151,7 @@ class GoalManager:
         if self.llm_async:
             plan_json = await self.llm_async.generate_plan(goal_text, deadline_str, available_time_str)  # type: ignore[attr-defined]
         else:
-            plan_json = await loop.run_in_executor(
-                None,
-                self.llm_sync.generate_plan,
-                goal_text,
-                deadline_str,
-                available_time_str,
-            )  # type: ignore[arg-type]
+            plan_json = await loop.run_in_executor(None, self.llm_sync.generate_plan, goal_text, deadline_str, available_time_str)  # type: ignore[arg-type]
 
         today = datetime.now()
         full_plan = []
@@ -185,12 +179,8 @@ class GoalManager:
             spreadsheet_url = await self.sheets_async.save_goal_info(user_id, goal_info)  # type: ignore[arg-type]
             await self.sheets_async.save_plan(user_id, full_plan)  # type: ignore[arg-type]
         else:
-            spreadsheet_url = await loop.run_in_executor(
-                None, self.sheets_sync.save_goal_info, user_id, goal_info
-            )  # type: ignore[arg-type]
-            await loop.run_in_executor(
-                None, self.sheets_sync.save_plan, user_id, full_plan
-            )  # type: ignore[arg-type]
+            spreadsheet_url = await loop.run_in_executor(None, self.sheets_sync.save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
+            await loop.run_in_executor(None, self.sheets_sync.save_plan, user_id, full_plan)  # type: ignore[arg-type]
 
         return spreadsheet_url
 
@@ -219,12 +209,8 @@ class GoalManager:
             return
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None,
-            self.sheets_sync.update_task_status,
-            user_id,
-            date_str,
-            status,
-        )  # type: ignore[arg-type]
+            None, self.sheets_sync.update_task_status, user_id, date_str, status  # type: ignore[arg-type]
+        )
 
     async def generate_motivation_message_async(self, user_id: int):  # noqa: D401
         """Асинхронная версия generate_motivation_message."""
@@ -235,21 +221,21 @@ class GoalManager:
             stats = await self.sheets_async.get_statistics(user_id)  # type: ignore[attr-defined]
         else:
             loop = asyncio.get_event_loop()
-            goal_info = await loop.run_in_executor(
-                None, self.sheets_sync.get_goal_info, user_id
-            )  # type: ignore[arg-type]
-            stats = await loop.run_in_executor(
-                None, self.sheets_sync.get_statistics, user_id
-            )  # type: ignore[arg-type]
+            goal_info = await loop.run_in_executor(None, self.sheets_sync.get_goal_info, user_id)  # type: ignore[arg-type]
+            stats = await loop.run_in_executor(None, self.sheets_sync.get_statistics, user_id)  # type: ignore[arg-type]
 
         if self.llm_async:
             return await self.llm_async.generate_motivation(
                 goal_info.get("Глобальная цель", ""), stats  # type: ignore[attr-defined]
             )
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None,
-            self.llm_sync.generate_motivation,
-            goal_info.get("Глобальная цель", ""),
-            stats,
-        )  # type: ignore[arg-type]
+        return await loop.run_in_executor(None, self.llm_sync.generate_motivation, goal_info.get("Глобальная цель", ""), stats)  # type: ignore[arg-type]
+
+    async def batch_update_task_statuses_async(self, user_id: int, updates: dict[str, str]):
+        """Пакетное обновление статусов (используется /check)."""
+        import asyncio
+        if self.sheets_async:
+            await self.sheets_async.batch_update_task_statuses(user_id, updates)  # type: ignore[attr-defined]
+            return
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.sheets_sync.batch_update_task_statuses, user_id, updates)  # type: ignore[arg-type]
