@@ -27,6 +27,8 @@ dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 extend-select = ["E", "F"]
 ignore = ["F401", "F841", "E402", "F821", "E501"]
 
