@@ -1,4 +1,4 @@
-# Target Assistant Bot
+<h1 align="center">🎯 Target Assistant Bot</h1>
 
 ![CI](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)
 ![Tests](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)
