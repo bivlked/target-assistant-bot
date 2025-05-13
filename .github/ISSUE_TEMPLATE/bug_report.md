@@ -1,28 +1,33 @@
 ---
-name: "Bug Report"
-about: "Сообщить об ошибке"
-title: "[BUG] "
+name: "🐛 Bug report"
+about: "Report a reproducible bug"
 labels: bug
-assignees: ''
 ---
 
-**Описание**
-Кратко опишите проблему.
+### Summary
 
-**Как воспроизвести**
-Шаги:
-1. ...
-2. ...
+<!-- A clear and concise description of what the bug is. -->
 
-**Ожидаемое поведение**
-Опишите, что должно было произойти.
+### Steps to reproduce
 
-**Скриншоты / логи**
-При наличии приложите.
+1. …
+2. …
+3. …
 
-**Окружение**
-- OS: [e.g. Ubuntu 24.04]
-- Python version: `python --version`
-- Версия бота: commit SHA / tag
+### Expected behaviour
 
-**Доп. контекст** 
+<!-- What you expected to happen. -->
+
+### Actual behaviour
+
+<!-- What actually happened. Include traceback or logs if applicable. -->
+
+### Environment
+
+* Version / commit: <!-- e.g. v1.2.0 -->
+* Python version: <!-- e.g. 3.11 -->
+* Deployment method: <!-- Docker / venv / systemd -->
+
+### Additional context
+
+<!-- Add any other context about the problem here --> 

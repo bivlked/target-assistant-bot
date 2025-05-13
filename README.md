@@ -1,5 +1,7 @@
 <h1 align="center">🎯 Target Assistant Bot</h1>
 
+*Read this in other languages: [English](README_EN.md)*
+
 ![CI](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)
 ![Tests](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)

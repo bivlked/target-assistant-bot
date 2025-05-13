@@ -22,6 +22,11 @@ jobs:
           pip install black ruff mypy
       - name: Ruff check
         run: ruff check .
+      - name: Mypy type check (non-blocking)
+        continue-on-error: true
+        run: |
+          pip install mypy
+          mypy . --pretty
 
   test:
     runs-on: ubuntu-latest

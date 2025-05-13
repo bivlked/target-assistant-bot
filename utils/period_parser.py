@@ -108,12 +108,25 @@ def _llm_days(text: str) -> Optional[int]:
             temperature=0,
             timeout=5,  # секунд
         )
-        content = response.choices[0].message.content.strip()
+        # OpenAI may theoretically return empty choices or message without content.
+        # Added explicit defensive checks to avoid AttributeError at runtime and
+        # allow static analyzers (mypy) to see that `content` is always a `str`.
+
+        if not response.choices:  # pragma: no cover – extremely rare but handled
+            return None
+
+        raw = response.choices[0].message.content
+        if raw is None:
+            return None
+
+        content = raw.strip()
         logger.debug("LLM period raw response: %s", content)
-        # Пытаемся извлечь JSON
+
+        # Try to extract JSON structure from the response.
         m = re.search(r"{.*}", content)
         if not m:
             return None
+
         data = json.loads(m.group(0))
         days_val = int(data.get("days"))
         return days_val if days_val > 0 else None

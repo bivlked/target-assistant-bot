@@ -1,3 +1,20 @@
+## Proposed changes
+
+<!-- Describe what this PR implements. Link to the related Issue if exists. -->
+
+## Checklist
+
+- [ ] Conventional commit message (`feat: …`, `fix: …`, etc.)
+- [ ] Lint (`ruff`) passes locally
+- [ ] Tests pass (`pytest -q`)
+- [ ] Type check (`mypy`) has no new errors
+- [ ] Documentation updated (if required)
+- [ ] Checklist updated (`Чек-лист разработки`)
+
+## Additional notes
+
+<!-- Any other information reviewers should be aware of. -->
+
 ## Описание изменений
 <!-- Кратко опишите, что делает PR и зачем он нужен. -->
 
