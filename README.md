@@ -46,7 +46,7 @@ $EDITOR .env  # поставить TELEGRAM_BOT_TOKEN и GOOGLE_CREDENTIALS_PATH
 python main.py
 ```
 
-## Быстрый старт (Docker Compose)
+## 🏁 Быстрый старт (Docker Compose)
 
 ```bash
 git clone https://github.com/bivlked/target-assistant-bot.git
@@ -56,7 +56,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-## Деплой на сервер (systemd)
+## ☁️ Деплой на сервер (systemd)
 
 1. Клонируйте репозиторий и установите окружение:
 
@@ -90,7 +90,7 @@ sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
 echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
 ```
 
-## Документация
+## 🛠️ Документация
 
 * [Руководство пользователя](docs/user_guide.md)
 * [Установка на Ubuntu 24.04 LTS](docs/install_ubuntu.md)
@@ -99,6 +99,6 @@ echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_updat
 
 ---
 
-## Лицензия
+## 📄 Лицензия
 
 Проект распространяется по лицензии MIT. 
