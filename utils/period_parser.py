@@ -9,10 +9,10 @@ import logging
 import json
 import re
 
-from tenacity import retry, wait_exponential, stop_after_attempt
 from openai import OpenAI, APIError
 
 from config import openai_cfg
+from utils.retry_decorators import retry_openai_llm_no_reraise
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +89,7 @@ def _get_client() -> OpenAI:
     return _client
 
 
-@retry(
-    wait=wait_exponential(multiplier=1, min=1, max=4),
-    stop=stop_after_attempt(2),
-    reraise=False,
-)
+@retry_openai_llm_no_reraise
 def _llm_days(text: str) -> Optional[int]:
     """Спросить у LLM сколько дней содержит фраза. Возвращает int или None."""
     prompt = (

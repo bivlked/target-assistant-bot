@@ -12,6 +12,7 @@ from openai import OpenAI, APIError
 from config import openai_cfg
 from llm.prompts import PLAN_PROMPT, MOTIVATION_PROMPT, SYSTEM_PROMPT
 from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
+from utils.retry_decorators import retry_openai_llm
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class LLMClient:
         self.model = openai_cfg.model
         self.max_retries = openai_cfg.max_retries
 
+    @retry_openai_llm
     def _chat_completion(self, prompt: str) -> str:
         """Базовый вызов ChatCompletion с автоматическим **retry**.
 
@@ -39,34 +41,30 @@ class LLMClient:
         повторных попыток при `openai.APIError`. Количество попыток задаётся
         в конфиге.
         """
-        for attempt in range(self.max_retries + 1):
-            start_time = time.monotonic()
-            try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.7,
-                )
-                method_name = "chat_completion_generic"
-                LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
-                LLM_API_LATENCY.labels(method_name=method_name).observe(
-                    time.monotonic() - start_time
-                )
-                return response.choices[0].message.content.strip()
-            except APIError as e:
-                method_name = "chat_completion_generic"
-                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
-                LLM_API_LATENCY.labels(method_name=method_name).observe(
-                    time.monotonic() - start_time
-                )
-                logger.warning("Ошибка OpenAI: %s, попытка %d", e, attempt + 1)
-                if attempt == self.max_retries:
-                    raise
-        # Should never reach here, but mypy requires explicit return/raise.
-        raise RuntimeError("OpenAI chat completion failed after retries")
+        # Manual retry loop and direct metric calls are now handled by the decorator.
+        start_time = time.monotonic()
+        method_name = (
+            "chat_completion_generic"  # Or derive more specifically if possible
+        )
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.7,
+            )
+            LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+            return response.choices[0].message.content.strip()
+        except APIError as e:  # This will be caught by Tenacity first if it matches
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+            # Logger warning for final failure (if reraised) is handled by Tenacity's _log_retry
+            raise e  # Re-raise for Tenacity to handle or for caller if Tenacity gives up
+        finally:
+            LLM_API_LATENCY.labels(method_name=method_name).observe(
+                time.monotonic() - start_time
+            )
 
     def _extract_plan(self, content: str):
         """Пытается извлечь JSON-массив задач из произвольного текста LLM."""
@@ -98,55 +96,29 @@ class LLMClient:
 
     def _chat_completion_with_json_mode(self, prompt: str) -> str:
         """Specific chat completion call attempting to use JSON mode."""
-        # This method is a simplified version for generate_plan, assuming direct call.
-        # It should ideally be merged with _chat_completion or _chat_completion should handle response_format.
-        for attempt in range(self.max_retries + 1):
-            start_time = time.monotonic()
-            method_name = "generate_plan_json_mode"
-            try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.7,  # Usually lower temp (e.g., 0.2) for JSON
-                    response_format={"type": "json_object"},
-                )
-                LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
-                LLM_API_LATENCY.labels(method_name=method_name).observe(
-                    time.monotonic() - start_time
-                )
-                return response.choices[0].message.content.strip()
-            except APIError as e:
-                # If APIError is due to response_format not supported, could fall back to non-JSON mode.
-                # For now, just retry as usual.
-                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
-                LLM_API_LATENCY.labels(method_name=method_name).observe(
-                    time.monotonic() - start_time
-                )
-                logger.warning(
-                    "Ошибка OpenAI (JSON mode): %s, попытка %d", e, attempt + 1
-                )
-                if attempt == self.max_retries:
-                    # Fallback to normal mode if JSON mode fails persistently?
-                    # For now, re-raising to see if it was a transient error.
-                    logger.error(
-                        "Failed to get JSON response after retries. Re-raising."
-                    )
-                    raise
-            except Exception as e:  # Catch other unexpected errors
-                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
-                LLM_API_LATENCY.labels(method_name=method_name).observe(
-                    time.monotonic() - start_time
-                )
-                logger.error(
-                    f"Unexpected error in _chat_completion_with_json_mode: {e}",
-                    exc_info=True,
-                )
-                if attempt == self.max_retries:
-                    raise
-        raise RuntimeError("OpenAI JSON mode chat completion failed after retries")
+        # This method will also be decorated by @retry_openai_llm implicitly if called by a decorated public method,
+        # or can be decorated itself. For now, rely on public methods being decorated.
+        start_time = time.monotonic()
+        method_name = "generate_plan_json_mode"
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.7,  # Consider 0.2 for JSON
+                response_format={"type": "json_object"},
+            )
+            LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+            return response.choices[0].message.content.strip()
+        except APIError as e:
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+            raise e  # Re-raise for Tenacity or caller
+        finally:
+            LLM_API_LATENCY.labels(method_name=method_name).observe(
+                time.monotonic() - start_time
+            )
 
     # -------------------------------------------------
     # Публичные методы

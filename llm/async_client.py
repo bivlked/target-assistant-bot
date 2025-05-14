@@ -16,6 +16,7 @@ from tenacity import (
 from config import openai_cfg
 from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
 from llm.prompts import SYSTEM_PROMPT
+from utils.retry_decorators import retry_openai_llm
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class AsyncLLMClient:
         return json.loads(content[start : end + 1])
 
     # --------------------------- Публичные -----------------------------
-    @RETRY
+    @retry_openai_llm
     async def generate_plan(
         self, goal_text: str, deadline_str: str, available_time_str: str
     ):
@@ -76,7 +77,7 @@ class AsyncLLMClient:
                 time.monotonic() - start_time
             )
 
-    @RETRY
+    @retry_openai_llm
     async def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
         method_name = "generate_motivation"
         start_time = time.monotonic()
