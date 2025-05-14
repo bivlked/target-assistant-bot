@@ -28,13 +28,32 @@ RETRY = retry(
 
 
 class AsyncLLMClient:
+    """Asynchronous client for OpenAI Chat Completions.
+
+    Wraps the `openai.AsyncOpenAI` client and provides high-level methods
+    for generating plans and motivational messages. Includes Tenacity retry logic
+    and Prometheus metrics integration.
+
+    Implements the `AsyncLLMInterface` protocol.
+    """
+
     def __init__(self):
+        """Initializes the AsyncOpenAI client using configuration from `config.openai_cfg`."""
         self.client = AsyncOpenAI(api_key=openai_cfg.api_key)
         self.model = openai_cfg.model
 
     # -------------------------- Вспомогательные -------------------------
     @staticmethod
-    def _extract_plan(content: str) -> List[dict[str, Any]]:  # noqa: D401
+    def _extract_plan(content: str) -> List[dict[str, Any]]:
+        """Attempts to extract a JSON array of tasks from LLM text output.
+
+        This is a simplified parser assuming the main content is the JSON array.
+        It may need to be made more robust if the LLM often includes surrounding text.
+
+        Raises:
+            ValueError: If a JSON list is not found.
+            json.JSONDecodeError: If the extracted string is not valid JSON.
+        """
         start = content.find("[")
         end = content.rfind("]")
         if start == -1 or end == -1:
@@ -46,7 +65,22 @@ class AsyncLLMClient:
     async def generate_plan(
         self, goal_text: str, deadline_str: str, available_time_str: str
     ):
-        """Requests a task plan from LLM, attempting to use JSON mode."""
+        """Asynchronously generates a daily task plan using the LLM.
+
+        Attempts to use OpenAI's JSON mode for a structured response.
+
+        Args:
+            goal_text: Description of the user's goal.
+            deadline_str: Deadline for achieving the goal.
+            available_time_str: Approximate daily time commitment.
+
+        Returns:
+            A list of dictionaries representing daily tasks.
+
+        Raises:
+            OpenAI_APIError: If LLM call fails after retries.
+            ValueError/json.JSONDecodeError: If response parsing fails.
+        """
         method_name = "generate_plan"
         start_time = time.monotonic()
         prompt = (
@@ -79,6 +113,18 @@ class AsyncLLMClient:
 
     @retry_openai_llm
     async def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
+        """Asynchronously generates a short motivational message in Russian.
+
+        Args:
+            goal_text: The user's goal text.
+            progress_summary: A summary of the user's current progress.
+
+        Returns:
+            A motivational string.
+
+        Raises:
+            OpenAI_APIError: If LLM call fails after retries.
+        """
         method_name = "generate_motivation"
         start_time = time.monotonic()
         prompt = (

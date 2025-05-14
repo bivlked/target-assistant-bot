@@ -18,28 +18,37 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """Упрощённый клиент OpenAI Chat Completion.
+    """Simplified synchronous client for OpenAI Chat Completions.
 
-    Инкапсулирует логику повторных попыток, парсинга «шума» из ответов
-    языковой модели и предоставляет два высокоуровневых метода:
+    Encapsulates retry logic, parsing of noisy responses from the language model,
+    and provides two high-level methods:
+    - `generate_plan()`: Returns a JSON plan of daily tasks.
+    - `generate_motivation()`: Generates a motivational message.
 
-    * :py:meth:`generate_plan` – вернуть JSON-план ежедневных задач;
-    * :py:meth:`generate_motivation` – сгенерировать мотивационное сообщение.
+    Uses Tenacity for retries and Prometheus for metrics.
+    Implements the `LLMInterface` protocol.
     """
 
     def __init__(self):
-        """Читает конфигурацию из ``config.openai_cfg`` и инициализирует SDK."""
+        """Initializes the OpenAI client using configuration from `config.openai_cfg`."""
         self.client = OpenAI(api_key=openai_cfg.api_key)
         self.model = openai_cfg.model
-        self.max_retries = openai_cfg.max_retries
+        self.max_retries = (
+            openai_cfg.max_retries
+        )  # Used by retry_openai_llm decorator via config
 
     @retry_openai_llm
     def _chat_completion(self, prompt: str) -> str:
-        """Базовый вызов ChatCompletion с автоматическим **retry**.
+        """Base call to ChatCompletion with automatic retries via decorator.
 
-        Private-метод: используется публичными врапперами для обеспечения
-        повторных попыток при `openai.APIError`. Количество попыток задаётся
-        в конфиге.
+        Args:
+            prompt: The user prompt for the LLM.
+
+        Returns:
+            The content string from the LLM response.
+
+        Raises:
+            OpenAI_APIError: If all retry attempts fail.
         """
         # Manual retry loop and direct metric calls are now handled by the decorator.
         start_time = time.monotonic()
@@ -67,7 +76,13 @@ class LLMClient:
             )
 
     def _extract_plan(self, content: str):
-        """Пытается извлечь JSON-массив задач из произвольного текста LLM."""
+        """Attempts to extract a JSON array of tasks from potentially noisy LLM text output.
+
+        Handles markdown code blocks and attempts to clean common JSON issues.
+
+        Raises:
+            json.JSONDecodeError: If a valid JSON list cannot be extracted.
+        """
         # Если ответ заключён в markdown блок ```json ... ``` или ``` ... ```
         md = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", content, re.S)
         if md:
@@ -123,13 +138,28 @@ class LLMClient:
     # -------------------------------------------------
     # Публичные методы
     # -------------------------------------------------
+    @retry_openai_llm  # Apply retry to public method as well, in case _chat_completion_with_json_mode is not decorated
     def generate_plan(
         self, goal_text: str, deadline: str, time: str
     ) -> List[dict[str, Any]]:
-        """Requests a task plan from LLM and returns a list of dictionaries.
+        """Generates a daily task plan to achieve a goal, using the LLM.
 
-        Expected format: ``[{"day": 1, "task": "..."}, ...]``.
-        Uses JSON mode if the model supports it.
+        Attempts to use OpenAI's JSON mode for a structured response.
+        Includes retry logic and metrics.
+
+        Args:
+            goal_text: Description of the user's goal.
+            deadline: Deadline for achieving the goal.
+            time: Approximate daily time commitment.
+
+        Returns:
+            A list of dictionaries, where each dictionary represents a daily task
+            (e.g., `[{"day": 1, "task": "Complete module X"}, ...]`).
+
+        Raises:
+            OpenAI_APIError: If LLM call fails after retries.
+            json.JSONDecodeError: If the LLM response cannot be parsed into a valid plan.
+            ValueError: If the parsed JSON does not match the expected plan format.
         """
         prompt = PLAN_PROMPT.format(goal_text=goal_text, deadline=deadline, time=time)
         # Attempt to use JSON mode with a fallback if not supported or if there's an issue.
@@ -159,7 +189,20 @@ class LLMClient:
             raise
 
     def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
-        """Генерирует короткое мотивирующее сообщение на русском языке."""
+        """Generates a short motivational message in Russian using the LLM.
+
+        Includes retry logic and metrics.
+
+        Args:
+            goal_text: The user's goal text.
+            progress_summary: A summary of the user's current progress.
+
+        Returns:
+            A motivational string.
+
+        Raises:
+            OpenAI_APIError: If LLM call fails after retries.
+        """
         prompt = MOTIVATION_PROMPT.format(
             goal_text=goal_text, progress_summary=progress_summary
         )

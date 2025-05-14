@@ -36,7 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 class GoalManager:
-    """Бизнес-логика с поддержкой sync и async клиентов."""
+    """Manages the business logic for user goals, tasks, and interactions.
+
+    This class orchestrates operations between Telegram handlers, data storage (Google Sheets),
+    and the LLM for plan generation and motivation. It supports both synchronous and
+    asynchronous operations by accepting respective client implementations.
+    """
 
     def __init__(
         self,
@@ -49,7 +54,20 @@ class GoalManager:
         storage_sync: Optional[StorageInterface] = None,
         storage_async: Optional[AsyncStorageInterface] = None,
     ):
-        # Determine actual providers, preferring new `storage_` names if available
+        """Initializes the GoalManager with necessary dependencies.
+
+        Args:
+            sheets_sync: Synchronous storage client (e.g., SheetsManager).
+            llm_sync: Synchronous LLM client.
+            sheets_async: Asynchronous storage client (e.g., AsyncSheetsManager).
+            llm_async: Asynchronous LLM client.
+            storage_sync: Alternative DI-friendly name for sheets_sync.
+            storage_async: Alternative DI-friendly name for sheets_async.
+
+        Raises:
+            ValueError: If neither synchronous nor asynchronous storage/LLM clients are provided.
+        """
+        # Определяем актуальных провайдеров, отдавая предпочтение новым именам
         actual_sheets_sync = storage_sync if storage_sync is not None else sheets_sync
         actual_llm_sync = llm_sync  # No alternative name for llm_sync yet
         actual_sheets_async = (
@@ -86,18 +104,15 @@ class GoalManager:
     # Методы API, вызываемые из Telegram-обработчиков
     # -------------------------------------------------
     def setup_user(self, user_id: int) -> None:
-        """Создаёт (или открывает) Google-таблицу для пользователя.
+        """Sets up the user by creating or opening their Google Spreadsheet.
 
-        Метод вызывается хендлером `/start` для первичной инициализации
-        инфраструктуры. Если таблица уже существует, она просто будет
-        открыта. Сам объект *GoalManager* проксирует вызов к
-        ``SheetsManager.create_spreadsheet`` (или его async-варианту).
+        Called by the /start handler for initial infrastructure setup.
+        If a spreadsheet for the user already exists, it will be opened.
+        This method proxies the call to the appropriate storage client.
 
-        Параметры
-        ----------
-        user_id: int
-            Telegram-ID пользователя, по которому формируется уникальное
-            имя таблицы вида ``TargetAssistant_<user_id>``.
+        Args:
+            user_id: The Telegram ID of the user, used to generate a unique
+                     spreadsheet name (e.g., TargetAssistant_<user_id>).
         """
         self.sheets.create_spreadsheet(user_id)
 
@@ -108,7 +123,23 @@ class GoalManager:
         deadline_str: str,
         available_time_str: str,
     ) -> str:
-        """Создает новую цель пользователя. Возвращает ссылку на таблицу."""
+        """Creates a new goal for the user, generates a plan, and saves it.
+
+        This involves:
+        1. Clearing any previous user data from the spreadsheet.
+        2. Generating a new task plan using the LLM.
+        3. Calculating dates for each task.
+        4. Saving goal information and the full plan to the spreadsheet.
+
+        Args:
+            user_id: The user's Telegram ID.
+            goal_text: The description of the goal.
+            deadline_str: The deadline for the goal (e.g., "in 2 months").
+            available_time_str: The time available daily (e.g., "1 hour").
+
+        Returns:
+            The URL of the Google Spreadsheet containing the goal and plan.
+        """
         # 1. Очищаем предыдущие листы
         self.sheets.clear_user_data(user_id)
 
@@ -154,33 +185,57 @@ class GoalManager:
         return spreadsheet_url
 
     def get_today_task(self, user_id: int):
-        """Возвращает задачу, запланированную на текущий день."""
+        """Retrieves the task scheduled for the current day for the user.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A dictionary representing the task if found, otherwise None.
+        """
         date_str = format_date(datetime.now())
         return self.sheets.get_task_for_date(user_id, date_str)
 
     def update_today_task_status(self, user_id: int, status: str):
-        """Отмечает статус сегодняшней задачи.
+        """Updates the status of today's task for the user.
 
-        Аргументы
-        ---------
-        user_id: int
-            Telegram-ID пользователя.
-        status: str
-            Строка-метка из ``STATUS_*`` (например, «Выполнено»).
+        Args:
+            user_id: The user's Telegram ID.
+            status: The new status string (e.g., STATUS_DONE, STATUS_NOT_DONE).
         """
-        # TODO: Consider moving TASKS_STATUS_UPDATED_TOTAL to where actual update happens
-        # if this method becomes a simple proxy or if status can be validated before inc.
         date_str = format_date(datetime.now())
         self.sheets.update_task_status(user_id, date_str, status)
         TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status).inc()
 
     def get_goal_status_details(self, user_id: int):
-        """Краткая строковая статистика прогресса (совместимость)."""
+        """Gets a brief string summary of the user's goal progress.
+
+        Note: This is an older method for basic status.
+              Prefer `get_detailed_status` for more comprehensive information.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A string summarizing the goal statistics.
+        """
         # Старая строковая статистика (для совместимости)
         return self.sheets.get_statistics(user_id)
 
     def generate_motivation_message(self, user_id: int):
-        """Генерирует мотивирующее сообщение через LLM."""
+        """Generates a motivational message for the user via LLM.
+
+        Checks rate limits before calling the LLM.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A motivational message string.
+
+        Raises:
+            RateLimitException: If the user has exceeded their LLM call limit.
+        """
         try:
             self.llm_rate_limiter.check_limit(user_id)
         except RateLimitException as e:
@@ -198,12 +253,23 @@ class GoalManager:
     # Сброс
     # -------------------------------------------------
     def reset_user(self, user_id: int):
-        """Полностью удаляет Google-таблицу пользователя."""
+        """Completely deletes the user's Google Spreadsheet and associated data.
+
+        Args:
+            user_id: The user's Telegram ID.
+        """
         self.sheets.delete_spreadsheet(user_id)
 
     # --- Новый, расширенный статус ----------------------
     def get_detailed_status(self, user_id: int):
-        """Возвращает подробную статистику, аналоги /status у второй команды."""
+        """Retrieves detailed statistics about the user's current goal.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A dictionary containing goal information and progress statistics.
+        """
         stats = self.sheets.get_extended_statistics(user_id)
         goal_info = self.sheets.get_goal_info(user_id)
         return {
@@ -221,8 +287,23 @@ class GoalManager:
         deadline_str: str,
         available_time_str: str,
     ) -> str:
-        """Асинхронная версия создания новой цели."""
+        """Asynchronously creates a new goal, mirroring `set_new_goal`.
 
+        Handles LLM rate limiting and uses async storage/LLM clients if available,
+        otherwise falls back to running synchronous operations in an executor.
+
+        Args:
+            user_id: The user's Telegram ID.
+            goal_text: The description of the goal.
+            deadline_str: The deadline for the goal.
+            available_time_str: The time available daily.
+
+        Returns:
+            The URL of the Google Spreadsheet.
+
+        Raises:
+            RateLimitException: If LLM call limit is exceeded.
+        """
         import asyncio
 
         loop = asyncio.get_event_loop()
@@ -286,11 +367,16 @@ class GoalManager:
     # -------------------------------------------------
     # Новые async-версии часто вызываемых методов
     # -------------------------------------------------
-    async def get_today_task_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия get_today_task.
+    async def get_today_task_async(self, user_id: int) -> Any | None:
+        """Asynchronously retrieves today's task, mirroring `get_today_task`.
 
-        Использует sheets_async, если он инициализирован, иначе запускает
-        синхронный метод в executor, чтобы не блокировать event loop.
+        Uses async storage client if available, otherwise sync in executor.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            Task dictionary or None.
         """
         import asyncio
 
@@ -302,10 +388,13 @@ class GoalManager:
             None, self._sync_sheets().get_task_for_date, user_id, date_str
         )
 
-    async def update_today_task_status_async(
-        self, user_id: int, status: str
-    ):  # noqa: D401
-        """Асинхронная версия update_today_task_status."""
+    async def update_today_task_status_async(self, user_id: int, status: str) -> None:
+        """Asynchronously updates today's task status, mirroring `update_today_task_status`.
+
+        Args:
+            user_id: The user's Telegram ID.
+            status: The new status string.
+        """
         import asyncio
 
         date_str = format_date(datetime.now())
@@ -319,8 +408,20 @@ class GoalManager:
         TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status).inc()
         return  # Explicitly return None for void async method
 
-    async def generate_motivation_message_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия generate_motivation_message."""
+    async def generate_motivation_message_async(self, user_id: int) -> str:
+        """Asynchronously generates a motivation message, mirroring `generate_motivation_message`.
+
+        Handles LLM rate limiting.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A motivational message string.
+
+        Raises:
+            RateLimitException: If LLM call limit is exceeded.
+        """
         import asyncio
 
         if self.sheets_async:
@@ -361,8 +462,13 @@ class GoalManager:
 
     async def batch_update_task_statuses_async(
         self, user_id: int, updates: dict[str, str]
-    ):
-        """Пакетное обновление статусов (используется /check)."""
+    ) -> None:
+        """Asynchronously batch updates task statuses, mirroring `batch_update_task_statuses`.
+
+        Args:
+            user_id: The user's Telegram ID.
+            updates: Dictionary of {date_string: status_string}.
+        """
         import asyncio
 
         if self.sheets_async:
@@ -380,8 +486,12 @@ class GoalManager:
     # -------------------------------------------------
     # Новые async-версии дополнительных методов
     # -------------------------------------------------
-    async def setup_user_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия setup_user."""
+    async def setup_user_async(self, user_id: int) -> None:
+        """Asynchronously sets up the user, mirroring `setup_user`.
+
+        Args:
+            user_id: The user's Telegram ID.
+        """
         import asyncio
 
         if self.sheets_async:
@@ -390,8 +500,12 @@ class GoalManager:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._sync_sheets().create_spreadsheet, user_id)  # type: ignore[arg-type]
 
-    async def reset_user_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия :py:meth:`reset_user`."""
+    async def reset_user_async(self, user_id: int) -> None:
+        """Asynchronously resets user data, mirroring `reset_user`.
+
+        Args:
+            user_id: The user's Telegram ID.
+        """
         import asyncio
 
         if self.sheets_async:
@@ -400,8 +514,15 @@ class GoalManager:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._sync_sheets().delete_spreadsheet, user_id)  # type: ignore[arg-type]
 
-    async def get_detailed_status_async(self, user_id: int):  # noqa: D401
-        """Асинхронная версия get_detailed_status."""
+    async def get_detailed_status_async(self, user_id: int) -> Dict[str, Any]:
+        """Asynchronously gets detailed status, mirroring `get_detailed_status`.
+
+        Args:
+            user_id: The user's Telegram ID.
+
+        Returns:
+            A dictionary with detailed goal and progress statistics.
+        """
         import asyncio
 
         if self.sheets_async:
