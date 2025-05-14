@@ -79,12 +79,14 @@ def _validate_deadline(text: str):
 
 
 async def _ask_deadline(update: Update):
+    assert update.message is not None
     await update.message.reply_text(
         "За какой срок вы планируете достичь цели (например, 'за 2 месяца', 'за 6 недель', 'за 50 дней')? Укажите срок до 3 месяцев."
     )
 
 
 async def _ask_available_time(update: Update):
+    assert update.message is not None
     await update.message.reply_text(
         "Сколько примерно времени вы готовы уделять достижению цели ежедневно (например, '30 минут', '1-2 часа')?"
     )
@@ -103,6 +105,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return TEXT_GOAL
 
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         text = update.message.text.strip()
         if len(text) < 10:
             await update.message.reply_text(
@@ -114,6 +117,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return DEADLINE
 
     async def input_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         text = update.message.text.strip()
         # Пытаемся распарсить срок и убедиться, что он не превышает 90 дней
         try:
@@ -131,6 +135,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return AVAILABLE_TIME
 
     async def input_available_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         text = update.message.text.strip()
         context.user_data["available_time"] = text
         await update.message.reply_text(
@@ -140,6 +145,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         goal_text = context.user_data["goal_text"]
         deadline = context.user_data["deadline"]
         available_time = context.user_data["available_time"]
+        assert update.effective_user is not None
         user_id = update.effective_user.id
 
         try:
@@ -161,6 +167,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return ConversationHandler.END
 
     async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         await update.message.reply_text("Операция отменена.")
         return ConversationHandler.END
 

@@ -11,9 +11,12 @@ from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, UNKNOWN_TEXT
 
 def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        # Telegram guarantees effective_user and message for /start command
+        assert update.effective_user is not None  # runtime safety for mypy
         user_id = update.effective_user.id
         await goal_manager.setup_user_async(user_id)
         scheduler.add_user_jobs(context.bot, user_id)
+        assert update.message is not None
         await update.message.reply_text(WELCOME_TEXT)
 
     return _handler
@@ -26,11 +29,14 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    assert update.message is not None
     await update.message.reply_text(CANCEL_TEXT)
 
 
 def reset_handler(goal_manager: GoalManager):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.effective_user is not None
+        assert update.message is not None
         await goal_manager.reset_user_async(update.effective_user.id)
         await update.message.reply_text(
             "🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново."
@@ -41,6 +47,7 @@ def reset_handler(goal_manager: GoalManager):
 
 def unknown_handler():
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         await update.message.reply_text(UNKNOWN_TEXT)
 
     return _handler

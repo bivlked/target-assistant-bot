@@ -24,6 +24,8 @@ CHOOSING_STATUS = 0
 
 def build_task_handlers(goal_manager: GoalManager):
     async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+        assert update.effective_user is not None
+        assert update.message is not None
         task = await goal_manager.get_today_task_async(update.effective_user.id)
         if task:
             text = (
@@ -35,6 +37,8 @@ def build_task_handlers(goal_manager: GoalManager):
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+        assert update.effective_user is not None
+        assert update.message is not None
         data = await goal_manager.get_detailed_status_async(update.effective_user.id)
 
         # Нет данных о цели или план пустой
@@ -79,6 +83,8 @@ def build_task_handlers(goal_manager: GoalManager):
     async def check_entry(
         update: Update, context: ContextTypes.DEFAULT_TYPE
     ):  # noqa: D401
+        assert update.effective_user is not None
+        assert update.message is not None
         task = await goal_manager.get_today_task_async(update.effective_user.id)
         if not task:
             await update.message.reply_text(
@@ -114,6 +120,7 @@ def build_task_handlers(goal_manager: GoalManager):
         query = update.callback_query
         await query.answer()
         status_val = query.data
+        assert update.effective_user is not None
         await goal_manager.batch_update_task_statuses_async(
             update.effective_user.id,
             {format_date(datetime.now()): status_val},
@@ -124,6 +131,8 @@ def build_task_handlers(goal_manager: GoalManager):
     async def motivation(
         update: Update, context: ContextTypes.DEFAULT_TYPE
     ):  # noqa: D401
+        assert update.effective_user is not None
+        assert update.message is not None
         msg = await goal_manager.generate_motivation_message_async(
             update.effective_user.id
         )
