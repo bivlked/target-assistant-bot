@@ -18,12 +18,14 @@ from core.goal_manager import (
 )
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 from utils.helpers import format_date
+from core.metrics import USER_COMMANDS_TOTAL
 
 CHOOSING_STATUS = 0
 
 
 def build_task_handlers(goal_manager: GoalManager):
     async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+        USER_COMMANDS_TOTAL.labels(command_name="/today").inc()
         assert update.effective_user is not None
         assert update.message is not None
         task = await goal_manager.get_today_task_async(update.effective_user.id)
@@ -37,6 +39,7 @@ def build_task_handlers(goal_manager: GoalManager):
         await update.message.reply_text(text)
 
     async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
+        USER_COMMANDS_TOTAL.labels(command_name="/status").inc()
         assert update.effective_user is not None
         assert update.message is not None
         data = await goal_manager.get_detailed_status_async(update.effective_user.id)
@@ -83,6 +86,7 @@ def build_task_handlers(goal_manager: GoalManager):
     async def check_entry(
         update: Update, context: ContextTypes.DEFAULT_TYPE
     ):  # noqa: D401
+        USER_COMMANDS_TOTAL.labels(command_name="/check").inc()
         assert update.effective_user is not None
         assert update.message is not None
         task = await goal_manager.get_today_task_async(update.effective_user.id)
@@ -132,6 +136,7 @@ def build_task_handlers(goal_manager: GoalManager):
     async def motivation(
         update: Update, context: ContextTypes.DEFAULT_TYPE
     ):  # noqa: D401
+        USER_COMMANDS_TOTAL.labels(command_name="/motivation").inc()
         assert update.effective_user is not None
         assert update.message is not None
         msg = await goal_manager.generate_motivation_message_async(

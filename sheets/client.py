@@ -15,6 +15,8 @@ from gspread.exceptions import APIError  # type: ignore
 
 from config import google
 from utils.cache import cached_sheet_method, invalidate_sheet_cache
+from core.metrics import SHEETS_API_CALLS, SHEETS_API_LATENCY
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -120,18 +122,26 @@ class SheetsManager:
     # No cache for create_spreadsheet: it modifies and must be fresh
     def create_spreadsheet(self, user_id: int):
         """Создаёт (или открывает) таблицу пользователя и открывает к ней доступ.*"""  # noqa: D401,E501
+        method_name = "create_spreadsheet"
+        start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
         try:
             sh.share("", perm_type="anyone", role="writer", with_link=True)
         except Exception:
             pass
 
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="write").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
     @RETRY
     def clear_user_data(self, user_id: int):
         """Очищает оба листа пользователя, сохраняя структуру таблицы."""
+        method_name = "clear_user_data"
+        start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
         for title in (GOAL_INFO_SHEET, PLAN_SHEET):
             try:
@@ -142,12 +152,18 @@ class SheetsManager:
                 )
             ws.clear()
 
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="write").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
     @RETRY
     def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
         """Записывает блок «Информация о цели» и возвращает URL таблицы."""
+        method_name = "save_goal_info"
+        start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
         ws = sh.worksheet(GOAL_INFO_SHEET)
         rows = [[k, v, ""] for k, v in goal_data.items()]
@@ -159,6 +175,10 @@ class SheetsManager:
         except Exception:
             pass
 
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="write").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
@@ -168,9 +188,16 @@ class SheetsManager:
     @cached_sheet_method(lambda: "goal_info")
     def get_goal_info(self, user_id: int):
         """Возвращает словарь с параметрами цели (лист *Информация о цели*)."""
+        method_name = "get_goal_info"
+        start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(GOAL_INFO_SHEET)
         data = ws.get_all_values()
-        return {row[0]: row[1] for row in data if row}
+        result = {row[0]: row[1] for row in data if row}
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="read").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
+        return result
 
     @RETRY
     @cached_sheet_method(lambda target_date: target_date)
@@ -179,15 +206,29 @@ class SheetsManager:
 
         Возвращает dict строки таблицы или *None*, если задача не найдена.
         """
+        method_name = "get_task_for_date"
+        start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         for row in ws.get_all_records():
             if row.get(COL_DATE) == target_date:
+                SHEETS_API_CALLS.labels(
+                    method_name=method_name, operation_type="read"
+                ).inc()
+                SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
                 return row
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="read").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
         return None
 
     @RETRY
     def update_task_status(self, user_id: int, target_date: str, status: str):
         """Обновляет поле *Статус* задачи в указанную дату."""
+        method_name = "update_task_status"
+        start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         for idx, row in enumerate(data, start=2):

@@ -100,8 +100,22 @@ class LoggingConfig:
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
+@dataclass(frozen=True)
+class RateLimiterConfig:
+    """Configuration for API rate limiting."""
+
+    # For LLM calls, e.g., OpenAI
+    llm_requests_per_minute: int = _int_env(
+        "LLM_REQUESTS_PER_MINUTE", 20
+    )  # Default: 20 RPM per user
+    llm_max_burst: int = _int_env(
+        "LLM_MAX_BURST", 5
+    )  # Default: allow burst of 5 requests
+
+
 telegram = TelegramConfig()
 openai_cfg = OpenAIConfig()
 google = GoogleConfig()
 scheduler_cfg = SchedulerConfig()
 logging_cfg = LoggingConfig()
+ratelimiter_cfg = RateLimiterConfig()

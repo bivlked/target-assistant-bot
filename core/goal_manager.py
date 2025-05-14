@@ -13,6 +13,13 @@ from core.interfaces import (
     AsyncStorageInterface,
     AsyncLLMInterface,
 )
+from utils.ratelimiter import UserRateLimiter, RateLimitException
+from config import ratelimiter_cfg
+from core.metrics import (
+    LLM_API_CALLS,
+    GOALS_SET_TOTAL,
+    TASKS_STATUS_UPDATED_TOTAL,
+)  # Import metrics
 
 if TYPE_CHECKING:  # избегаем циклов импорта
     from sheets.client import SheetsManager
@@ -63,6 +70,12 @@ class GoalManager:
         self.sheets_async = actual_sheets_async
         self.llm_async = actual_llm_async
 
+        # Initialize rate limiter for LLM calls
+        self.llm_rate_limiter = UserRateLimiter(
+            default_tokens_per_second=ratelimiter_cfg.llm_requests_per_minute / 60,
+            default_max_tokens=ratelimiter_cfg.llm_max_burst,
+        )
+
         # These attributes are used both in sync and async context; exact concrete type
         # is not important at runtime, поэтому указываем Any, чтобы избежать NameError
         # из-за отсутствия реального класса, когда импорт находится под TYPE_CHECKING.
@@ -99,6 +112,16 @@ class GoalManager:
         # 1. Очищаем предыдущие листы
         self.sheets.clear_user_data(user_id)
 
+        # 1.5 Check rate limit for LLM
+        try:
+            self.llm_rate_limiter.check_limit(user_id)
+        except RateLimitException as e:
+            logger.warning(f"User {user_id} rate limited on generate_plan: {e}")
+            LLM_API_CALLS.labels(
+                method_name="generate_plan", status="ratelimited"
+            ).inc()
+            raise
+
         # 2. Генерируем план через LLM
         plan_json = self.llm.generate_plan(goal_text, deadline_str, available_time_str)
 
@@ -126,6 +149,8 @@ class GoalManager:
         }
         spreadsheet_url = self.sheets.save_goal_info(user_id, goal_info)
         self.sheets.save_plan(user_id, full_plan)
+
+        GOALS_SET_TOTAL.inc()  # Increment goals set counter
         return spreadsheet_url
 
     def get_today_task(self, user_id: int):
@@ -143,8 +168,11 @@ class GoalManager:
         status: str
             Строка-метка из ``STATUS_*`` (например, «Выполнено»).
         """
+        # TODO: Consider moving TASKS_STATUS_UPDATED_TOTAL to where actual update happens
+        # if this method becomes a simple proxy or if status can be validated before inc.
         date_str = format_date(datetime.now())
         self.sheets.update_task_status(user_id, date_str, status)
+        TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status).inc()
 
     def get_goal_status_details(self, user_id: int):
         """Краткая строковая статистика прогресса (совместимость)."""
@@ -153,6 +181,15 @@ class GoalManager:
 
     def generate_motivation_message(self, user_id: int):
         """Генерирует мотивирующее сообщение через LLM."""
+        try:
+            self.llm_rate_limiter.check_limit(user_id)
+        except RateLimitException as e:
+            logger.warning(f"User {user_id} rate limited on generate_motivation: {e}")
+            LLM_API_CALLS.labels(
+                method_name="generate_motivation", status="ratelimited"
+            ).inc()
+            raise
+
         goal_info = self.sheets.get_goal_info(user_id)
         stats = self.sheets.get_statistics(user_id)
         return self.llm.generate_motivation(goal_info.get("Глобальная цель", ""), stats)
@@ -196,9 +233,21 @@ class GoalManager:
         else:
             await loop.run_in_executor(None, self._sync_sheets().clear_user_data, user_id)  # type: ignore[arg-type]
 
+        # 1.5 Check rate limit for LLM
+        try:
+            self.llm_rate_limiter.check_limit(user_id)
+        except RateLimitException as e:
+            logger.warning(f"User {user_id} rate limited on generate_plan_async: {e}")
+            LLM_API_CALLS.labels(
+                method_name="generate_plan_async", status="ratelimited"
+            ).inc()
+            raise
+
         # 2. LLM generate plan
         if self.llm_async:
-            plan_json = await self.llm_async.generate_plan(goal_text, deadline_str, available_time_str)  # type: ignore[attr-defined]
+            plan_json = await self.llm_async.generate_plan(
+                goal_text, deadline_str, available_time_str
+            )
         else:
             plan_json = await loop.run_in_executor(None, self._sync_llm().generate_plan, goal_text, deadline_str, available_time_str)  # type: ignore[arg-type]
 
@@ -231,6 +280,7 @@ class GoalManager:
             spreadsheet_url = await loop.run_in_executor(None, self._sync_sheets().save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
             await loop.run_in_executor(None, self._sync_sheets().save_plan, user_id, full_plan)  # type: ignore[arg-type]
 
+        GOALS_SET_TOTAL.inc()  # Increment goals set counter
         return spreadsheet_url
 
     # -------------------------------------------------
@@ -266,6 +316,8 @@ class GoalManager:
         await loop.run_in_executor(
             None, self._sync_sheets().update_task_status, user_id, date_str, status
         )
+        TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status).inc()
+        return  # Explicitly return None for void async method
 
     async def generate_motivation_message_async(self, user_id: int):  # noqa: D401
         """Асинхронная версия generate_motivation_message."""
@@ -283,9 +335,21 @@ class GoalManager:
                 None, self._sync_sheets().get_statistics, user_id
             )
 
+        # Check rate limit before LLM call
+        try:
+            self.llm_rate_limiter.check_limit(user_id)
+        except RateLimitException as e:
+            logger.warning(
+                f"User {user_id} rate limited on generate_motivation_async: {e}"
+            )
+            LLM_API_CALLS.labels(
+                method_name="generate_motivation_async", status="ratelimited"
+            ).inc()
+            raise
+
         if self.llm_async:
             return await self.llm_async.generate_motivation(
-                goal_info.get("Глобальная цель", ""), stats  # type: ignore[attr-defined]
+                goal_info.get("Глобальная цель", ""), stats
             )
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
@@ -293,7 +357,7 @@ class GoalManager:
             self._sync_llm().generate_motivation,
             goal_info.get("Глобальная цель", ""),
             stats,
-        )  # type: ignore[arg-type]
+        )
 
     async def batch_update_task_statuses_async(
         self, user_id: int, updates: dict[str, str]
@@ -308,6 +372,10 @@ class GoalManager:
         await loop.run_in_executor(
             None, self._sync_sheets().batch_update_task_statuses, user_id, updates
         )
+
+        for status_val in updates.values():  # Increment for each status updated
+            TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status_val).inc()
+        return  # Explicitly return None for void async method
 
     # -------------------------------------------------
     # Новые async-версии дополнительных методов
