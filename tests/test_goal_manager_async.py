@@ -3,7 +3,7 @@ import pytest
 from core.goal_manager import GoalManager
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
-from typing import cast
+from typing import cast, Any, Dict, List
 
 
 class DummyAsyncSheets(AsyncStorageInterface):
@@ -30,19 +30,40 @@ class DummyAsyncSheets(AsyncStorageInterface):
         pass
 
     async def get_task_for_date(self, user_id: int, date: str):
+        # Simulate returning a task for specific test cases if needed, else None
+        if hasattr(self, "_mock_task_for_date") and self._mock_task_for_date.get(date):
+            return self._mock_task_for_date[date]
         return None
 
     async def update_task_status(self, user_id: int, date: str, status: str) -> None:
         pass
 
-    async def batch_update_task_statuses(self, user_id: int, updates: dict) -> None:
+    async def batch_update_task_statuses(
+        self, user_id: int, updates: Dict[str, str]
+    ) -> None:
         pass
 
     async def get_statistics(self, user_id: int):
         return ""
 
-    async def get_extended_statistics(self, user_id: int):
-        return {}
+    async def get_extended_statistics(self, user_id: int) -> Dict[str, Any]:
+        # Simulate returning extended stats for specific test cases if needed
+        if hasattr(self, "_mock_extended_stats"):
+            return self._mock_extended_stats
+        return {
+            "total_days": 0,
+            "completed_days": 0,
+            "progress_percent": 0,
+            "days_passed": 0,
+            "days_left": 0,
+            "upcoming_tasks": [],
+            "sheet_url": "",
+        }
+
+    async def get_goal_info(self, user_id: int) -> Dict[str, Any]:
+        if hasattr(self, "_mock_goal_info"):
+            return self._mock_goal_info
+        return {"Глобальная цель": "Dummy Goal"}
 
 
 class DummyAsyncLLM(AsyncLLMInterface):
@@ -52,7 +73,7 @@ class DummyAsyncLLM(AsyncLLMInterface):
 
     async def generate_plan(
         self, goal_text: str, deadline: str, available: str
-    ):  # noqa: D401
+    ) -> List[Dict[str, Any]]:
         # Возвращаем простой план на 2 дня
         return [
             {"day": 1, "task": "Task 1"},
@@ -72,9 +93,9 @@ async def test_set_new_goal_async(monkeypatch):
 
     sheets = DummyAsyncSheets()
     llm = DummyAsyncLLM()
-    gm = GoalManager(sheets_async=sheets, llm_async=llm)
+    gm = GoalManager(storage=sheets, llm=llm)
 
-    url = await gm.set_new_goal_async(777, "Test goal", "30 дней", "1 час")
+    url = await gm.set_new_goal(777, "Test goal", "30 дней", "1 час")
 
     assert url == "http://dummy_spreadsheet"
     # Проверяем, что данные сохранены

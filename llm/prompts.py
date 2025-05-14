@@ -1,3 +1,5 @@
+from typing import Final
+
 PLAN_PROMPT: Final[
     str
 ] = """Instructs the LLM to generate a daily task plan.

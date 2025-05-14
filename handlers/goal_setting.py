@@ -29,9 +29,16 @@ AVAILABLE_TIME: Final = 2
 
 
 def _validate_deadline(text: str):
-    """Проверка, что пользователь указал срок <= 90 дней.
-    Поддерживает как цифры, так и словесные числа ("один", "два" ...).
-    При отсутствии явного числа для 'неделя/месяц' предполагается 1.
+    """Validates that the user-provided deadline string is within 90 days.
+
+    Supports numeric ("30 days") and Russian word-based numbers ("один месяц").
+    If no explicit number is found for units like 'week' or 'month', it assumes 1.
+
+    Args:
+        text: The user-input string for the deadline.
+
+    Returns:
+        True if the deadline is valid (<= 90 days), False otherwise.
     """
     txt = text.lower()
 
@@ -80,6 +87,7 @@ def _validate_deadline(text: str):
 
 
 async def _ask_deadline(update: Update):
+    """Sends a message asking the user for the goal deadline."""
     assert update.message is not None
     await update.message.reply_text(
         "За какой срок вы планируете достичь цели (например, 'за 2 месяца', 'за 6 недель', 'за 50 дней')? Укажите срок до 3 месяцев."
@@ -87,6 +95,7 @@ async def _ask_deadline(update: Update):
 
 
 async def _ask_available_time(update: Update):
+    """Sends a message asking the user for their daily time commitment."""
     assert update.message is not None
     await update.message.reply_text(
         "Сколько примерно времени вы готовы уделять достижению цели ежедневно (например, '30 минут', '1-2 часа')?"
@@ -99,6 +108,15 @@ async def _ask_available_time(update: Update):
 
 
 def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
+    """Builds the ConversationHandler for the /setgoal command flow.
+
+    Args:
+        goal_manager: Instance of GoalManager to process the new goal.
+
+    Returns:
+        A ConversationHandler instance for PTB.
+    """
+
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/setgoal").inc()
         assert update.message is not None
@@ -159,7 +177,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         user_id = update.effective_user.id
 
         try:
-            spreadsheet_url = await goal_manager.set_new_goal_async(
+            spreadsheet_url = await goal_manager.set_new_goal(
                 user_id, goal_text, deadline, available_time
             )
             await update.message.reply_text(

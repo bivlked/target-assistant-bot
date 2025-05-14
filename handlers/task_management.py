@@ -19,16 +19,30 @@ from core.goal_manager import (
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 from utils.helpers import format_date
 from core.metrics import USER_COMMANDS_TOTAL
+import logging
 
 CHOOSING_STATUS = 0
 
+logger = logging.getLogger(__name__)
+
 
 def build_task_handlers(goal_manager: GoalManager):
+    """Builds and returns handlers related to daily task management.
+
+    This includes handlers for /today, /status, /motivation, and the /check conversation.
+
+    Args:
+        goal_manager: Instance of GoalManager to interact with tasks and goals.
+
+    Returns:
+        A tuple containing the handler functions and ConversationHandler for these commands.
+    """
+
     async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):  # noqa: D401
         USER_COMMANDS_TOTAL.labels(command_name="/today").inc()
         assert update.effective_user is not None
         assert update.message is not None
-        task = await goal_manager.get_today_task_async(update.effective_user.id)
+        task = await goal_manager.get_today_task(update.effective_user.id)
         if task:
             text = (
                 f"📅 Задача на сегодня ({task[COL_DATE]}, {task[COL_DAYOFWEEK]}):\n\n"
@@ -42,7 +56,7 @@ def build_task_handlers(goal_manager: GoalManager):
         USER_COMMANDS_TOTAL.labels(command_name="/status").inc()
         assert update.effective_user is not None
         assert update.message is not None
-        data = await goal_manager.get_detailed_status_async(update.effective_user.id)
+        data = await goal_manager.get_detailed_status(update.effective_user.id)
 
         # Нет данных о цели или план пустой
         if not data.get("goal") or data.get("total_days", 0) == 0:
@@ -89,7 +103,7 @@ def build_task_handlers(goal_manager: GoalManager):
         USER_COMMANDS_TOTAL.labels(command_name="/check").inc()
         assert update.effective_user is not None
         assert update.message is not None
-        task = await goal_manager.get_today_task_async(update.effective_user.id)
+        task = await goal_manager.get_today_task(update.effective_user.id)
         if not task:
             await update.message.reply_text(
                 "У вас пока нет цели или задач на сегодня. Сначала выполните /setgoal."
@@ -126,11 +140,11 @@ def build_task_handlers(goal_manager: GoalManager):
         await query.answer()
         status_val = str(query.data)
         assert update.effective_user is not None
-        await goal_manager.batch_update_task_statuses_async(
+        await goal_manager.batch_update_task_statuses(
             update.effective_user.id,
             {format_date(datetime.now()): status_val},
         )
-        await query.edit_message_text("Статус обновлен! 💪")
+        await query.edit_message_text("Статус обновлен! (Обработка временно упрощена)")
         return ConversationHandler.END
 
     async def motivation(
@@ -139,9 +153,7 @@ def build_task_handlers(goal_manager: GoalManager):
         USER_COMMANDS_TOTAL.labels(command_name="/motivation").inc()
         assert update.effective_user is not None
         assert update.message is not None
-        msg = await goal_manager.generate_motivation_message_async(
-            update.effective_user.id
-        )
+        msg = await goal_manager.generate_motivation_message(update.effective_user.id)
         await update.message.reply_text(msg)
 
     check_conv = ConversationHandler(

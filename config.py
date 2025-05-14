@@ -27,20 +27,24 @@ def _int_env(var_name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class TelegramConfig:
+    """Configuration for the Telegram Bot token."""
+
     token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 
 @dataclass(frozen=True)
 class OpenAIConfig:
+    """Configuration for the OpenAI API client."""
+
     api_key: str = os.getenv("OPENAI_API_KEY", "")
     model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     # Количество попыток повторного запроса в случае ошибки LLM
-    max_retries: int = int(os.getenv("OPENAI_MAX_RETRIES", "2"))
+    max_retries: int = _int_env("OPENAI_MAX_RETRIES", 2)
 
 
 @dataclass
 class GoogleConfig:
-    """Конфигурация доступа к Google API.
+    """Configuration for Google API access, specifically for service account credentials.
 
     Если в переменной окружения GOOGLE_CREDENTIALS_PATH указан относительный путь
     (или она не установлена), он будет преобразован в абсолютный путь внутри
@@ -88,6 +92,8 @@ class GoogleConfig:
 
 @dataclass(frozen=True)
 class SchedulerConfig:
+    """Configuration for the task scheduler (APScheduler)."""
+
     timezone: str = os.getenv("SCHEDULER_TIMEZONE", "Europe/Moscow")
     morning_time: str = os.getenv("MORNING_REMINDER_TIME", "08:00")
     evening_time: str = os.getenv("EVENING_REMINDER_TIME", "20:00")
@@ -96,13 +102,15 @@ class SchedulerConfig:
 
 @dataclass(frozen=True)
 class LoggingConfig:
+    """Configuration for application logging."""
+
     level: str = os.getenv("LOG_LEVEL", "WARNING")
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
 @dataclass(frozen=True)
 class RateLimiterConfig:
-    """Configuration for API rate limiting."""
+    """Configuration for API rate limiting, specifically for LLM calls."""
 
     # For LLM calls, e.g., OpenAI
     llm_requests_per_minute: int = _int_env(
