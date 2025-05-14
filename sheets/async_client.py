@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from sheets.client import SheetsManager  # существующий синхронный клиент
+from utils.cache import sheet_cache
 
 
 class AsyncSheetsManager:
@@ -48,10 +49,16 @@ class AsyncSheetsManager:
         return await self._run(self._sync.create_spreadsheet, user_id)
 
     async def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
-        return await self._run(self._sync.save_goal_info, user_id, goal_data)
+        try:
+            return await self._run(self._sync.save_goal_info, user_id, goal_data)
+        finally:
+            sheet_cache.invalidate(user_id)
 
     async def save_plan(self, user_id: int, plan: List[dict[str, Any]]):
-        await self._run(self._sync.save_plan, user_id, plan)
+        try:
+            return await self._run(self._sync.save_plan, user_id, plan)
+        finally:
+            sheet_cache.invalidate(user_id)
 
     async def get_statistics(self, user_id: int):
         return await self._run(self._sync.get_statistics, user_id)
@@ -80,3 +87,45 @@ class AsyncSheetsManager:
     # Позволяет корректно завершать пул потоков при необходимости
     async def aclose(self):  # noqa: D401
         self._executor.shutdown(wait=True)
+
+    async def clear_user_data(self, user_id: int):
+        """Async: Очищает оба листа пользователя."""
+        try:
+            return await self._run(self._sync.clear_user_data, user_id)
+        finally:
+            sheet_cache.invalidate(user_id)
+
+    @sheet_cache.cached(lambda: "goal_info")
+    async def get_goal_info(self, user_id: int):
+        return await self._run(self._sync.get_goal_info, user_id)
+
+    async def update_task_status(self, user_id: int, target_date: str, status: str):
+        """Async: Обновляет поле *Статус* задачи."""
+        try:
+            return await self._run(
+                self._sync.update_task_status, user_id, target_date, status
+            )
+        finally:
+            sheet_cache.invalidate(user_id)
+
+    @sheet_cache.cached(lambda: "statistics")
+    async def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
+        return await self._run(
+            self._sync.get_extended_statistics, user_id, upcoming_count
+        )
+
+    async def delete_spreadsheet(self, user_id: int):
+        """Async: Навсегда удаляет таблицу пользователя."""
+        try:
+            return await self._run(self._sync.delete_spreadsheet, user_id)
+        finally:
+            sheet_cache.invalidate(user_id)
+
+    async def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
+        """Async: Пакетно обновляет статусы задач."""
+        try:
+            return await self._run(
+                self._sync.batch_update_task_statuses, user_id, updates
+            )
+        finally:
+            sheet_cache.invalidate(user_id)

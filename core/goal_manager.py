@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from utils.helpers import format_date, get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
+from core.interfaces import StorageInterface, LLMInterface
+
 if TYPE_CHECKING:  # избегаем циклов импорта
     from sheets.client import SheetsManager
     from sheets.async_client import AsyncSheetsManager
@@ -26,27 +28,39 @@ class GoalManager:
 
     def __init__(
         self,
-        sheets_sync: "SheetsManager | None" = None,
-        llm_sync: "LLMClient | None" = None,
-        sheets_async: "AsyncSheetsManager | None" = None,
-        llm_async: "AsyncLLMClient | None" = None,
+        # For backward compatibility with tests, allow old names
+        sheets_sync: StorageInterface | None = None,
+        llm_sync: LLMInterface | None = None,
+        sheets_async: StorageInterface | None = None,
+        llm_async: LLMInterface | None = None,
+        # New DI-friendly names (preferred)
+        storage_sync: StorageInterface | None = None,
+        storage_async: StorageInterface | None = None,
     ):
-        if not (sheets_sync or sheets_async):
-            raise ValueError("Требуется sheets_sync или sheets_async")
-        if not (llm_sync or llm_async):
+        # Determine actual providers, preferring new names
+        final_sheets_sync = storage_sync or sheets_sync
+        final_llm_sync = llm_sync  # No storage_llm_sync variant yet
+        final_sheets_async = storage_async or sheets_async
+        final_llm_async = llm_async
+
+        if not (final_sheets_sync or final_sheets_async):
+            raise ValueError(
+                "Требуется storage_sync/sheets_sync или storage_async/sheets_async"
+            )
+        if not (final_llm_sync or final_llm_async):
             raise ValueError("Требуется llm_sync или llm_async")
 
         # keep raw refs
-        self.sheets_sync = sheets_sync
-        self.sheets_async = sheets_async
-        self.llm_sync = llm_sync
-        self.llm_async = llm_async
+        self.sheets_sync = final_sheets_sync
+        self.sheets_async = final_sheets_async
+        self.llm_sync = final_llm_sync
+        self.llm_async = final_llm_async
 
         # These attributes are used both in sync and async context; exact concrete type
         # is not important at runtime, поэтому указываем Any, чтобы избежать NameError
         # из-за отсутствия реального класса, когда импорт находится под TYPE_CHECKING.
-        self.sheets: Any = sheets_sync or sheets_async
-        self.llm: Any = llm_sync or llm_async
+        self.sheets: Any = final_sheets_sync or final_sheets_async
+        self.llm: Any = final_llm_sync or final_llm_async
 
     # -------------------------------------------------
     # Методы API, вызываемые из Telegram-обработчиков
@@ -173,13 +187,13 @@ class GoalManager:
         if self.sheets_async:
             await self.sheets_async.clear_user_data(user_id)  # type: ignore[attr-defined]
         else:
-            await loop.run_in_executor(None, self.sheets_sync.clear_user_data, user_id)  # type: ignore[arg-type]
+            await loop.run_in_executor(None, self._sync_sheets().clear_user_data, user_id)  # type: ignore[arg-type]
 
         # 2. LLM generate plan
         if self.llm_async:
             plan_json = await self.llm_async.generate_plan(goal_text, deadline_str, available_time_str)  # type: ignore[attr-defined]
         else:
-            plan_json = await loop.run_in_executor(None, self.llm_sync.generate_plan, goal_text, deadline_str, available_time_str)  # type: ignore[arg-type]
+            plan_json = await loop.run_in_executor(None, self._sync_llm().generate_plan, goal_text, deadline_str, available_time_str)  # type: ignore[arg-type]
 
         today = datetime.now()
         full_plan = []
@@ -207,8 +221,8 @@ class GoalManager:
             spreadsheet_url = await self.sheets_async.save_goal_info(user_id, goal_info)  # type: ignore[arg-type]
             await self.sheets_async.save_plan(user_id, full_plan)  # type: ignore[arg-type]
         else:
-            spreadsheet_url = await loop.run_in_executor(None, self.sheets_sync.save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
-            await loop.run_in_executor(None, self.sheets_sync.save_plan, user_id, full_plan)  # type: ignore[arg-type]
+            spreadsheet_url = await loop.run_in_executor(None, self._sync_sheets().save_goal_info, user_id, goal_info)  # type: ignore[arg-type]
+            await loop.run_in_executor(None, self._sync_sheets().save_plan, user_id, full_plan)  # type: ignore[arg-type]
 
         return spreadsheet_url
 
@@ -228,7 +242,7 @@ class GoalManager:
             return await self.sheets_async.get_task_for_date(user_id, date_str)  # type: ignore[attr-defined]
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
-            None, self.sheets_sync.get_task_for_date, user_id, date_str  # type: ignore[arg-type]
+            None, self._sync_sheets().get_task_for_date, user_id, date_str
         )
 
     async def update_today_task_status_async(
@@ -243,7 +257,7 @@ class GoalManager:
             return
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, self.sheets_sync.update_task_status, user_id, date_str, status  # type: ignore[arg-type]
+            None, self._sync_sheets().update_task_status, user_id, date_str, status
         )
 
     async def generate_motivation_message_async(self, user_id: int):  # noqa: D401
@@ -255,8 +269,12 @@ class GoalManager:
             stats = await self.sheets_async.get_statistics(user_id)  # type: ignore[attr-defined]
         else:
             loop = asyncio.get_event_loop()
-            goal_info = await loop.run_in_executor(None, self.sheets_sync.get_goal_info, user_id)  # type: ignore[arg-type]
-            stats = await loop.run_in_executor(None, self.sheets_sync.get_statistics, user_id)  # type: ignore[arg-type]
+            goal_info = await loop.run_in_executor(
+                None, self._sync_sheets().get_goal_info, user_id
+            )
+            stats = await loop.run_in_executor(
+                None, self._sync_sheets().get_statistics, user_id
+            )
 
         if self.llm_async:
             return await self.llm_async.generate_motivation(
@@ -265,7 +283,7 @@ class GoalManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None,
-            self.llm_sync.generate_motivation,
+            self._sync_llm().generate_motivation,
             goal_info.get("Глобальная цель", ""),
             stats,
         )  # type: ignore[arg-type]
@@ -280,7 +298,9 @@ class GoalManager:
             await self.sheets_async.batch_update_task_statuses(user_id, updates)  # type: ignore[attr-defined]
             return
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.sheets_sync.batch_update_task_statuses, user_id, updates)  # type: ignore[arg-type]
+        await loop.run_in_executor(
+            None, self._sync_sheets().batch_update_task_statuses, user_id, updates
+        )
 
     # -------------------------------------------------
     # Новые async-версии дополнительных методов
@@ -293,7 +313,7 @@ class GoalManager:
             await self.sheets_async.create_spreadsheet(user_id)  # type: ignore[attr-defined]
             return
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.sheets_sync.create_spreadsheet, user_id)  # type: ignore[arg-type]
+        await loop.run_in_executor(None, self._sync_sheets().create_spreadsheet, user_id)  # type: ignore[arg-type]
 
     async def reset_user_async(self, user_id: int):  # noqa: D401
         """Асинхронная версия :py:meth:`reset_user`."""
@@ -303,7 +323,7 @@ class GoalManager:
             await self.sheets_async.delete_spreadsheet(user_id)  # type: ignore[attr-defined]
             return
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.sheets_sync.delete_spreadsheet, user_id)  # type: ignore[arg-type]
+        await loop.run_in_executor(None, self._sync_sheets().delete_spreadsheet, user_id)  # type: ignore[arg-type]
 
     async def get_detailed_status_async(self, user_id: int):  # noqa: D401
         """Асинхронная версия get_detailed_status."""
@@ -314,6 +334,24 @@ class GoalManager:
             goal_info = await self.sheets_async.get_goal_info(user_id)  # type: ignore[attr-defined]
         else:
             loop = asyncio.get_event_loop()
-            stats = await loop.run_in_executor(None, self.sheets_sync.get_extended_statistics, user_id)  # type: ignore[arg-type]
-            goal_info = await loop.run_in_executor(None, self.sheets_sync.get_goal_info, user_id)  # type: ignore[arg-type]
+            stats = await loop.run_in_executor(
+                None, self._sync_sheets().get_extended_statistics, user_id
+            )
+            goal_info = await loop.run_in_executor(
+                None, self._sync_sheets().get_goal_info, user_id
+            )
         return {"goal": goal_info.get("Глобальная цель", "—"), **stats}
+
+    # -------------------------------------------------
+    # Internal helpers for static typing
+    # -------------------------------------------------
+
+    def _sync_sheets(self) -> "SheetsManager":  # type: ignore[name-defined]
+        """Return synchronous SheetsManager, asserting it exists (for mypy)."""
+        assert self.sheets_sync is not None
+        return self.sheets_sync
+
+    def _sync_llm(self) -> "LLMClient":  # type: ignore[name-defined]
+        """Return synchronous LLMClient, asserting it exists (for mypy)."""
+        assert self.llm_sync is not None
+        return self.llm_sync

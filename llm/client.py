@@ -49,6 +49,8 @@ class LLMClient:
                 logger.warning("Ошибка OpenAI: %s, попытка %d", e, attempt + 1)
                 if attempt == self.max_retries:
                     raise
+        # Should never reach here, but mypy requires explicit return/raise.
+        raise RuntimeError("OpenAI chat completion failed after retries")
 
     def _extract_plan(self, content: str):
         """Пытается извлечь JSON-массив задач из произвольного текста LLM."""

@@ -23,6 +23,7 @@ def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
 
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    assert update.message is not None
     await update.message.reply_text(
         HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True
     )
