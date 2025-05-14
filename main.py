@@ -23,6 +23,8 @@ from handlers.task_management import build_task_handlers
 from utils.logging import setup_logging
 from core.exceptions import BotError
 from utils.sentry_integration import setup_sentry
+from prometheus_client import start_http_server  # For metrics
+from core.metrics import APP_INFO  # For app version metric
 
 # ---------------------------------------------------------------------------
 # PTB >=20.9 содержит фикс слота __polling_cleanup_cb, дополнительный патч не нужен.
@@ -107,6 +109,18 @@ def main():
     # Запуск бота
     application.add_error_handler(error_handler)
     logger.info("Бот запущен")
+
+    # Start Prometheus metrics server
+    try:
+        # TODO: Make port configurable
+        metrics_port = 8000
+        start_http_server(metrics_port)
+        logger.info(f"Prometheus metrics available on port {metrics_port} /metrics")
+        # TODO: Get version from a more reliable source (e.g., pyproject.toml or env var)
+        APP_INFO.labels(version="1.2.0-dev").set(1)  # Example version
+    except Exception as e:
+        logger.error(f"Could not start Prometheus metrics server: {e}")
+
     application.run_polling()
 
 

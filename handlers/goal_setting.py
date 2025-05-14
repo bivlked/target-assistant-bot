@@ -15,6 +15,7 @@ from telegram.ext import (
 
 from core.goal_manager import GoalManager
 from utils.period_parser import parse_period
+from core.metrics import USER_COMMANDS_TOTAL
 
 # Состояния ConversationHandler
 TEXT_GOAL: Final = 0
@@ -99,6 +100,7 @@ async def _ask_available_time(update: Update):
 
 def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        USER_COMMANDS_TOTAL.labels(command_name="/setgoal").inc()
         assert update.message is not None
         await update.message.reply_text(
             "Какую цель вы хотите достичь? Опишите её как можно подробнее."

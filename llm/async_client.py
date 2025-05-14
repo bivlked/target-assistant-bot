@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, List
+import time
 
 from openai import AsyncOpenAI, APIError
 from tenacity import (
@@ -13,6 +14,7 @@ from tenacity import (
 )
 
 from config import openai_cfg
+from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,8 @@ class AsyncLLMClient:
     async def generate_plan(
         self, goal_text: str, deadline_str: str, available_time_str: str
     ):
+        method_name = "generate_plan"
+        start_time = time.monotonic()
         prompt = (
             "Составь план достижения цели '{goal}' с дедлайном '{deadline}' "
             "и ежедневным временем '{time}' в формате JSON".format(
@@ -53,11 +57,23 @@ class AsyncLLMClient:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
         )
-        content = resp.choices[0].message.content
-        return self._extract_plan(content)
+        try:
+            content = resp.choices[0].message.content
+            LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+            return self._extract_plan(content)
+        except Exception as e:
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+            logger.error(f"Error processing LLM response for {method_name}: {e}")
+            raise
+        finally:
+            LLM_API_LATENCY.labels(method_name=method_name).observe(
+                time.monotonic() - start_time
+            )
 
     @RETRY
     async def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
+        method_name = "generate_motivation"
+        start_time = time.monotonic()
         prompt = (
             "Ты - мотивационный коуч. Пользователь работает над целью: {goal}. "
             "Текущий прогресс: {progress}. "
@@ -68,4 +84,15 @@ class AsyncLLMClient:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
         )
-        return resp.choices[0].message.content.strip()
+        try:
+            content = resp.choices[0].message.content.strip()
+            LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+            return content
+        except Exception as e:
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+            logger.error(f"Error processing LLM response for {method_name}: {e}")
+            raise
+        finally:
+            LLM_API_LATENCY.labels(method_name=method_name).observe(
+                time.monotonic() - start_time
+            )

@@ -5,11 +5,13 @@ import logging
 from typing import Any, List
 import re
 import ast
+import time
 
 from openai import OpenAI, APIError
 
 from config import openai_cfg
 from llm.prompts import PLAN_PROMPT, MOTIVATION_PROMPT
+from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +40,25 @@ class LLMClient:
         в конфиге.
         """
         for attempt in range(self.max_retries + 1):
+            start_time = time.monotonic()
             try:
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.7,
                 )
+                method_name = "chat_completion_generic"
+                LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+                LLM_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
                 return response.choices[0].message.content.strip()
             except APIError as e:
+                method_name = "chat_completion_generic"
+                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+                LLM_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
                 logger.warning("Ошибка OpenAI: %s, попытка %d", e, attempt + 1)
                 if attempt == self.max_retries:
                     raise
