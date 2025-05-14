@@ -118,8 +118,9 @@ def build_task_handlers(goal_manager: GoalManager):
         update: Update, context: ContextTypes.DEFAULT_TYPE
     ):  # noqa: D401
         query = update.callback_query
+        assert query is not None
         await query.answer()
-        status_val = query.data
+        status_val = str(query.data)
         assert update.effective_user is not None
         await goal_manager.batch_update_task_statuses_async(
             update.effective_user.id,

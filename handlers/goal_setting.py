@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta, datetime
-from typing import Final
+from typing import Final, cast, Any, Dict
 
 from telegram import Update
 from telegram.ext import (
@@ -99,6 +99,7 @@ async def _ask_available_time(update: Update):
 
 def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.message is not None
         await update.message.reply_text(
             "Какую цель вы хотите достичь? Опишите её как можно подробнее."
         )
@@ -106,19 +107,22 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
 
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert update.message is not None
-        text = update.message.text.strip()
+        text_raw = update.message.text or ""
+        text = text_raw.strip()
         if len(text) < 10:
             await update.message.reply_text(
                 "Пожалуйста, опишите цель подробнее (минимум 10 символов)."
             )
             return TEXT_GOAL
-        context.user_data["goal_text"] = text
+        data_dict = cast(Dict[str, Any], context.user_data)
+        data_dict["goal_text"] = text
         await _ask_deadline(update)
         return DEADLINE
 
     async def input_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert update.message is not None
-        text = update.message.text.strip()
+        text_raw = update.message.text or ""
+        text = text_raw.strip()
         # Пытаемся распарсить срок и убедиться, что он не превышает 90 дней
         try:
             days = parse_period(text)
@@ -130,21 +134,25 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
             )
             return DEADLINE
 
-        context.user_data["deadline"] = text
+        data_dict = cast(Dict[str, Any], context.user_data)
+        data_dict["deadline"] = text
         await _ask_available_time(update)
         return AVAILABLE_TIME
 
     async def input_available_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert update.message is not None
-        text = update.message.text.strip()
-        context.user_data["available_time"] = text
+        text_raw = update.message.text or ""
+        text = text_raw.strip()
+        data_dict = cast(Dict[str, Any], context.user_data)
+        data_dict["available_time"] = text
         await update.message.reply_text(
             "Генерирую для вас персональный план... Это может занять некоторое время."
         )
 
-        goal_text = context.user_data["goal_text"]
-        deadline = context.user_data["deadline"]
-        available_time = context.user_data["available_time"]
+        data_dict = cast(Dict[str, Any], context.user_data)
+        goal_text = data_dict["goal_text"]
+        deadline = data_dict["deadline"]
+        available_time = data_dict["available_time"]
         assert update.effective_user is not None
         user_id = update.effective_user.id
 
