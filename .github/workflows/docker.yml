@@ -7,6 +7,7 @@ on:
 
 jobs:
   build-and-push:
+    if: ${{ github.repository == 'bivlked/target-assistant-bot' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
