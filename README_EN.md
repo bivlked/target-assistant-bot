@@ -16,6 +16,51 @@ Personal Telegram assistant that helps you set goals, break them down into daily
 
 ---
 
+## 💡 Usage Scenarios
+
+To better understand how the bot helps in achieving goals, let's consider a few scenarios:
+
+### 🌟 Scenario 1: Setting Your First Goal
+
+Let's say your goal is "Write a book in 3 months, dedicating 2 hours цьому daily."
+
+1.  **You**: `/start`
+    **Bot**: 🤖 Hello! I'm your personal goal assistant... Press `/setgoal` to begin!
+2.  **You**: `/setgoal`
+    **Bot**: What goal do you want to achieve? Describe it in as much detail as possible.
+3.  **You**: Write a book "My Adventures in the World of Code"
+    **Bot**: What is the deadline for achieving your goal (e.g., 'in 2 months', 'in 6 weeks', 'in 50 days')? Please specify a period up to 3 months.
+4.  **You**: in 3 months
+    **Bot**: How much time are you approximately willing to dedicate to achieving your goal daily (e.g., '30 minutes', '1-2 hours')?
+5.  **You**: 2 hours a day
+    **Bot**: Generating your personal plan... This might take a moment.
+    *(After a short while)*
+    **Bot**: ✅ Your goal *Write a book "My Adventures in the World of Code"* is set! The plan has been saved.
+    📄 [Open Spreadsheet](https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_LINK)
+
+    Use `/today` to see today's task, and `/check` to mark it as complete.
+6.  **You**: `/today`
+    **Bot**: 📅 Task for today (15.05.2025, Wednesday):
+    📝 Outline the first chapter of the book.
+    Status: Not completed
+7.  **You**: `/check` -> (select "✅ Done" via buttons)
+    **Bot**: Status updated! 💪
+8.  **You**: `/status`
+    **Bot**: (shows progress, e.g., 🎯 *Goal*: Write a book... 📊 *Progress*: 1% (✅ 1/90 days)...)
+
+### ☀️ Scenario 2: Daily Interaction
+
+1.  *(Morning)* **Bot** (automatic reminder, if configured):
+    ☀️ Good morning! Time to tackle today's task for your goal!
+    📝 Your task: Write 5 pages of text for the second chapter.
+2.  **You**: (work on the task during the day)
+3.  **You**: `/check` -> (select "✅ Done")
+    **Bot**: Status updated! 💪
+4.  **You**: `/motivation`
+    **Bot**: Great job! Every step brings you closer to your dream. Keep up the pace! ✨
+
+---
+
 ## 🛠️ Features
 
 | Command | Description |
@@ -23,7 +68,7 @@ Personal Telegram assistant that helps you set goals, break them down into daily
 | `/start` | 🚀 Start using the bot |
 | `/help`  | ℹ️ Show available commands |
 | `/setgoal` | 🎯 Set a new goal |
-| `/today` | �� Task for today |
+| `/today` | 📅 Task for today |
 | `/check` | ✍️ Mark task as completed |
 | `/status` | 📊 Show progress towards goal |
 | `/motivation` | 💡 Get a motivational message |
