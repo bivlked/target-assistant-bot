@@ -268,7 +268,13 @@ class SheetsManager:
     # --- batch update statuses ---
     @retry_google_sheets
     def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
-        """Пакетно обновляет статусы задач в несколько дат одной операцией."""
+        """Пакетно обновляет статусы задач в несколько дат одной операцией.
+
+        Использует один вызов `get_all_records()` для чтения и один `batch_update()`
+        для записи, что эффективно по количеству API-запросов.
+        """
+        method_name = "batch_update_task_statuses"
+        start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         row_map: dict[str, int] = {}
