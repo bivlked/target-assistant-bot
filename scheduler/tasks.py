@@ -30,7 +30,14 @@ TEMP_EVENING_REMINDER_TEXT = (
 
 
 class Scheduler:
+    """Manages scheduled tasks for users, like daily reminders and motivational messages.
+
+    Uses APScheduler with an AsyncIOScheduler to run jobs asynchronously.
+    Relies on GoalManager to fetch user-specific information for tasks.
+    """
+
     def __init__(self, goal_manager):
+        """Initializes the Scheduler with a GoalManager instance and sets up APScheduler."""
         self.goal_manager = goal_manager
         try:
             loop = asyncio.get_running_loop()
@@ -44,6 +51,15 @@ class Scheduler:
         )
 
     def add_user_jobs(self, bot: Bot, user_id: int):
+        """Adds all standard periodic jobs for a given user.
+
+        This includes:
+        - Morning task reminder (_send_today_task).
+        - Evening check-in reminder (_send_evening_reminder).
+        - Periodic motivational message (_send_motivation).
+
+        Existing jobs with the same ID for the user will be replaced.
+        """
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
         self.scheduler.add_job(
             self._send_today_task,
@@ -79,11 +95,12 @@ class Scheduler:
         )
 
     def start(self):
+        """Starts the APScheduler if it's not already running."""
         if not self.scheduler.running:
             self.scheduler.start()
 
     async def _send_today_task(self, bot: Bot, user_id: int):
-        """Отправляет задачу на сегодня (если есть)."""
+        """(Job) Sends the daily task to the user if it's not completed."""
         try:
             if hasattr(self.goal_manager, "get_today_task_async"):
                 task = await self.goal_manager.get_today_task_async(user_id)  # type: ignore[attr-defined]
@@ -101,6 +118,7 @@ class Scheduler:
             logger.error("Ошибка при отправке утренней задачи: %s", e)
 
     async def _send_evening_reminder(self, bot: Bot, user_id: int):
+        """(Job) Sends an evening reminder to check off the daily task."""
         try:
             await bot.send_message(
                 chat_id=user_id,
@@ -110,7 +128,7 @@ class Scheduler:
             logger.error("Ошибка при отправке вечернего напоминания: %s", e)
 
     async def _send_motivation(self, bot: Bot, user_id: int):
-        """Отправляет мотивационное сообщение."""
+        """(Job) Sends a motivational message to the user."""
         try:
             if hasattr(self.goal_manager, "generate_motivation_message_async"):
                 msg = await self.goal_manager.generate_motivation_message_async(user_id)  # type: ignore[attr-defined]
@@ -145,8 +163,8 @@ class Scheduler:
         job_name = "daily_task_reminder"  # Consistent job name for metrics
 
         try:
-            task_info = await self.goal_manager.get_today_task_async(user_id)
-            if task_info and task_info.get("Статус") == STATUS_NOT_DONE:
+            task_info = await self.goal_manager.get_today_task(user_id)
+            if task_info and task_info.get("Статус") == STATUS_NOT_DONE:  # type: ignore[union-attr]
                 await bot.send_message(
                     user_id, TEMP_MORNING_REMINDER_TEXT
                 )  # Use temporary text

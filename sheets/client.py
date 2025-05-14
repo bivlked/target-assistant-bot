@@ -42,22 +42,24 @@ RETRY = retry(
 
 
 class SheetsManager:
-    """Синхронный клиент Google Sheets.
+    """Synchronous client for interacting with Google Sheets.
 
-    Экономит усилия на работе напрямую с API *gspread* и инкапсулирует всю
-    доменно-специфичную логику (создание/получение таблиц, чтение и запись
-    данных, форматирование листов, вычисление статистики). Методы
-    декорированы ретраем Tenacity для устойчивой работы с нестабильной
-    сетью/квотами Google.
+    This class encapsulates all domain-specific logic for managing user spreadsheets,
+    including creating/opening sheets, reading/writing goal and plan data,
+    formatting cells, and calculating statistics. It uses the `gspread` library
+    for Google Sheets API communication and `tenacity` for retrying operations
+    in case of API errors or network issues. It also integrates with `SheetCache`
+    for caching read operations and `Prometheus` for metrics.
+
+    Implements the `StorageInterface` protocol.
     """
 
     def __init__(self):
-        """Авторизуется в Google API и инициализирует объект `gspread`.
+        """Initializes the gspread client and authenticates with Google API.
 
-        Данные сервисного аккаунта берутся из ``config.google.credentials_path``.
-        Поддерживаются скopes как для Google Sheets, так и для Google Drive –
-        это позволяет открывать общий доступ к таблице через метод
-        :py:meth:`gspread.Spreadsheet.share`.
+        Service account credentials are read from `config.google.credentials_path`.
+        Scopes for both Google Sheets and Google Drive are requested to allow
+        sharing spreadsheets via `gspread.Spreadsheet.share`.
         """
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -122,7 +124,14 @@ class SheetsManager:
     # -------------------------------------------------
     # No cache for create_spreadsheet: it modifies and must be fresh
     def create_spreadsheet(self, user_id: int):
-        """Создаёт (или открывает) таблицу пользователя и открывает к ней доступ.*"""  # noqa: D401,E501
+        """Creates (if not exists) or opens a user's spreadsheet and ensures it's shared.
+
+        Args:
+            user_id: The Telegram ID of the user.
+
+        Note: This operation is not cached as it always involves potential modification
+              or ensuring fresh access permissions.
+        """
         method_name = "create_spreadsheet"
         start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
@@ -140,7 +149,13 @@ class SheetsManager:
 
     @retry_google_sheets
     def clear_user_data(self, user_id: int):
-        """Очищает оба листа пользователя, сохраняя структуру таблицы."""
+        """Clears all data from the user's 'Goal Info' and 'Plan' sheets.
+
+        The spreadsheet structure (sheets themselves) is preserved.
+
+        Args:
+            user_id: The Telegram ID of the user.
+        """
         method_name = "clear_user_data"
         start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
@@ -162,7 +177,16 @@ class SheetsManager:
 
     @retry_google_sheets
     def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
-        """Записывает блок «Информация о цели» и возвращает URL таблицы."""
+        """Saves goal information to the 'Goal Info' sheet and formats it.
+
+        Args:
+            user_id: The Telegram ID of the user.
+            goal_data: A dictionary containing goal parameters (e.g.,
+                       {"Global Goal": "Learn Python", "Deadline": "3 months"}).
+
+        Returns:
+            The URL of the user's spreadsheet.
+        """
         method_name = "save_goal_info"
         start_time = time.monotonic()
         sh = self._get_spreadsheet(user_id)
@@ -188,7 +212,22 @@ class SheetsManager:
     @retry_google_sheets
     @cached_sheet_method(lambda: "goal_info")
     def get_goal_info(self, user_id: int):
-        """Возвращает словарь с параметрами цели (лист *Информация о цели*)."""
+        """Retrieves goal parameters from the 'Goal Info' sheet.
+
+        This method is cached.
+
+        Args:
+            user_id: The Telegram ID of the user.
+
+        Returns:
+            A dictionary where keys are parameter names (e.g., "Global Goal")
+            and values are their corresponding string values.
+            Example: {
+                "Global Goal": "Learn Python",
+                "Deadline": "3 months",
+                "Daily Commitment": "1 hour"
+            }
+        """
         method_name = "get_goal_info"
         start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(GOAL_INFO_SHEET)
@@ -203,9 +242,16 @@ class SheetsManager:
     @retry_google_sheets
     @cached_sheet_method(lambda target_date: target_date)
     def get_task_for_date(self, user_id: int, target_date: str):
-        """Ищет задачу на указанную дату в листе *План*.
+        """Finds and returns a task for a specific date from the 'Plan' sheet.
 
-        Возвращает dict строки таблицы или *None*, если задача не найдена.
+        This method is cached based on `user_id` and `target_date`.
+
+        Args:
+            user_id: The Telegram ID of the user.
+            target_date: The date string to search for (e.g., "dd.mm.yyyy").
+
+        Returns:
+            A dictionary representing the task row if found, otherwise None.
         """
         method_name = "get_task_for_date"
         start_time = time.monotonic()
@@ -227,7 +273,13 @@ class SheetsManager:
 
     @retry_google_sheets
     def update_task_status(self, user_id: int, target_date: str, status: str):
-        """Обновляет поле *Статус* задачи в указанную дату."""
+        """Updates the 'Status' field of a task for a specific date.
+
+        Args:
+            user_id: The Telegram ID of the user.
+            target_date: The date string of the task to update.
+            status: The new status string for the task.
+        """
         method_name = "update_task_status"
         start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
@@ -243,7 +295,18 @@ class SheetsManager:
     @retry_google_sheets
     @cached_sheet_method(lambda: "statistics")
     def get_statistics(self, user_id: int):
-        """Краткая строковая статистика выполнения плана."""
+        """Generates a brief string summary of the user's plan execution statistics.
+
+        This method is cached.
+
+        Args:
+            user_id: The Telegram ID of the user.
+
+        Returns:
+            A human-readable string summarizing the progress (e.g., "Completed 5 of 30 (16%), 25 days left").
+        """
+        method_name = "get_statistics"
+        start_time = time.monotonic()
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
         data = ws.get_all_records()
         total = len(data)
@@ -254,7 +317,13 @@ class SheetsManager:
 
     @retry_google_sheets
     def delete_spreadsheet(self, user_id: int):
-        """Навсегда удаляет таблицу пользователя из Google Drive."""
+        """Permanently deletes the user's spreadsheet from Google Drive.
+
+        Args:
+            user_id: The Telegram ID of the user whose spreadsheet is to be deleted.
+        """
+        method_name = "delete_spreadsheet"
+        start_time = time.monotonic()
         name = f"TargetAssistant_{user_id}"
         try:
             sh = self.gc.open(name)
@@ -268,10 +337,15 @@ class SheetsManager:
     # --- batch update statuses ---
     @retry_google_sheets
     def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
-        """Пакетно обновляет статусы задач в несколько дат одной операцией.
+        """Batch updates task statuses for multiple dates in a single operation.
 
-        Использует один вызов `get_all_records()` для чтения и один `batch_update()`
-        для записи, что эффективно по количеству API-запросов.
+        This method reads all records once to map dates to row numbers, then performs
+        a single `batch_update` call to modify cell values, making it efficient
+        in terms of API calls.
+
+        Args:
+            user_id: The Telegram ID of the user.
+            updates: A dictionary where keys are date strings and values are new status strings.
         """
         method_name = "batch_update_task_statuses"
         start_time = time.monotonic()
@@ -294,23 +368,40 @@ class SheetsManager:
     @retry_google_sheets
     @cached_sheet_method(lambda: "spreadsheet_url")
     def get_spreadsheet_url(self, user_id: int) -> str:
-        """Возвращает URL таблицы (создаёт её при необходимости)."""
-        return self._get_spreadsheet(user_id).url
+        """Returns the URL of the user's spreadsheet, creating it if necessary.
+
+        This method is cached.
+
+        Args:
+            user_id: The Telegram ID of the user.
+
+        Returns:
+            The URL string of the Google Spreadsheet.
+        """
+        method_name = "get_spreadsheet_url"
+        start_time = time.monotonic()
+        sh = self._get_spreadsheet(user_id)
+        SHEETS_API_CALLS.labels(method_name=method_name, operation_type="read").inc()
+        SHEETS_API_LATENCY.labels(method_name=method_name).observe(
+            time.monotonic() - start_time
+        )
+        return sh.url
 
     @retry_google_sheets
     @cached_sheet_method(
         lambda *a, **kw: f"extended_stats:{kw.get('upcoming_count', a[0] if a else 5)}"
     )
     def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
-        """Расширенная статистика + список ближайших задач.
+        """Retrieves detailed progress statistics and a list of upcoming tasks.
 
-        Параметры
-        ----------
-        user_id: int
-            Telegram-ID пользователя.
-        upcoming_count: int, default = 5
-            Сколько ближайших (по дате) задач вернуть в списке
-            ``upcoming_tasks``.
+        This method is cached based on `user_id` and `upcoming_count`.
+
+        Args:
+            user_id: The Telegram ID of the user.
+            upcoming_count: The number of upcoming tasks to retrieve (default is 5).
+
+        Returns:
+            A dictionary containing detailed progress statistics and a list of upcoming tasks.
         """
         """Подробная статистика прогресса + ближайшие задачи.
 
@@ -370,7 +461,13 @@ class SheetsManager:
     # Форматирование Goal sheet после сохранения
     @retry_google_sheets
     def _format_goal_sheet(self, user_id: int):
-        """Жирный шрифт и авторазмер колонок на листе Информация о цели."""
+        """Applies formatting (bold font, column auto-resize) to the 'Goal Info' sheet.
+
+        This is an internal helper method, typically called after saving goal info.
+
+        Args:
+            user_id: The Telegram ID of the user.
+        """
         try:
             sh = self._get_spreadsheet(user_id)
             ws = sh.worksheet(GOAL_INFO_SHEET)

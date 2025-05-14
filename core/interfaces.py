@@ -9,7 +9,12 @@ from typing import Protocol, Any, Dict, List
 
 
 class StorageInterface(Protocol):
-    """Abstract storage for user goals and daily tasks."""
+    """Abstract synchronous storage interface for user goals and daily tasks.
+
+    Defines the contract for operations related to spreadsheet creation, deletion,
+    goal data management, daily task retrieval, status updates, and statistics.
+    All methods are expected to be synchronous.
+    """
 
     # Spreadsheet lifecycle
     def create_spreadsheet(self, user_id: int) -> None: ...
@@ -41,7 +46,11 @@ class StorageInterface(Protocol):
 
 
 class LLMInterface(Protocol):
-    """Abstract language-model client."""
+    """Abstract synchronous language-model client interface.
+
+    Defines the contract for generating task plans and motivational messages.
+    All methods are expected to be synchronous.
+    """
 
     def generate_plan(
         self, goal_text: str, deadline: str, time: str
@@ -51,7 +60,12 @@ class LLMInterface(Protocol):
 
 
 class AsyncStorageInterface(Protocol):
-    """Abstract ASYNCHRONOUS storage for user goals and daily tasks."""
+    """Abstract asynchronous storage interface for user goals and daily tasks.
+
+    Defines the contract for asynchronous operations related to spreadsheet creation,
+    deletion, goal data management, daily task retrieval, status updates, and statistics.
+    All methods are expected to be awaitable (async def).
+    """
 
     # Spreadsheet lifecycle
     async def create_spreadsheet(self, user_id: int) -> None: ...
@@ -80,7 +94,11 @@ class AsyncStorageInterface(Protocol):
 
 
 class AsyncLLMInterface(Protocol):
-    """Abstract ASYNCHRONOUS language-model client."""
+    """Abstract asynchronous language-model client interface.
+
+    Defines the contract for asynchronously generating task plans and motivational messages.
+    All methods are expected to be awaitable (async def).
+    """
 
     async def generate_plan(
         self, goal_text: str, deadline: str, time: str

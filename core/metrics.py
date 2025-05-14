@@ -1,4 +1,8 @@
-"""Prometheus metrics definitions for the TargetBot."""
+"""Prometheus metrics definitions for the Target Assistant Bot.
+
+This module defines various counters, gauges, and histograms used for monitoring
+the application's performance and behavior.
+"""
 
 from prometheus_client import Counter, Gauge, Histogram
 

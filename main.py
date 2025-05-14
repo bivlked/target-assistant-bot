@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from config import telegram, logging_cfg
 from core.goal_manager import GoalManager
 from llm.client import LLMClient
-from sheets.client import SheetsManager
+from llm.async_client import AsyncLLMClient
 from sheets.async_client import AsyncSheetsManager
 from scheduler.tasks import Scheduler
 from handlers.common import (
@@ -37,7 +37,15 @@ logger = setup_logging(logging_cfg.level)
 
 
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
-    """Глобальный обработчик ошибок Telegram."""
+    """Global error handler for the Telegram bot application.
+
+    Logs the error and attempts to send a user-friendly message to the chat
+    where the error occurred.
+
+    Args:
+        update: The Telegram Update that caused the error.
+        context: The PTB context, containing the error in `context.error`.
+    """
     error = context.error
     logger.error("Ошибка при обработке update=%s", update, exc_info=error)
 
@@ -55,6 +63,7 @@ async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    """Main entry point for the Telegram bot application."""
     # Инициализация Sentry (если настроено)
     setup_sentry()
     # Проверка токена
@@ -63,12 +72,9 @@ def main():
         return
 
     # Инициализация зависимостей
-    sheets_manager = SheetsManager()
-    sheets_async = AsyncSheetsManager()
-    llm_client = LLMClient()
-    goal_manager = GoalManager(
-        sheets_sync=sheets_manager, sheets_async=sheets_async, llm_sync=llm_client
-    )
+    sheets_client = AsyncSheetsManager()
+    llm_client = AsyncLLMClient()
+    goal_manager = GoalManager(storage=sheets_client, llm=llm_client)
     scheduler = Scheduler(goal_manager)
 
     # Запуск планировщика

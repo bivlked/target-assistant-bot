@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+"""In-memory cache with Time-To-Live (TTL) for Google Sheets read operations.
+
+This module provides a singleton `SheetCache` instance (`sheet_cache_instance`)
+and a decorator (`cached_sheet_method`) to apply caching to methods that read
+from Google Sheets. It also includes a function (`invalidate_sheet_cache`)
+to clear cache entries for a specific user, typically called after write operations.
+"""
+
 """Simple in-memory LRU cache for Google Sheets read operations.
 
 The cache key includes user_id and the logical method name. Any write
@@ -20,7 +28,7 @@ TTL_SECONDS = 3600  # 1 hour
 
 
 class SheetCache:
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # pylint: disable=useless-suppression
         self._store: Dict[Tuple[int, str], Tuple[Any, float]] = {}
 
     def _get_from_store(self, cache_key: Tuple[int, str]) -> Any | None:
@@ -57,8 +65,18 @@ sheet_cache_instance = SheetCache()
 
 # Public decorator and invalidate function that use the singleton
 def cached_sheet_method(key_fn: Callable[..., str]):
-    """Decorator for read methods that should be cached.
-    ``key_fn`` generates a unique part of the cache key based on method arguments.
+    """Decorator to cache the result of a method reading from Sheets.
+
+    The decorated method must have `user_id` as its first or second argument
+    (after `self`). The `key_fn` is a lambda that receives the method's arguments
+    (excluding `self` and `user_id`) and should return a string that, combined
+    with `user_id` and the method name, forms a unique cache key.
+
+    Args:
+        key_fn: A callable that generates a unique key suffix from method args.
+
+    Returns:
+        A decorator function.
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
@@ -80,5 +98,12 @@ def cached_sheet_method(key_fn: Callable[..., str]):
 
 
 def invalidate_sheet_cache(user_id: int) -> None:
-    """Public function to invalidate cache for a user."""
+    """Invalidates all cache entries for a specific user.
+
+    This should be called after any operation that modifies a user's spreadsheet
+    to ensure cache consistency.
+
+    Args:
+        user_id: The Telegram ID of the user whose cache entries should be cleared.
+    """
     sheet_cache_instance._invalidate_for_user(user_id)
