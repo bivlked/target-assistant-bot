@@ -2,33 +2,33 @@ import pytest
 from unittest.mock import MagicMock
 import time
 
-from utils.cache import sheet_cache, TTL_SECONDS
+from utils.cache import sheet_cache_instance, TTL_SECONDS, cached_sheet_method
 
 
 class DummyCachedReader:
     def __init__(self):
         self.api_calls = 0
 
-    @sheet_cache.cached(lambda: "global_data")
+    @cached_sheet_method(lambda: "global_data")
     def get_global_data(self, user_id: int) -> str:
         self.api_calls += 1
         return f"Global data for {user_id}"
 
-    @sheet_cache.cached(lambda date_str: date_str)
+    @cached_sheet_method(lambda date_str: date_str)
     def get_daily_data(self, user_id: int, date_str: str) -> str:
         self.api_calls += 1
         return f"Data for {user_id} on {date_str}"
 
     # Simulate a write operation that should invalidate cache
     def update_data(self, user_id: int, _data: str):
-        sheet_cache.invalidate(user_id)
+        sheet_cache_instance._invalidate_for_user(user_id)
 
 
 @pytest.fixture(autouse=True)
 def clear_cache_before_each_test():
     """Ensure cache is empty before each test run."""
     # Access internal store for full clear, as invalidate needs user_id
-    sheet_cache._store.clear()  # pylint: disable=protected-access
+    sheet_cache_instance._store.clear()  # pylint: disable=protected-access
     yield
 
 
@@ -66,9 +66,11 @@ def test_cache_respects_ttl():
     assert reader.api_calls == 1
 
     # Manipulate timestamp of the cached entry to simulate expiry
-    cache_key = (user_id, "get_global_data:")
-    _value, _ts = sheet_cache._store[cache_key]  # pylint: disable=protected-access
-    sheet_cache._store[cache_key] = (
+    cache_key = (user_id, "get_global_data:global_data")
+    _value, _ts = sheet_cache_instance._store[
+        cache_key
+    ]  # pylint: disable=protected-access
+    sheet_cache_instance._store[cache_key] = (
         _value,
         time.time() - TTL_SECONDS - 1,
     )  # pylint: disable=protected-access

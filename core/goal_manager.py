@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Final, cast
 
 from utils.helpers import format_date, get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 
-from core.interfaces import StorageInterface, LLMInterface
+from core.interfaces import (
+    StorageInterface,
+    LLMInterface,
+    AsyncStorageInterface,
+    AsyncLLMInterface,
+)
 
 if TYPE_CHECKING:  # избегаем циклов импорта
     from sheets.client import SheetsManager
@@ -16,9 +21,9 @@ if TYPE_CHECKING:  # избегаем циклов импорта
     from llm.async_client import AsyncLLMClient
 
 # Типы строк статуса
-STATUS_NOT_DONE = "Не выполнено"
-STATUS_DONE = "Выполнено"
-STATUS_PARTIAL = "Частично выполнено"
+STATUS_NOT_DONE: Final[str] = "Не выполнено"
+STATUS_DONE: Final[str] = "Выполнено"
+STATUS_PARTIAL: Final[str] = "Частично выполнено"
 
 logger = logging.getLogger(__name__)
 
@@ -28,39 +33,41 @@ class GoalManager:
 
     def __init__(
         self,
-        # For backward compatibility with tests, allow old names
-        sheets_sync: StorageInterface | None = None,
-        llm_sync: LLMInterface | None = None,
-        sheets_async: StorageInterface | None = None,
-        llm_async: LLMInterface | None = None,
-        # New DI-friendly names (preferred)
-        storage_sync: StorageInterface | None = None,
-        storage_async: StorageInterface | None = None,
+        # Keep old names for backward compatibility with tests primarily
+        sheets_sync: Optional[StorageInterface] = None,
+        llm_sync: Optional[LLMInterface] = None,
+        sheets_async: Optional[AsyncStorageInterface] = None,
+        llm_async: Optional[AsyncLLMInterface] = None,
+        # New DI-friendly names, to be preferred if provided
+        storage_sync: Optional[StorageInterface] = None,
+        storage_async: Optional[AsyncStorageInterface] = None,
     ):
-        # Determine actual providers, preferring new names
-        final_sheets_sync = storage_sync or sheets_sync
-        final_llm_sync = llm_sync  # No storage_llm_sync variant yet
-        final_sheets_async = storage_async or sheets_async
-        final_llm_async = llm_async
+        # Determine actual providers, preferring new `storage_` names if available
+        actual_sheets_sync = storage_sync if storage_sync is not None else sheets_sync
+        actual_llm_sync = llm_sync  # No alternative name for llm_sync yet
+        actual_sheets_async = (
+            storage_async if storage_async is not None else sheets_async
+        )
+        actual_llm_async = llm_async
 
-        if not (final_sheets_sync or final_sheets_async):
+        if not (actual_sheets_sync or actual_sheets_async):
             raise ValueError(
-                "Требуется storage_sync/sheets_sync или storage_async/sheets_async"
+                "Either (storage_sync or sheets_sync) or (storage_async or sheets_async) must be provided"
             )
-        if not (final_llm_sync or final_llm_async):
-            raise ValueError("Требуется llm_sync или llm_async")
+        if not (actual_llm_sync or actual_llm_async):
+            raise ValueError("Either llm_sync or llm_async must be provided")
 
         # keep raw refs
-        self.sheets_sync = final_sheets_sync
-        self.sheets_async = final_sheets_async
-        self.llm_sync = final_llm_sync
-        self.llm_async = final_llm_async
+        self.sheets_sync = actual_sheets_sync
+        self.llm_sync = actual_llm_sync
+        self.sheets_async = actual_sheets_async
+        self.llm_async = actual_llm_async
 
         # These attributes are used both in sync and async context; exact concrete type
         # is not important at runtime, поэтому указываем Any, чтобы избежать NameError
         # из-за отсутствия реального класса, когда импорт находится под TYPE_CHECKING.
-        self.sheets: Any = final_sheets_sync or final_sheets_async
-        self.llm: Any = final_llm_sync or final_llm_async
+        self.sheets: Any = self.sheets_sync or self.sheets_async
+        self.llm: Any = self.llm_sync or self.llm_async
 
     # -------------------------------------------------
     # Методы API, вызываемые из Telegram-обработчиков
@@ -346,12 +353,12 @@ class GoalManager:
     # Internal helpers for static typing
     # -------------------------------------------------
 
-    def _sync_sheets(self) -> "SheetsManager":  # type: ignore[name-defined]
+    def _sync_sheets(self) -> StorageInterface:
         """Return synchronous SheetsManager, asserting it exists (for mypy)."""
         assert self.sheets_sync is not None
         return self.sheets_sync
 
-    def _sync_llm(self) -> "LLMClient":  # type: ignore[name-defined]
-        """Return synchronous LLMClient, asserting it exists (for mypy)."""
+    def _sync_llm(self) -> LLMInterface:
+        """Return synchronous LLMInterface, asserting it exists (for mypy)."""
         assert self.llm_sync is not None
         return self.llm_sync

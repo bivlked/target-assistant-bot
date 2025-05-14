@@ -14,7 +14,7 @@ from tenacity import (
 from gspread.exceptions import APIError  # type: ignore
 
 from config import google
-from utils.cache import sheet_cache
+from utils.cache import cached_sheet_method, invalidate_sheet_cache
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ class SheetsManager:
             pass
 
         # invalidate cache
-        sheet_cache.invalidate(user_id)
+        invalidate_sheet_cache(user_id)
 
     @RETRY
     def clear_user_data(self, user_id: int):
@@ -143,7 +143,7 @@ class SheetsManager:
             ws.clear()
 
         # invalidate cache
-        sheet_cache.invalidate(user_id)
+        invalidate_sheet_cache(user_id)
 
     @RETRY
     def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
@@ -160,12 +160,12 @@ class SheetsManager:
             pass
 
         # invalidate cache
-        sheet_cache.invalidate(user_id)
+        invalidate_sheet_cache(user_id)
 
         return sh.url
 
     @RETRY
-    @sheet_cache.cached(lambda: "goal_info")
+    @cached_sheet_method(lambda: "goal_info")
     def get_goal_info(self, user_id: int):
         """Возвращает словарь с параметрами цели (лист *Информация о цели*)."""
         ws = self._get_spreadsheet(user_id).worksheet(GOAL_INFO_SHEET)
@@ -173,7 +173,7 @@ class SheetsManager:
         return {row[0]: row[1] for row in data if row}
 
     @RETRY
-    @sheet_cache.cached(lambda target_date: target_date)
+    @cached_sheet_method(lambda target_date: target_date)
     def get_task_for_date(self, user_id: int, target_date: str):
         """Ищет задачу на указанную дату в листе *План*.
 
@@ -196,10 +196,10 @@ class SheetsManager:
                 break
 
         # invalidate cache
-        sheet_cache.invalidate(user_id)
+        invalidate_sheet_cache(user_id)
 
     @RETRY
-    @sheet_cache.cached(lambda: "statistics")
+    @cached_sheet_method(lambda: "statistics")
     def get_statistics(self, user_id: int):
         """Краткая строковая статистика выполнения плана."""
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
@@ -221,7 +221,7 @@ class SheetsManager:
             return
         finally:
             # invalidate cache
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
     # --- batch update statuses ---
     @RETRY
@@ -240,17 +240,19 @@ class SheetsManager:
                 ws.update_cell(row_idx, 4, status)
 
         # invalidate cache
-        sheet_cache.invalidate(user_id)
+        invalidate_sheet_cache(user_id)
 
     # --- Дополнительные методы статистики и форматирования ------------------
     @RETRY
-    @sheet_cache.cached(lambda: "spreadsheet_url")
+    @cached_sheet_method(lambda: "spreadsheet_url")
     def get_spreadsheet_url(self, user_id: int) -> str:
         """Возвращает URL таблицы (создаёт её при необходимости)."""
         return self._get_spreadsheet(user_id).url
 
     @RETRY
-    @sheet_cache.cached(lambda upcoming_count: f"extended_stats:{upcoming_count}")
+    @cached_sheet_method(
+        lambda *a, **kw: f"extended_stats:{kw.get('upcoming_count', a[0] if a else 5)}"
+    )
     def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
         """Расширенная статистика + список ближайших задач.
 
@@ -330,6 +332,39 @@ class SheetsManager:
         except Exception:
             pass
 
-    # invalidate cache
-    def invalidate_cache(self, user_id: int):
-        sheet_cache.invalidate(user_id)
+    @RETRY
+    def save_plan(self, user_id: int, plan: List[dict[str, Any]]) -> None:
+        """Сохраняет список ежедневных задач в лист *План* и форматирует шапку."""
+        try:
+            sh = self._get_spreadsheet(user_id)
+            ws = sh.worksheet(PLAN_SHEET)
+            header = [list(PLAN_HEADERS)]
+            rows = [
+                [p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]]
+                for p in plan
+            ]
+            ws.update("A1", header + rows)
+            try:
+                ws.format(
+                    "A1:D1",
+                    {
+                        "textFormat": {"bold": True},
+                        "horizontalAlignment": "CENTER",
+                        "backgroundColor": {"red": 1, "green": 0.898, "blue": 0.8},
+                    },
+                )
+                ws.format("A:A", {"horizontalAlignment": "CENTER"})
+            except Exception:
+                pass
+            if hasattr(ws, "columns_auto_resize"):
+                try:
+                    ws.columns_auto_resize(1, 4)
+                except Exception:
+                    pass
+            try:
+                if hasattr(ws, "freeze"):
+                    ws.freeze(rows=1)
+            except Exception:
+                pass
+        finally:
+            invalidate_sheet_cache(user_id)

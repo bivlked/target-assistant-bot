@@ -1,6 +1,8 @@
 import pytest
 
 from core.goal_manager import GoalManager
+from core.interfaces import StorageInterface, LLMInterface
+from typing import cast
 
 
 class DummySheets:
@@ -46,7 +48,11 @@ class DummyLLM:
 def goal_manager():
     sheets = DummySheets()
     llm = DummyLLM()
-    return GoalManager(sheets_sync=sheets, llm_sync=llm), sheets
+    # Cast dummy instances to interfaces for GoalManager constructor
+    gm = GoalManager(
+        sheets_sync=cast(StorageInterface, sheets), llm_sync=cast(LLMInterface, llm)
+    )
+    return gm, sheets
 
 
 def test_get_today_task_uses_formatted_date(monkeypatch, goal_manager):

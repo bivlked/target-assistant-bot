@@ -19,8 +19,26 @@ T = TypeVar("T")
 TTL_SECONDS = 3600  # 1 hour
 
 
-class _CacheEntry(Dict[str, Any]):
-    __slots__ = ("value", "ts")
+class SheetCache:
+    def __init__(self) -> None:
+        self._store: Dict[Tuple[int, str], Tuple[Any, float]] = {}
+
+    def _get_from_store(self, cache_key: Tuple[int, str]) -> Any | None:
+        val_ts = self._store.get(cache_key)
+        if val_ts:
+            value, ts = val_ts
+            if time.time() - ts < TTL_SECONDS:
+                return value
+        return None
+
+    def _put_in_store(self, cache_key: Tuple[int, str], value: Any) -> None:
+        self._store[cache_key] = (value, time.time())
+
+    def _invalidate_for_user(self, user_id: int) -> None:
+        """Drops all cache entries for a given user."""
+        keys_to_delete = [k for k in self._store if k[0] == user_id]
+        for k in keys_to_delete:
+            self._store.pop(k, None)
 
 
 # ---------------------------------------------------------------------------
@@ -33,41 +51,34 @@ class _CacheEntry(Dict[str, Any]):
 _global_sheet_store: Dict[Tuple[int, str], Tuple[Any, float]] | None = None
 
 
-class SheetCache:  # pylint: disable=too-few-public-methods
-    def __init__(self):
-        global _global_sheet_store
-        if _global_sheet_store is None:
-            _global_sheet_store = {}
-        self._store = _global_sheet_store
-
-    def cached(self, key_fn: Callable[..., str]):  # noqa: D401
-        """Decorator for read methods of SheetsManager.
-
-        ``key_fn`` receives the same args/kwargs as the wrapped method and
-        returns additional part of the key (e.g. date).
-        """
-
-        def decorator(func: Callable[..., T]) -> Callable[..., T]:
-            def wrapper(self, user_id: int, *args: Any, **kwargs: Any) -> T:  # type: ignore[override]
-                cache_key = (user_id, f"{func.__name__}:{key_fn(*args, **kwargs)}")
-                val_ts = self._store.get(cache_key)
-                if val_ts:
-                    value, ts = val_ts
-                    if time.time() - ts < TTL_SECONDS:
-                        return value  # type: ignore[return-value]
-                value = func(self, user_id, *args, **kwargs)
-                self._store[cache_key] = (value, time.time())
-                return value
-
-            return wrapper
-
-        return decorator
-
-    def invalidate(self, user_id: int) -> None:
-        """Drop all cache entries of given user."""
-        keys_to_delete = [k for k in self._store if k[0] == user_id]
-        for k in keys_to_delete:
-            self._store.pop(k, None)
+# Global singleton instance
+sheet_cache_instance = SheetCache()
 
 
-sheet_cache = SheetCache()
+# Public decorator and invalidate function that use the singleton
+def cached_sheet_method(key_fn: Callable[..., str]):
+    """Decorator for read methods that should be cached.
+    ``key_fn`` generates a unique part of the cache key based on method arguments.
+    """
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        def wrapper(
+            self_decorated_method: Any, user_id: int, *args: Any, **kwargs: Any
+        ) -> T:
+            cache_key = (user_id, f"{func.__name__}:{key_fn(*args, **kwargs)}")
+            cached_value = sheet_cache_instance._get_from_store(cache_key)
+            if cached_value is not None:
+                return cached_value
+
+            value = func(self_decorated_method, user_id, *args, **kwargs)
+            sheet_cache_instance._put_in_store(cache_key, value)
+            return value
+
+        return wrapper
+
+    return decorator
+
+
+def invalidate_sheet_cache(user_id: int) -> None:
+    """Public function to invalidate cache for a user."""
+    sheet_cache_instance._invalidate_for_user(user_id)

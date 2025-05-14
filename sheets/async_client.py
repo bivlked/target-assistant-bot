@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional, Dict
 
 from sheets.client import SheetsManager  # существующий синхронный клиент
-from utils.cache import sheet_cache
+from utils.cache import invalidate_sheet_cache
 
 
 class AsyncSheetsManager:
@@ -52,13 +52,13 @@ class AsyncSheetsManager:
         try:
             return await self._run(self._sync.save_goal_info, user_id, goal_data)
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
     async def save_plan(self, user_id: int, plan: List[dict[str, Any]]):
         try:
             return await self._run(self._sync.save_plan, user_id, plan)
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
     async def get_statistics(self, user_id: int):
         return await self._run(self._sync.get_statistics, user_id)
@@ -93,9 +93,8 @@ class AsyncSheetsManager:
         try:
             return await self._run(self._sync.clear_user_data, user_id)
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
-    @sheet_cache.cached(lambda: "goal_info")
     async def get_goal_info(self, user_id: int):
         return await self._run(self._sync.get_goal_info, user_id)
 
@@ -106,9 +105,8 @@ class AsyncSheetsManager:
                 self._sync.update_task_status, user_id, target_date, status
             )
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
-    @sheet_cache.cached(lambda: "statistics")
     async def get_extended_statistics(self, user_id: int, upcoming_count: int = 5):
         return await self._run(
             self._sync.get_extended_statistics, user_id, upcoming_count
@@ -119,7 +117,7 @@ class AsyncSheetsManager:
         try:
             return await self._run(self._sync.delete_spreadsheet, user_id)
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)
 
     async def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
         """Async: Пакетно обновляет статусы задач."""
@@ -128,4 +126,4 @@ class AsyncSheetsManager:
                 self._sync.batch_update_task_statuses, user_id, updates
             )
         finally:
-            sheet_cache.invalidate(user_id)
+            invalidate_sheet_cache(user_id)

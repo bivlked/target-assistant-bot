@@ -2,9 +2,11 @@ import pytest
 
 from core.goal_manager import GoalManager
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
+from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
+from typing import cast
 
 
-class DummyAsyncSheets:
+class DummyAsyncSheets(AsyncStorageInterface):
     """Асинхронная заглушка SheetsManager."""
 
     def __init__(self):
@@ -20,8 +22,34 @@ class DummyAsyncSheets:
     async def save_plan(self, user_id: int, plan_rows: list):  # noqa: D401
         self.calls["save_plan"] = (user_id, plan_rows)
 
+    # Add other StorageInterface methods as async stubs for interface compliance
+    async def create_spreadsheet(self, user_id: int) -> None:
+        pass
 
-class DummyAsyncLLM:
+    async def delete_spreadsheet(self, user_id: int) -> None:
+        pass
+
+    async def get_task_for_date(self, user_id: int, date: str):
+        return None
+
+    async def update_task_status(self, user_id: int, date: str, status: str) -> None:
+        pass
+
+    async def batch_update_task_statuses(self, user_id: int, updates: dict) -> None:
+        pass
+
+    async def get_statistics(self, user_id: int):
+        return ""
+
+    async def get_extended_statistics(self, user_id: int):
+        return {}
+
+
+class DummyAsyncLLM(AsyncLLMInterface):
+    # Add other LLMInterface methods as async stubs for interface compliance
+    async def generate_motivation(self, goal_text: str, progress_summary: str) -> str:
+        return "Async motivation!"
+
     async def generate_plan(
         self, goal_text: str, deadline: str, available: str
     ):  # noqa: D401
