@@ -2,19 +2,23 @@
 
 *Read this in other languages: [English](README_EN.md)*
 
-![CI](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)
-![Tests](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)
-![Coverage](https://codecov.io/gh/bivlked/target-assistant-bot/branch/main/graph/badge.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+[![CI/CD Pipeline](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml)
+[![Tests & Coverage](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml)
+[![Coverage Status](https://codecov.io/gh/bivlked/target-assistant-bot/branch/main/graph/badge.svg)](https://codecov.io/gh/bivlked/target-assistant-bot)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 Персональный Telegram-бот-ассистент, который помогает формулировать цели, разбивать их на ежедневные задачи и отслеживать прогресс с сохранением в Google Sheets.
 
-> 📄 Полная презентация проекта: [Персональный ассистент для помощи в достижении поставленных целей (PDF)](Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf)
+> 🚀 **Цель проекта**: Создать умного и отзывчивого помощника для эффективного движения к долгосрочным целям.
+> 🎯 **Ключевые технологии**: Python, `python-telegram-bot`, `OpenAI API`, `Google Sheets API`.
+> 📄 **Полная презентация проекта** (PDF, RU): [Персональный ассистент для помощи в достижении поставленных целей](Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf)
 
 ---
 
-## Возможности
+## 🛠️ Возможности
 
 | Команда | Описание |
 |---------|----------|
@@ -33,7 +37,7 @@
 * лист «План» — ежедневные задачи с автообновлением статуса.
 
 
-## Быстрый старт (venv)
+## 🚀 Быстрый старт (локально с `venv`)
 
 ```bash
 python3 -m venv .venv
@@ -48,7 +52,7 @@ $EDITOR .env  # поставить TELEGRAM_BOT_TOKEN и GOOGLE_CREDENTIALS_PATH
 python main.py
 ```
 
-## 🏁 Быстрый старт (Docker Compose)
+## 🐳 Быстрый старт (Docker Compose)
 
 ```bash
 git clone https://github.com/bivlked/target-assistant-bot.git
@@ -92,15 +96,19 @@ sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
 echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
 ```
 
-## 🛠️ Документация
+## 📚 Документация и ресурсы
 
 * [Руководство пользователя](docs/user_guide.md)
 * [Установка на Ubuntu 24.04 LTS](docs/install_ubuntu.md)
 * [Архитектура проекта](docs/architecture.md)
 * [Список изменений](CHANGELOG.md)
 
+Для разработчиков:
+* [Руководство по участию (CONTRIBUTING.md)](CONTRIBUTING.md)
+* [Чек-лист разработки (актуальные задачи)](Чек-лист%20разработки%20(отмечать%20выполненное).md)
+
 ---
 
-## 📄 Лицензия
+## 📜 Лицензия
 
 Проект распространяется по лицензии MIT. 
