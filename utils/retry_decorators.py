@@ -1,4 +1,15 @@
-"""Standardized Tenacity retry decorators for external API calls."""
+"""Standardized Tenacity retry decorators for external API calls.
+
+This module provides pre-configured `tenacity.retry` decorators for common
+API interaction patterns within the application, such as calls to Google Sheets
+and OpenAI LLM. It includes a shared logging callback (`_log_retry`) to
+report retry attempts.
+
+Key decorators:
+- `retry_google_sheets`: For gspread API calls.
+- `retry_openai_llm`: For OpenAI API calls, reraises exceptions.
+- `retry_openai_llm_no_reraise`: For OpenAI calls where returning None on failure is preferred.
+"""
 
 from tenacity import (
     retry,
@@ -17,7 +28,13 @@ logger = logging.getLogger(__name__)
 
 
 def _log_retry(retry_state: RetryCallState):
-    """Logs a message when a retry attempt is made."""
+    """Callback function for Tenacity to log retry attempts.
+
+    Args:
+        retry_state: The current state of the retry call, provided by Tenacity.
+                     Includes information like attempt number, outcome, and the
+                     function being retried.
+    """
     if retry_state.outcome and retry_state.outcome.failed:
         exception = retry_state.outcome.exception()
         stop_condition = retry_state.retry_object.stop
