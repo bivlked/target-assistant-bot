@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, cast, Union
+from typing import TYPE_CHECKING, cast, Any
 
 from utils.helpers import format_date, get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
@@ -42,14 +42,11 @@ class GoalManager:
         self.llm_sync = llm_sync
         self.llm_async = llm_async
 
-        # common convenience aliases without Optional (guaranteed not None)
-        self.sheets: Union[SheetsManager, AsyncSheetsManager] = cast(
-            Union[SheetsManager, AsyncSheetsManager], sheets_sync or sheets_async
-        )
-
-        self.llm: Union[LLMClient, AsyncLLMClient] = cast(
-            Union[LLMClient, AsyncLLMClient], llm_sync or llm_async
-        )
+        # These attributes are used both in sync and async context; exact concrete type
+        # is not important at runtime, поэтому указываем Any, чтобы избежать NameError
+        # из-за отсутствия реального класса, когда импорт находится под TYPE_CHECKING.
+        self.sheets: Any = sheets_sync or sheets_async
+        self.llm: Any = llm_sync or llm_async
 
     # -------------------------------------------------
     # Методы API, вызываемые из Telegram-обработчиков
