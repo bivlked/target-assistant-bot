@@ -16,6 +16,7 @@ from gspread.exceptions import APIError  # type: ignore
 from config import google
 from utils.cache import cached_sheet_method, invalidate_sheet_cache
 from core.metrics import SHEETS_API_CALLS, SHEETS_API_LATENCY
+from utils.retry_decorators import retry_google_sheets
 import time
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,7 @@ class SheetsManager:
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
-    @RETRY
+    @retry_google_sheets
     def clear_user_data(self, user_id: int):
         """Очищает оба листа пользователя, сохраняя структуру таблицы."""
         method_name = "clear_user_data"
@@ -159,7 +160,7 @@ class SheetsManager:
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
-    @RETRY
+    @retry_google_sheets
     def save_goal_info(self, user_id: int, goal_data: dict[str, str]) -> str:
         """Записывает блок «Информация о цели» и возвращает URL таблицы."""
         method_name = "save_goal_info"
@@ -184,7 +185,7 @@ class SheetsManager:
 
         return sh.url
 
-    @RETRY
+    @retry_google_sheets
     @cached_sheet_method(lambda: "goal_info")
     def get_goal_info(self, user_id: int):
         """Возвращает словарь с параметрами цели (лист *Информация о цели*)."""
@@ -199,7 +200,7 @@ class SheetsManager:
         )
         return result
 
-    @RETRY
+    @retry_google_sheets
     @cached_sheet_method(lambda target_date: target_date)
     def get_task_for_date(self, user_id: int, target_date: str):
         """Ищет задачу на указанную дату в листе *План*.
@@ -224,7 +225,7 @@ class SheetsManager:
         )
         return None
 
-    @RETRY
+    @retry_google_sheets
     def update_task_status(self, user_id: int, target_date: str, status: str):
         """Обновляет поле *Статус* задачи в указанную дату."""
         method_name = "update_task_status"
@@ -239,7 +240,7 @@ class SheetsManager:
         # invalidate cache
         invalidate_sheet_cache(user_id)
 
-    @RETRY
+    @retry_google_sheets
     @cached_sheet_method(lambda: "statistics")
     def get_statistics(self, user_id: int):
         """Краткая строковая статистика выполнения плана."""
@@ -251,7 +252,7 @@ class SheetsManager:
         remaining = total - done
         return f"Выполнено {done} из {total} ({percent}%), осталось {remaining} дней"
 
-    @RETRY
+    @retry_google_sheets
     def delete_spreadsheet(self, user_id: int):
         """Навсегда удаляет таблицу пользователя из Google Drive."""
         name = f"TargetAssistant_{user_id}"
@@ -265,7 +266,7 @@ class SheetsManager:
             invalidate_sheet_cache(user_id)
 
     # --- batch update statuses ---
-    @RETRY
+    @retry_google_sheets
     def batch_update_task_statuses(self, user_id: int, updates: dict[str, str]):
         """Пакетно обновляет статусы задач в несколько дат одной операцией."""
         ws = self._get_spreadsheet(user_id).worksheet(PLAN_SHEET)
@@ -284,13 +285,13 @@ class SheetsManager:
         invalidate_sheet_cache(user_id)
 
     # --- Дополнительные методы статистики и форматирования ------------------
-    @RETRY
+    @retry_google_sheets
     @cached_sheet_method(lambda: "spreadsheet_url")
     def get_spreadsheet_url(self, user_id: int) -> str:
         """Возвращает URL таблицы (создаёт её при необходимости)."""
         return self._get_spreadsheet(user_id).url
 
-    @RETRY
+    @retry_google_sheets
     @cached_sheet_method(
         lambda *a, **kw: f"extended_stats:{kw.get('upcoming_count', a[0] if a else 5)}"
     )
@@ -361,7 +362,7 @@ class SheetsManager:
         }
 
     # Форматирование Goal sheet после сохранения
-    @RETRY
+    @retry_google_sheets
     def _format_goal_sheet(self, user_id: int):
         """Жирный шрифт и авторазмер колонок на листе Информация о цели."""
         try:
@@ -373,7 +374,7 @@ class SheetsManager:
         except Exception:
             pass
 
-    @RETRY
+    @retry_google_sheets
     def save_plan(self, user_id: int, plan: List[dict[str, Any]]) -> None:
         """Сохраняет список ежедневных задач в лист *План* и форматирует шапку."""
         try:
