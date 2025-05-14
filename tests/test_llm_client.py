@@ -1,5 +1,6 @@
 import pytest
 from llm.client import LLMClient
+from typing import List, Any
 
 
 class DummyLLM(LLMClient):
@@ -12,6 +13,22 @@ class DummyLLM(LLMClient):
     # переопределяем приватный метод
     def _chat_completion(self, prompt: str) -> str:  # noqa: D401
         return self._fake_response
+
+    # Override generate_plan to use the fake response directly for plan JSON
+    def generate_plan(
+        self, goal_text: str, deadline: str, time: str
+    ) -> List[dict[str, Any]]:
+        # In this dummy, assume _fake_response is already the plan JSON string
+        # or can be processed by _extract_plan if it was set up for that.
+        if self._fake_response.strip().startswith("["):
+            # Attempt to parse it as if it's direct JSON or extractable
+            return self._extract_plan(
+                self._fake_response
+            )  # Use existing extraction logic
+        # Fallback or raise if _fake_response is not suitable for a plan
+        raise ValueError(
+            "DummyLLM._fake_response not set to a plan-like JSON string for generate_plan"
+        )
 
 
 PLAN_JSON = '[{"day": "01.05.25", "task": "T"}]'

@@ -15,6 +15,7 @@ from tenacity import (
 
 from config import openai_cfg
 from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
+from llm.prompts import SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class AsyncLLMClient:
     async def generate_plan(
         self, goal_text: str, deadline_str: str, available_time_str: str
     ):
+        """Requests a task plan from LLM, attempting to use JSON mode."""
         method_name = "generate_plan"
         start_time = time.monotonic()
         prompt = (
@@ -54,8 +56,12 @@ class AsyncLLMClient:
         )
         resp = await self.client.chat.completions.create(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.7,
+            response_format={"type": "json_object"},
         )
         try:
             content = resp.choices[0].message.content
@@ -81,7 +87,10 @@ class AsyncLLMClient:
         ).format(goal=goal_text, progress=progress_summary)
         resp = await self.client.chat.completions.create(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.7,
         )
         try:

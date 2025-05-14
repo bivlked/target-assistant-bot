@@ -13,3 +13,10 @@ MOTIVATION_PROMPT = """
     Текущий прогресс: {progress_summary}
     Напиши вдохновляющее сообщение на русском из 2–3 коротких предложений (до 150 символов).
     """
+
+# Общий системный промпт для LLM
+SYSTEM_PROMPT = (
+    "You are a helpful assistant focused on goal setting, task planning, and motivation. "
+    "Respond concisely and follow the requested format strictly. "
+    "If generating JSON, ensure the entire response is a single valid JSON object (e.g., a list of tasks or a structured message)."
+)
