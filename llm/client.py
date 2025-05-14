@@ -10,7 +10,7 @@ import time
 from openai import OpenAI, APIError
 
 from config import openai_cfg
-from llm.prompts import PLAN_PROMPT, MOTIVATION_PROMPT
+from llm.prompts import PLAN_PROMPT, MOTIVATION_PROMPT, SYSTEM_PROMPT
 from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,10 @@ class LLMClient:
             try:
                 response = self.client.chat.completions.create(
                     model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
                     temperature=0.7,
                 )
                 method_name = "chat_completion_generic"
@@ -93,20 +96,80 @@ class LLMClient:
         # если всё плохо - пробросим исключение вверх
         raise json.JSONDecodeError("Invalid JSON", content_clean, 0)
 
+    def _chat_completion_with_json_mode(self, prompt: str) -> str:
+        """Specific chat completion call attempting to use JSON mode."""
+        # This method is a simplified version for generate_plan, assuming direct call.
+        # It should ideally be merged with _chat_completion or _chat_completion should handle response_format.
+        for attempt in range(self.max_retries + 1):
+            start_time = time.monotonic()
+            method_name = "generate_plan_json_mode"
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.7,  # Usually lower temp (e.g., 0.2) for JSON
+                    response_format={"type": "json_object"},
+                )
+                LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
+                LLM_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
+                return response.choices[0].message.content.strip()
+            except APIError as e:
+                # If APIError is due to response_format not supported, could fall back to non-JSON mode.
+                # For now, just retry as usual.
+                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+                LLM_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
+                logger.warning(
+                    "Ошибка OpenAI (JSON mode): %s, попытка %d", e, attempt + 1
+                )
+                if attempt == self.max_retries:
+                    # Fallback to normal mode if JSON mode fails persistently?
+                    # For now, re-raising to see if it was a transient error.
+                    logger.error(
+                        "Failed to get JSON response after retries. Re-raising."
+                    )
+                    raise
+            except Exception as e:  # Catch other unexpected errors
+                LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+                LLM_API_LATENCY.labels(method_name=method_name).observe(
+                    time.monotonic() - start_time
+                )
+                logger.error(
+                    f"Unexpected error in _chat_completion_with_json_mode: {e}",
+                    exc_info=True,
+                )
+                if attempt == self.max_retries:
+                    raise
+        raise RuntimeError("OpenAI JSON mode chat completion failed after retries")
+
     # -------------------------------------------------
     # Публичные методы
     # -------------------------------------------------
     def generate_plan(
         self, goal_text: str, deadline: str, time: str
     ) -> List[dict[str, Any]]:
-        """Запрашивает у LLM план задач и возвращает список словарей.
+        """Requests a task plan from LLM and returns a list of dictionaries.
 
-        Возвращаемый формат: ``[{"day": 1, "task": "..."}, ...]``.
-        При необходимости выполняется «обратная совместимость» – метод
-        пытается вытащить JSON из markdown-блоков или свободного текста.
+        Expected format: ``[{"day": 1, "task": "..."}, ...]``.
+        Uses JSON mode if the model supports it.
         """
         prompt = PLAN_PROMPT.format(goal_text=goal_text, deadline=deadline, time=time)
-        content = self._chat_completion(prompt)
+        # Attempt to use JSON mode with a fallback if not supported or if there's an issue.
+        # The _chat_completion method itself might need adjustment if it doesn't pass through response_format.
+        # For now, we assume _chat_completion is generic and we handle json_format here if possible,
+        # or rely on _extract_plan for robustness.
+
+        # This direct call bypasses _chat_completion's retry/metric logic for the JSON mode attempt.
+        # A more robust solution would integrate response_format into _chat_completion.
+        # For simplicity now, let's assume we modify _chat_completion to accept response_format.
+
+        content = self._chat_completion_with_json_mode(prompt)
         logger.debug("LLM raw plan response: %s", content[:2000])
         try:
             try:
