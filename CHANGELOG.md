@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## v0.1.0 - 2025-05-15 # Примерная дата, замените на актуальную
 
 ### Major Refactoring & Enhancements
 - **Full Asynchronous Architecture**: Migrated core components (`GoalManager`, `LLMClient`, `SheetsManager`) to fully asynchronous operations using `async/await`, `AsyncLLMClient`, and `AsyncSheetsManager`.
