@@ -1,12 +1,13 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from dotenv import load_dotenv
+
+# from dotenv import load_dotenv # Removed from here, should be called in main entry point
 import re
 import logging
 
-# Load environment variables from .env file if it exists
-load_dotenv()
+# Load environment variables from .env file if it exists # This comment also refers to the removed call
+# load_dotenv() # Removed call
 
 BASE_DIR = Path(__file__).resolve().parent
 
