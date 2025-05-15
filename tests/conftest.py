@@ -140,6 +140,10 @@ class _DummyGSpreadClient:
         self.spreads[name] = sp
         return sp
 
+    def del_spreadsheet(self, file_id: str) -> None:
+        """(Mock) Simulates deleting a spreadsheet by ID."""
+        pass
+
 
 @pytest.fixture(autouse=True)
 def patch_gspread(monkeypatch: pytest.MonkeyPatch):
