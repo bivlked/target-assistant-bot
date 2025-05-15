@@ -7,7 +7,8 @@ from telegram.ext import ContextTypes
 
 from config import telegram, logging_cfg
 from core.goal_manager import GoalManager
-from llm.client import LLMClient
+
+# from llm.client import LLMClient # Not used directly, GoalManager uses AsyncLLMClient
 from llm.async_client import AsyncLLMClient
 from sheets.async_client import AsyncSheetsManager
 from scheduler.tasks import Scheduler
@@ -25,13 +26,14 @@ from core.exceptions import BotError
 from utils.sentry_integration import setup_sentry
 from prometheus_client import start_http_server  # For metrics
 from core.metrics import APP_INFO  # For app version metric
+from texts import DEFAULT_ERROR_TEXT  # Import new text
 
 # ---------------------------------------------------------------------------
-# PTB >=20.9 содержит фикс слота __polling_cleanup_cb, дополнительный патч не нужен.
+# PTB >=20.9 includes a fix for the __polling_cleanup_cb slot, no extra patch needed.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------
-# Настройка логирования
+# Logging setup
 # ---------------------------------
 logger = setup_logging(logging_cfg.level)
 
@@ -47,13 +49,13 @@ async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
         context: The PTB context, containing the error in `context.error`.
     """
     error = context.error
-    logger.error("Ошибка при обработке update=%s", update, exc_info=error)
+    logger.error("Error processing update=%s", update, exc_info=error)  # Translated log
 
-    # Дружелюбное сообщение пользователю
+    # Friendly message to the user
     if isinstance(error, BotError):
         user_msg = error.user_friendly
     else:
-        user_msg = "Произошла непредвиденная ошибка. Попробуйте позже."
+        user_msg = DEFAULT_ERROR_TEXT  # Use constant
 
     if update and update.effective_chat:
         try:
@@ -64,36 +66,36 @@ async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """Main entry point for the Telegram bot application."""
-    # Инициализация Sentry (если настроено)
+    # Initialize Sentry (if configured)
     setup_sentry()
-    # Проверка токена
+    # Token check
     if not telegram.token:
-        logger.error("TELEGRAM_BOT_TOKEN не задан")
+        logger.error("TELEGRAM_BOT_TOKEN is not set")  # Translated log
         return
 
-    # Инициализация зависимостей
+    # Initialize dependencies
     sheets_client = AsyncSheetsManager()
     llm_client = AsyncLLMClient()
     goal_manager = GoalManager(storage=sheets_client, llm=llm_client)
     scheduler = Scheduler(goal_manager)
 
-    # Запуск планировщика
+    # Start scheduler
     scheduler.start()
 
-    # Создание приложения Telegram
+    # Create Telegram Application
     application = Application.builder().token(telegram.token).build()
 
-    # Регистрация обработчиков
+    # Register handlers
     application.add_handler(CommandHandler("help", help_handler))
     application.add_handler(CommandHandler("cancel", cancel_handler))
     application.add_handler(CommandHandler("reset", reset_handler(goal_manager)))
 
-    # /start зависит от goal_manager и scheduler
+    # /start depends on goal_manager and scheduler
     application.add_handler(
         CommandHandler("start", start_handler(goal_manager, scheduler))
     )
 
-    # /setgoal диалог
+    # /setgoal conversation
     application.add_handler(build_setgoal_conv(goal_manager))
 
     # /today, /status, /motivation, /check
@@ -105,16 +107,16 @@ def main():
     application.add_handler(CommandHandler("motivation", motivation_handler))
     application.add_handler(check_conv)
 
-    # неизвестные команды – фильтруем все, кроме перечисленных
+    # Unknown commands - filter all except known ones
     known_cmds = (
         r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
     )
     unknown_cmd_filter = filters.Command() & ~filters.Regex(known_cmds)
     application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler()))
 
-    # Запуск бота
+    # Start the bot
     application.add_error_handler(error_handler)
-    logger.info("Бот запущен")
+    logger.info("Bot started")  # Translated log
 
     # Start Prometheus metrics server
     try:
@@ -125,7 +127,9 @@ def main():
         # TODO: Get version from a more reliable source (e.g., pyproject.toml or env var)
         APP_INFO.labels(version="1.2.0-dev").set(1)  # Example version
     except Exception as e:
-        logger.error(f"Could not start Prometheus metrics server: {e}")
+        logger.error(
+            f"Could not start Prometheus metrics server: {e}"
+        )  # Log already in EN
 
     application.run_polling()
 
