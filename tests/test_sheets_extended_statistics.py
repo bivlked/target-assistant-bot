@@ -1,6 +1,7 @@
 """Tests for the get_extended_statistics method of SheetsManager and AsyncSheetsManager."""
 
 import pytest
+import pytest_asyncio  # Добавляем импорт
 from typing import List, Dict, Tuple, Any, Optional
 from freezegun import freeze_time  # Import freezegun
 from unittest.mock import MagicMock, AsyncMock  # For mocking managers if needed
@@ -63,7 +64,7 @@ def mock_sheets_manager_for_stats(monkeypatch: pytest.MonkeyPatch) -> SheetsMana
     return manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture  # Используем правильный декоратор
 async def mock_async_sheets_manager_for_stats(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Tuple[AsyncSheetsManager, MagicMock]:
