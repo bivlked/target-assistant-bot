@@ -139,17 +139,30 @@ def test_llm_days_message_content_none(mock_openai_client: MagicMock):
     assert _llm_days("content is None") is None
 
 
-@patch("utils.period_parser.logger.warning")  # Мокаем логгер
+@patch("utils.period_parser.logger.warning")
 def test_llm_days_api_error_no_reraise(
-    mock_logger_warning: MagicMock, mock_openai_client: MagicMock
+    mock_period_parser_logger_warning: MagicMock, mock_openai_client: MagicMock
 ):
-    """_llm_days returns None and logs warning on APIError (due to @retry_openai_llm_no_reraise)."""
-    # Декоратор @retry_openai_llm_no_reraise должен сделать 2 попытки
+    """_llm_days returns None on APIError. Decorator @retry_openai_llm_no_reraise
+    should effectively result in one attempt if _llm_days catches the APIError itself.
+    """
     mock_openai_client.chat.completions.create.side_effect = APIError(
-        "Simulated API Error", request=MagicMock(), body=None
+        "Simulated Persistent API Error", request=MagicMock(), body=None
     )
 
-    assert _llm_days("срок с API ошибкой") is None
-    assert mock_openai_client.chat.completions.create.call_count == 2  # 2 attempts
-    mock_logger_warning.assert_called()  # Проверяем, что была попытка логирования
-    # Можно проверить и текст лога, если он специфичен для этой ситуации
+    with patch(
+        "utils.retry_decorators.logger.warning"
+    ) as mock_retry_decorator_logger_warning:
+        result = _llm_days("срок с API ошибкой")
+
+    assert result is None  # _llm_days поймал APIError и вернул None
+
+    # _llm_days поймал ошибку на первой попытке, tenacity не делает ретрай, т.к. _llm_days не выбросил APIError наружу
+    assert mock_openai_client.chat.completions.create.call_count == 1
+
+    # _log_retry (использующий utils.retry_decorators.logger.warning) не должен быть вызван
+    assert mock_retry_decorator_logger_warning.call_count == 0
+
+    # logger.warning из utils.period_parser (mock_period_parser_logger_warning)
+    # вызывается внутри _llm_days один раз, когда APIError пойман.
+    assert mock_period_parser_logger_warning.call_count == 1
