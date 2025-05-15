@@ -21,6 +21,8 @@ _WORDS_MAP = {
     "ноль": 0,
     "один": 1,
     "одна": 1,
+    "полтора": 1.5,
+    "полторы": 1.5,
     "два": 2,
     "две": 2,
     "три": 3,
@@ -54,7 +56,7 @@ def _heuristic_days(text: str) -> Optional[int]:
     txt = text.lower()
 
     # 1. Number specified in digits
-    num_match = re.search(r"(\d+[\,\.\d]*)", txt)
+    num_match = re.search(r"([-+]?\d+[\,\.\d]*)", txt)
     if num_match:
         try:
             num = float(num_match.group(1).replace(",", "."))
@@ -136,9 +138,13 @@ def _llm_days(text: str) -> Optional[int]:
             return None
 
         data = json.loads(m.group(0))
-        days_val = int(data.get("days"))
+        days_val_raw = data.get("days")
+        if days_val_raw is None:
+            logger.debug("'days' key not found in LLM JSON response.")
+            return None
+        days_val = int(days_val_raw)
         return days_val if days_val > 0 else None
-    except (APIError, json.JSONDecodeError, KeyError, ValueError) as e:
+    except (APIError, json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
         logger.warning("LLM parse period failed: %s", e)
         return None
 

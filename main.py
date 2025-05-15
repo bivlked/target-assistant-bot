@@ -1,4 +1,8 @@
-from __future__ import annotations
+from __future__ import annotations  # Should be the very first line
+
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file at the very beginning
 
 import logging
 
