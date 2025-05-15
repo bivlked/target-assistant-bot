@@ -5,15 +5,15 @@ from dotenv import load_dotenv
 import re
 import logging
 
-# Загружаем переменные окружения из .env файла, если он существует
+# Load environment variables from .env file if it exists
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
 def _int_env(var_name: str, default: int) -> int:
-    """Преобразует переменную окружения в int, игнорируя посторонние символы.
-    Если число не найдено, возвращает default.
+    """Converts an environment variable to int, ignoring extraneous characters.
+    Returns default if the number is not found.
     """
     raw = os.getenv(var_name)
     if raw is None:
@@ -38,7 +38,7 @@ class OpenAIConfig:
 
     api_key: str = os.getenv("OPENAI_API_KEY", "")
     model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    # Количество попыток повторного запроса в случае ошибки LLM
+    # Number of retry attempts in case of LLM error
     max_retries: int = _int_env("OPENAI_MAX_RETRIES", 2)
 
 
@@ -46,21 +46,21 @@ class OpenAIConfig:
 class GoogleConfig:
     """Configuration for Google API access, specifically for service account credentials.
 
-    Если в переменной окружения GOOGLE_CREDENTIALS_PATH указан относительный путь
-    (или она не установлена), он будет преобразован в абсолютный путь внутри
-    директории проекта. Это избавляет от проблем, когда бот запускается из
-    любого каталога или на другой ОС (Windows vs Linux).
+    If a relative path is specified in the GOOGLE_CREDENTIALS_PATH environment variable
+    (or if it is not set), it will be converted to an absolute path within
+    the project directory. This avoids issues when the bot is run from
+    any directory or on a different OS (Windows vs Linux).
     """
 
     _raw_path: str = os.getenv("GOOGLE_CREDENTIALS_PATH", "google_credentials.json")
 
     @property
     def credentials_path(self) -> str:  # type: ignore[override]
-        """Абсолютный путь к файлу сервисного аккаунта.
+        """Absolute path to the service account file.
 
-        • Если указан абсолютный путь (например, `/opt/...`), возвращаем как есть.
-        • В противном случае считаем, что путь относительный к `BASE_DIR`.
-        Проверяем существование файла и, если его нет, подсказываем, что делать.
+        - If an absolute path is specified (e.g., `/opt/...`), it's returned as is.
+        - Otherwise, the path is considered relative to `BASE_DIR`.
+        Checks for file existence and provides guidance if not found.
         """
 
         path = Path(self._raw_path)
@@ -68,23 +68,22 @@ class GoogleConfig:
             path = BASE_DIR / path
 
         if not path.exists():
-            # Пробуем резервный путь — файл в корне проекта, если из env не найден
+            # Try fallback path - file in the project root if not found via env var
             fallback = BASE_DIR / "google_credentials.json"
             if fallback.exists():
                 logger = logging.getLogger(__name__)
                 logger.warning(
-                    "Файл учетных данных Google не найден по пути '%s'. "
-                    "Использую '%s' вместо него.",
+                    "Google credentials file not found at '%s'. " "Using '%s' instead.",
                     path,
                     fallback,
                 )
                 path = fallback
             else:
                 raise FileNotFoundError(
-                    f"Файл учетных данных Google не найден ни по пути '{path}', "
-                    f"ни по резервному '{fallback}'. "
-                    "Укажите корректный путь в переменной окружения GOOGLE_CREDENTIALS_PATH "
-                    "или поместите файл 'google_credentials.json' в корень проекта."
+                    f"Google credentials file not found at '{path}' "
+                    f"nor at fallback '{fallback}'. "
+                    "Specify the correct path in GOOGLE_CREDENTIALS_PATH environment variable "
+                    "or place 'google_credentials.json' in the project root."
                 )
 
         return str(path)
