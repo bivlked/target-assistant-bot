@@ -136,15 +136,15 @@ async def test_get_extended_statistics_async(
     mock_async_sheets_manager_for_stats: Tuple[AsyncSheetsManager, MagicMock]
 ):
     """Tests asynchronous get_extended_statistics."""
-    # freeze_today_for_stats (02.05.2025) должен быть активен
     async_manager, sync_mock = mock_async_sheets_manager_for_stats
 
-    stats = await async_manager.get_extended_statistics(user_id=12)
+    user_id_to_test = 12
+    # upcoming_count не передаем, чтобы использовалось значение по умолчанию (5)
+    stats = await async_manager.get_extended_statistics(user_id=user_id_to_test)
 
     # Проверяем, что AsyncSheetsManager правильно вызвал метод своего мокнутого _sync экземпляра
-    sync_mock.get_extended_statistics.assert_called_once_with(
-        user_id=12, upcoming_count=5
-    )  # 5 - дефолт
+    # с user_id позиционно и upcoming_count=5 (дефолтное значение)
+    sync_mock.get_extended_statistics.assert_called_once_with(user_id_to_test, 5)
 
     # Ассерты на результат, который вернул мок sync_mock.get_extended_statistics
     assert stats["total_days"] == 3
