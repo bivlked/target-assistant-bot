@@ -1,3 +1,5 @@
+"""Core logic for managing user goals, plans, and progress via LLM and storage."""
+
 from __future__ import annotations
 
 import logging
@@ -16,16 +18,28 @@ from core.metrics import (
     TASKS_STATUS_UPDATED_TOTAL,
 )  # Import metrics
 
-if TYPE_CHECKING:  # избегаем циклов импорта
+if TYPE_CHECKING:  # Avoid import cycles
     from sheets.client import SheetsManager
     from sheets.async_client import AsyncSheetsManager
     from llm.client import LLMClient
     from llm.async_client import AsyncLLMClient
 
-# Типы строк статуса
-STATUS_NOT_DONE: Final[str] = "Не выполнено"
-STATUS_DONE: Final[str] = "Выполнено"
-STATUS_PARTIAL: Final[str] = "Частично выполнено"
+# Status string types (internal, for logic/metrics)
+STATUS_NOT_DONE: Final[str] = "NOT_DONE"
+STATUS_DONE: Final[str] = "DONE"
+STATUS_PARTIAL: Final[str] = "PARTIALLY_DONE"
+
+# User-facing status strings (for Sheets and display)
+USER_FACING_STATUS_NOT_DONE: Final[str] = "Не выполнено"
+USER_FACING_STATUS_DONE: Final[str] = "Выполнено"
+USER_FACING_STATUS_PARTIAL: Final[str] = "Частично выполнено"
+
+# Mapping for metrics: from Russian user-facing status to English internal status
+RUSSIAN_TO_ENGLISH_STATUS_MAP: Final[Dict[str, str]] = {
+    USER_FACING_STATUS_DONE: STATUS_DONE,
+    USER_FACING_STATUS_NOT_DONE: STATUS_NOT_DONE,
+    USER_FACING_STATUS_PARTIAL: STATUS_PARTIAL,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +68,7 @@ class GoalManager:
         )
 
     # -------------------------------------------------
-    # Методы API, вызываемые из Telegram-обработчиков
+    # API methods called from Telegram handlers
     # -------------------------------------------------
     async def setup_user(self, user_id: int) -> None:
         """Asynchronously sets up the user by creating/opening their Google Spreadsheet."""
@@ -80,12 +94,12 @@ class GoalManager:
             ).inc()
             raise
 
-        # 2. Генерируем план через LLM
+        # 2. Generate plan via LLM
         plan_json = await self.llm.generate_plan(
             goal_text, deadline_str, available_time_str
         )
 
-        # 3. Расчёт дат
+        # 3. Calculate dates
         today = datetime.now()
         full_plan = []
         for item in plan_json:
@@ -96,16 +110,16 @@ class GoalManager:
                     COL_DATE: format_date(date),
                     COL_DAYOFWEEK: get_day_of_week(date),
                     COL_TASK: item["task"],
-                    COL_STATUS: STATUS_NOT_DONE,
+                    COL_STATUS: USER_FACING_STATUS_NOT_DONE,  # Use Russian status for Sheets
                 }
             )
 
-        # 4. Сохраняем в Sheets
+        # 4. Save to Sheets
         goal_info = {
-            "Глобальная цель": goal_text,
-            "Срок выполнения": deadline_str,
-            "Затраты в день": available_time_str,
-            "Начало выполнения": format_date(today),
+            "Глобальная цель": goal_text,  # Russian key for Sheets
+            "Срок выполнения": deadline_str,  # Russian key for Sheets
+            "Затраты в день": available_time_str,  # Russian key for Sheets
+            "Начало выполнения": format_date(today),  # Russian key for Sheets
         }
         spreadsheet_url = await self.storage.save_goal_info(user_id, goal_info)
         await self.storage.save_plan(user_id, full_plan)
@@ -119,10 +133,18 @@ class GoalManager:
         return await self.storage.get_task_for_date(user_id, date_str)
 
     async def update_today_task_status(self, user_id: int, status: str) -> None:
-        """Asynchronously updates the status of today's task."""
+        """Asynchronously updates the status of today's task.
+        'status' is expected to be a Russian user-facing string.
+        """
         date_str = format_date(datetime.now())
+        # 'status' is already Russian, save it to Sheets as is
         await self.storage.update_task_status(user_id, date_str, status)
-        TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status).inc()
+
+        # For metrics, map to English status
+        english_status = RUSSIAN_TO_ENGLISH_STATUS_MAP.get(
+            status, status
+        )  # Fallback to original if not in map
+        TASKS_STATUS_UPDATED_TOTAL.labels(new_status=english_status).inc()
 
     async def get_goal_status_details(self, user_id: int) -> str:
         """Asynchronously gets a brief string summary of goal progress."""
@@ -142,29 +164,33 @@ class GoalManager:
         goal_info = await self.storage.get_goal_info(user_id)
         stats = await self.storage.get_statistics(user_id)
         # Assuming goal_info and stats are dict-like or have .get()
-        goal_text = goal_info.get("Глобальная цель", "") if goal_info else ""
+        goal_text = (
+            goal_info.get("Глобальная цель", "") if goal_info else ""
+        )  # Russian key
         progress_summary = str(stats)  # Convert stats to string if it isn't already
         return await self.llm.generate_motivation(goal_text, progress_summary)
 
     # -------------------------------------------------
-    # Сброс
+    # Reset
     # -------------------------------------------------
     async def reset_user(self, user_id: int) -> None:
         """Asynchronously deletes all user data."""
         await self.storage.delete_spreadsheet(user_id)
 
-    # --- Новый, расширенный статус ----------------------
+    # --- New, extended status ----------------------
     async def get_detailed_status(self, user_id: int) -> Dict[str, Any]:
         """Asynchronously gets detailed statistics about the user's current goal."""
         stats = await self.storage.get_extended_statistics(user_id)
         goal_info = await self.storage.get_goal_info(user_id)
         return {
-            "goal": goal_info.get("Глобальная цель", "—") if goal_info else "—",
+            "goal": (
+                goal_info.get("Глобальная цель", "—") if goal_info else "—"
+            ),  # Russian key
             **stats,
         }
 
     # -----------------------------------------------------------------
-    # Async-версия (использует sheets_async / llm_async, если доступны)
+    # Async version (uses sheets_async / llm_async, if available)
     # -----------------------------------------------------------------
     # All methods are now async directly. The specific async_ versions were removed.
 
@@ -177,9 +203,16 @@ class GoalManager:
         self, user_id: int, updates: Dict[str, str]
     ) -> None:
         """Asynchronously batch updates task statuses via the storage interface.
+        'updates' dict values are expected to be Russian user-facing strings.
 
         Also, increments the TASKS_STATUS_UPDATED_TOTAL metric for each status update.
         """
+        # 'updates' values are already Russian, save them to Sheets as is
         await self.storage.batch_update_task_statuses(user_id, updates)
-        for status_val in updates.values():  # Increment for each status updated
-            TASKS_STATUS_UPDATED_TOTAL.labels(new_status=status_val).inc()
+
+        # For metrics, map to English statuses
+        for status_val in updates.values():  # status_val is Russian
+            english_status_val = RUSSIAN_TO_ENGLISH_STATUS_MAP.get(
+                status_val, status_val
+            )  # Fallback
+            TASKS_STATUS_UPDATED_TOTAL.labels(new_status=english_status_val).inc()

@@ -1,3 +1,5 @@
+"""Handler for the /setgoal conversation flow, allowing users to set new goals."""
+
 from __future__ import annotations
 
 import re
@@ -16,94 +18,43 @@ from telegram.ext import (
 from core.goal_manager import GoalManager
 from utils.period_parser import parse_period
 from core.metrics import USER_COMMANDS_TOTAL
+from texts import (
+    PROMPT_DEADLINE_TEXT,
+    PROMPT_AVAILABLE_TIME_TEXT,
+    PROMPT_GOAL_TEXT,
+    VALIDATE_GOAL_MIN_LENGTH_TEXT,
+    VALIDATE_DEADLINE_RANGE_TEXT,
+    GENERATING_PLAN_TEXT,
+    SETGOAL_SUCCESS_TEXT_TEMPLATE,
+    SETGOAL_ERROR_TEXT,
+    CONVERSATION_CANCELLED_TEXT,
+)
 
-# Состояния ConversationHandler
+# ConversationHandler states
 TEXT_GOAL: Final = 0
 DEADLINE: Final = 1
 AVAILABLE_TIME: Final = 2
 
 
 # ------------------------------
-# Валидация пользовательского ввода
+# User input validation
 # ------------------------------
-
-
-def _validate_deadline(text: str):
-    """Validates that the user-provided deadline string is within 90 days.
-
-    Supports numeric ("30 days") and Russian word-based numbers ("один месяц").
-    If no explicit number is found for units like 'week' or 'month', it assumes 1.
-
-    Args:
-        text: The user-input string for the deadline.
-
-    Returns:
-        True if the deadline is valid (<= 90 days), False otherwise.
-    """
-    txt = text.lower()
-
-    # 1. Пытаемся найти число цифрой
-    num_match = re.search(r"(\d+)", txt)
-    if num_match:
-        num = int(num_match.group(1))
-    else:
-        # 2. Пытаемся распознать словесные числа
-        words_map = {
-            "один": 1,
-            "одна": 1,
-            "два": 2,
-            "две": 2,
-            "три": 3,
-            "четыре": 4,
-            "пять": 5,
-            "шесть": 6,
-            "семь": 7,
-            "восемь": 8,
-            "девять": 9,
-            "десять": 10,
-        }
-        num = None
-        for w, val in words_map.items():
-            if re.search(rf"\b{w}\b", txt):
-                num = val
-                break
-        # 3. Если число явно не указано, но есть слово 'месяц/неделя/день' – подразумеваем 1
-        if num is None and ("месяц" in txt or "недел" in txt or "день" in txt):
-            num = 1
-
-    if num is None:
-        return False
-
-    # Определяем единицу измерения
-    if "нед" in txt:
-        days = num * 7
-    elif "месяц" in txt or "мес" in txt:
-        days = num * 30
-    else:
-        # По умолчанию считаем дни
-        days = num
-
-    return days <= 90
 
 
 async def _ask_deadline(update: Update):
     """Sends a message asking the user for the goal deadline."""
     assert update.message is not None
-    await update.message.reply_text(
-        "За какой срок вы планируете достичь цели (например, 'за 2 месяца', 'за 6 недель', 'за 50 дней')? Укажите срок до 3 месяцев."
-    )
+    await update.message.reply_text(PROMPT_DEADLINE_TEXT)
 
 
 async def _ask_available_time(update: Update):
     """Sends a message asking the user for their daily time commitment."""
     assert update.message is not None
-    await update.message.reply_text(
-        "Сколько примерно времени вы готовы уделять достижению цели ежедневно (например, '30 минут', '1-2 часа')?"
-    )
+    await update.message.reply_text(PROMPT_AVAILABLE_TIME_TEXT)
 
 
 # ------------------------------
-# Функция построения ConversationHandler
+# ConversationHandler construction function
 # ------------------------------
 
 
@@ -120,9 +71,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/setgoal").inc()
         assert update.message is not None
-        await update.message.reply_text(
-            "Какую цель вы хотите достичь? Опишите её как можно подробнее."
-        )
+        await update.message.reply_text(PROMPT_GOAL_TEXT)
         return TEXT_GOAL
 
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,9 +79,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         text_raw = update.message.text or ""
         text = text_raw.strip()
         if len(text) < 10:
-            await update.message.reply_text(
-                "Пожалуйста, опишите цель подробнее (минимум 10 символов)."
-            )
+            await update.message.reply_text(VALIDATE_GOAL_MIN_LENGTH_TEXT)
             return TEXT_GOAL
         data_dict = cast(Dict[str, Any], context.user_data)
         data_dict["goal_text"] = text
@@ -143,15 +90,13 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         assert update.message is not None
         text_raw = update.message.text or ""
         text = text_raw.strip()
-        # Пытаемся распарсить срок и убедиться, что он не превышает 90 дней
+        # Try to parse the period and ensure it does not exceed 90 days
         try:
             days = parse_period(text)
             if days > 90:
                 raise ValueError
         except ValueError:
-            await update.message.reply_text(
-                "Некорректный срок. Попробуйте ещё раз и убедитесь, что срок <= 3 месяцев."
-            )
+            await update.message.reply_text(VALIDATE_DEADLINE_RANGE_TEXT)
             return DEADLINE
 
         data_dict = cast(Dict[str, Any], context.user_data)
@@ -165,9 +110,7 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         text = text_raw.strip()
         data_dict = cast(Dict[str, Any], context.user_data)
         data_dict["available_time"] = text
-        await update.message.reply_text(
-            "Генерирую для вас персональный план... Это может занять некоторое время."
-        )
+        await update.message.reply_text(GENERATING_PLAN_TEXT)
 
         data_dict = cast(Dict[str, Any], context.user_data)
         goal_text = data_dict["goal_text"]
@@ -181,22 +124,20 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
                 user_id, goal_text, deadline, available_time
             )
             await update.message.reply_text(
-                f"✅ Ваша цель *{goal_text}* установлена! План сохранён. \n"
-                f"📄 [Открыть таблицу]({spreadsheet_url})\n\n"
-                "Используйте /today, чтобы увидеть задачу на сегодня, и /check для отметки выполнения.",
+                SETGOAL_SUCCESS_TEXT_TEMPLATE.format(
+                    goal_text=goal_text, spreadsheet_url=spreadsheet_url
+                ),
                 parse_mode="Markdown",
                 disable_web_page_preview=True,
             )
         except Exception as e:
-            await update.message.reply_text(
-                "Произошла ошибка при создании цели. Попробуйте позже."
-            )
+            await update.message.reply_text(SETGOAL_ERROR_TEXT)
             raise
         return ConversationHandler.END
 
     async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assert update.message is not None
-        await update.message.reply_text("Операция отменена.")
+        await update.message.reply_text(CONVERSATION_CANCELLED_TEXT)
         return ConversationHandler.END
 
     return ConversationHandler(
