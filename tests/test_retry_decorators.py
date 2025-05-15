@@ -15,7 +15,7 @@ from openai import APIError as OpenAI_APIError  # Нужен для тестов
 from gspread.exceptions import (
     APIError as GSpread_APIError,
 )  # Нужен для тестов декораторов
-from requests import Response  # Для мока ответа GSpread
+import requests  # Новый импорт
 
 from utils.retry_decorators import (
     _log_retry,
@@ -182,17 +182,18 @@ def mock_failing_gspread_call_then_succeed(max_fails, *args, **kwargs):
     global fail_call_count
     fail_call_count += 1
     if fail_call_count <= max_fails:
-        mock_response = MagicMock(spec=Response)
+        mock_response = MagicMock(
+            spec=requests.Response
+        )  # Используем requests.Response
         mock_response.text = "Simulated GSpread API failure content"
         mock_response.status_code = 500
-        # GSpread_APIError ожидает requests.Response объект
         raise GSpread_APIError(mock_response)
     return "gspread success after retries"
 
 
 def mock_always_failing_gspread_call(*args, **kwargs):
     """Simulates a gspread API call that always fails."""
-    mock_response = MagicMock(spec=Response)
+    mock_response = MagicMock(spec=requests.Response)  # Используем requests.Response
     mock_response.text = "Simulated persistent GSpread API failure content"
     mock_response.status_code = 500
     raise GSpread_APIError(mock_response)
