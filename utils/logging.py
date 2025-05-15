@@ -33,7 +33,7 @@ def setup_logging(log_level: str | int = "INFO") -> structlog.BoundLogger:
         + [
             structlog.processors.JSONRenderer(),
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,  # Prepare for stdlib formatter
-        ],
+        ],  # type: ignore[arg-type]
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.make_filtering_bound_logger(
             logging.getLevelName(log_level) if isinstance(log_level, str) else log_level
