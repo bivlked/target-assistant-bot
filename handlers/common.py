@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sentry_sdk
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.ext import CommandHandler, MessageHandler, filters
@@ -28,9 +29,9 @@ def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
 
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/start").inc()
-        # Telegram guarantees effective_user and message for /start command
         assert update.effective_user is not None  # runtime safety for mypy
         user_id = update.effective_user.id
+        sentry_sdk.set_tag("user_id", user_id)
         await goal_manager.setup_user(user_id)
         scheduler.add_user_jobs(context.bot, user_id)
         assert update.message is not None
@@ -42,6 +43,8 @@ def start_handler(goal_manager: GoalManager, scheduler: Scheduler):
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the /help command, sending a help message."""
     USER_COMMANDS_TOTAL.labels(command_name="/help").inc()
+    if update.effective_user:
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
     assert update.message is not None
     await update.message.reply_text(
         HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True
@@ -51,6 +54,8 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the /cancel command, typically used to exit conversations."""
     USER_COMMANDS_TOTAL.labels(command_name="/cancel").inc()
+    if update.effective_user:
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
     assert update.message is not None
     await update.message.reply_text(CANCEL_TEXT)
 
@@ -70,6 +75,7 @@ def reset_handler(goal_manager: GoalManager):
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/reset").inc()
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         await goal_manager.reset_user(update.effective_user.id)
         await update.message.reply_text(RESET_SUCCESS_TEXT)
@@ -88,6 +94,8 @@ def unknown_handler():
 
     async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="unknown").inc()
+        if update.effective_user:
+            sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         await update.message.reply_text(UNKNOWN_TEXT)
 

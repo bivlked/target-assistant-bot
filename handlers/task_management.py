@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sentry_sdk
 from datetime import datetime
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -54,6 +55,7 @@ def build_task_handlers(goal_manager: GoalManager):
         """Handles the /today command, displaying the current day's task."""
         USER_COMMANDS_TOTAL.labels(command_name="/today").inc()
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         task = await goal_manager.get_today_task(update.effective_user.id)
         if task:
@@ -71,6 +73,7 @@ def build_task_handlers(goal_manager: GoalManager):
         """Handles the /status command, displaying goal progress and upcoming tasks."""
         USER_COMMANDS_TOTAL.labels(command_name="/status").inc()
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         data = await goal_manager.get_detailed_status(update.effective_user.id)
 
@@ -117,6 +120,7 @@ def build_task_handlers(goal_manager: GoalManager):
         """Entry point for the /check conversation; displays today's task and status buttons."""
         USER_COMMANDS_TOTAL.labels(command_name="/check").inc()
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         task = await goal_manager.get_today_task(update.effective_user.id)
         if not task:
@@ -158,8 +162,9 @@ def build_task_handlers(goal_manager: GoalManager):
         await query.answer()
         status_val = str(query.data)
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", query.from_user.id)
         await goal_manager.batch_update_task_statuses(
-            update.effective_user.id,
+            query.from_user.id,
             {format_date(datetime.now()): status_val},
         )
         await query.edit_message_text(CHECK_STATUS_UPDATED_TEXT)
@@ -171,6 +176,7 @@ def build_task_handlers(goal_manager: GoalManager):
         """Handles the /motivation command, sending a motivational message."""
         USER_COMMANDS_TOTAL.labels(command_name="/motivation").inc()
         assert update.effective_user is not None
+        sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         msg = await goal_manager.generate_motivation_message(update.effective_user.id)
         await update.message.reply_text(msg)

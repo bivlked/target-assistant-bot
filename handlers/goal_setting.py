@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sentry_sdk
 from datetime import timedelta, datetime
 from typing import Final, cast, Any, Dict
 
@@ -73,11 +74,15 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
 
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/setgoal").inc()
+        if update.effective_user:
+            sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         await update.message.reply_text(PROMPT_GOAL_TEXT)
         return TEXT_GOAL
 
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user:
+            sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         text_raw = update.message.text or ""
         text = text_raw.strip()
@@ -90,6 +95,8 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return DEADLINE
 
     async def input_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user:
+            sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         text_raw = update.message.text or ""
         text = text_raw.strip()
@@ -108,6 +115,10 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return AVAILABLE_TIME
 
     async def input_available_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        assert update.effective_user is not None
+        user_id = update.effective_user.id
+        sentry_sdk.set_tag("user_id", user_id)
+
         assert update.message is not None
         text_raw = update.message.text or ""
         text = text_raw.strip()
@@ -139,6 +150,8 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         return ConversationHandler.END
 
     async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_user:
+            sentry_sdk.set_tag("user_id", update.effective_user.id)
         assert update.message is not None
         await update.message.reply_text(CONVERSATION_CANCELLED_TEXT)
         return ConversationHandler.END

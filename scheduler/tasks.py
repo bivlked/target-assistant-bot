@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sentry_sdk
 from datetime import datetime, time as dt_time, timezone
 import asyncio
 from typing import TYPE_CHECKING, cast, Dict, Any
@@ -105,6 +106,8 @@ class Scheduler:
 
     async def _send_today_task(self, bot: Bot, user_id: int):
         """(Job) Sends the daily task to the user if it's not completed."""
+        sentry_sdk.set_tag("user_id", user_id)
+        sentry_sdk.set_tag("job_name", "_send_today_task")
         try:
             task = await self.goal_manager.get_today_task(user_id)
             if task:
@@ -124,6 +127,8 @@ class Scheduler:
 
     async def _send_evening_reminder(self, bot: Bot, user_id: int):
         """(Job) Sends an evening reminder to check off the daily task."""
+        sentry_sdk.set_tag("user_id", user_id)
+        sentry_sdk.set_tag("job_name", "_send_evening_reminder")
         try:
             await bot.send_message(
                 chat_id=user_id,
@@ -136,6 +141,8 @@ class Scheduler:
 
     async def _send_motivation(self, bot: Bot, user_id: int):
         """(Job) Sends a motivational message to the user."""
+        sentry_sdk.set_tag("user_id", user_id)
+        sentry_sdk.set_tag("job_name", "_send_motivation")
         try:
             msg = await self.goal_manager.generate_motivation_message(user_id)
             await bot.send_message(chat_id=user_id, text=msg)
