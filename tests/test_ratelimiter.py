@@ -1,3 +1,5 @@
+"""Tests for the rate limiting utilities (TokenBucket and UserRateLimiter)."""
+
 import pytest
 import time
 from utils.ratelimiter import TokenBucket, UserRateLimiter, RateLimitException
