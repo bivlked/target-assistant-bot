@@ -7,6 +7,9 @@ from unittest.mock import (
     MagicMock,
 )  # Убираем patch, он не используется здесь
 from datetime import datetime, timezone
+from typing import (
+    cast,
+)  # Добавим cast для альтернативного решения, если type:ignore не сработает
 
 from telegram import Update, User, Message, Chat, Bot
 from telegram.ext import ContextTypes
@@ -43,53 +46,61 @@ def mock_scheduler():
     return mock
 
 
-class MockMessage:
-    """A simple mock for telegram.Message for testing reply_text."""
+@pytest_asyncio.fixture
+async def mock_bot_instance():
+    """Fixture for a mock Bot object instance."""
+    bot_mock = AsyncMock(spec=Bot)
+    # bot_mock.send_message = AsyncMock() # Уже AsyncMock из-за spec=Bot, если Bot.send_message async
+    # Если Bot.send_message не async в spec, то нужно мокать его как AsyncMock:
+    # setattr(bot_mock, 'send_message', AsyncMock())
+    return bot_mock
 
+
+class MockMessage:  # Наш мок-класс
     def __init__(self, user_id: int, chat_id: int, text: str = "/test"):
         self.from_user = User(id=user_id, first_name="TestUser", is_bot=False)
         self.chat = Chat(id=chat_id, type="private")
         self.text = text
-        self.reply_text = AsyncMock()  # reply_text is an AsyncMock attribute
-        self.message_id = 1  # Dummy message_id
-        self.date = datetime.now(timezone.utc)  # Dummy date
+        self.reply_text = AsyncMock()
+        self.message_id = 1
+        self.date = datetime.now(timezone.utc)
+        # Добавим атрибут bot, чтобы он был похож на настоящий Message, если кто-то его проверит
+        # Хотя reply_text у нас уже мокнут и не будет использовать self.bot
+        self.bot = None
 
 
 @pytest_asyncio.fixture
 async def mock_update_message(
     monkeypatch: pytest.MonkeyPatch,
-):  # monkeypatch может быть уже не нужен здесь
-    """Fixture for a mock Update object with a mocked message."""
-    # user_id и chat_id для MockMessage
-    user_id = 123
-    chat_id = 123
-    # Используем наш MockMessage
-    mock_msg = MockMessage(user_id=user_id, chat_id=chat_id, text="/start_command")
+):  # monkeypatch снова нужен
+    """Fixture for a mock Update object with a Message mock that has a mocked reply_text."""
+    user = User(id=123, first_name="TestUser", is_bot=False)
+    chat = Chat(id=123, type="private")
 
-    update = Update(update_id=1, message=mock_msg)
-    # Для PTB v20+ Update ожидает, что effective_user и effective_chat будут доступны.
-    # Если хендлеры используют update.effective_user, их нужно мокать.
-    # Наши хендлеры в common.py используют update.effective_user, так что мокаем.
-    # monkeypatch.setattr(update, "effective_user", mock_msg.from_user) - нельзя для Update
-    # monkeypatch.setattr(update, "effective_chat", mock_msg.chat) - нельзя для Update
-    # Вместо этого, мы должны убедиться, что наши хендлеры корректно извлекают
-    # user и chat из update.message.from_user и update.message.chat, что они и делают.
-    # Для Sentry мы используем update.effective_user, так что его нужно мокать, если он None.
-    # Update() конструктор сам устанавливает effective_user/chat из message, если он есть.
+    # Создаем MagicMock, который имитирует Message
+    # Атрибуты from_user и chat будут установлены как MagicMock, если к ним будет обращение,
+    # но мы их установим явно для наших тестов.
+    # Важно: настоящий Message создается с bot, но мы его не используем, так как reply_text мокаем.
+    message_mock = MagicMock(spec=Message)
+    message_mock.from_user = user
+    message_mock.chat = chat
+    message_mock.text = "/test_command"
+    message_mock.message_id = 1
+    message_mock.date = datetime.now(timezone.utc)
+
+    # Мокаем метод reply_text у этого экземпляра message_mock
+    # setattr(message_mock, "reply_text", AsyncMock()) # Так тоже можно
+    message_mock.reply_text = AsyncMock()
+
+    update = Update(update_id=1, message=message_mock)
     return update
 
 
 @pytest.fixture
-def mock_bot():
-    """Fixture for a mock Bot object."""
-    return AsyncMock(spec=Bot)
-
-
-@pytest.fixture
-def mock_context(mock_bot):
+def mock_context(mock_bot_instance: AsyncMock):
     """Fixture for a mock ContextTypes.DEFAULT_TYPE."""
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
-    context.bot = mock_bot
+    context.bot = mock_bot_instance
     return context
 
 
@@ -102,15 +113,13 @@ async def test_start_handler_flow(
 ):
     """Test the complete flow of the /start command handler."""
     user_id = mock_update_message.message.from_user.id
-
-    # Create the handler using the factory
     handler_fn = start_handler(mock_goal_manager, mock_scheduler)
-
     await handler_fn(mock_update_message, mock_context)
 
-    # Assertions
     mock_goal_manager.setup_user.assert_awaited_once_with(user_id)
-    mock_scheduler.add_user_jobs.assert_called_once_with(mock_context.bot, user_id)
+    mock_scheduler.add_user_jobs.assert_called_once_with(
+        mock_context.bot, user_id
+    )  # context.bot используется здесь
     mock_update_message.message.reply_text.assert_awaited_once_with(WELCOME_TEXT)
 
 
@@ -136,7 +145,6 @@ async def test_cancel_handler(mock_update_message, mock_context):
 @pytest.mark.asyncio
 async def test_unknown_handler(mock_update_message, mock_context):
     """Test the unknown command handler."""
-    # unknown_handler is a factory
     handler_fn = unknown_handler()
     await handler_fn(mock_update_message, mock_context)
     mock_update_message.message.reply_text.assert_awaited_once_with(UNKNOWN_TEXT)
@@ -147,12 +155,8 @@ async def test_unknown_handler(mock_update_message, mock_context):
 async def test_reset_handler_flow(mock_goal_manager, mock_update_message, mock_context):
     """Test the complete flow of the /reset command handler."""
     user_id = mock_update_message.message.from_user.id
-
-    # Create the handler using the factory
     handler_fn = reset_handler(mock_goal_manager)
-
     await handler_fn(mock_update_message, mock_context)
 
-    # Assertions
     mock_goal_manager.reset_user.assert_awaited_once_with(user_id)
     mock_update_message.message.reply_text.assert_awaited_once_with(RESET_SUCCESS_TEXT)
