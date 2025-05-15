@@ -40,10 +40,10 @@ Let's say your goal is "Write a book in 3 months, dedicating 2 hours цьому 
 
     Use `/today` to see today's task, and `/check` to mark it as complete.
 6.  **You**: `/today`
-    **Bot**: 📅 Task for today (15.05.2025, Wednesday):
+    **Bot**: 📅 Task for today (DD.MM.YYYY, Weekday):
     📝 Outline the first chapter of the book.
     Status: Not completed
-7.  **You**: `/check` -> (select "✅ Done" via buttons)
+7.  **Вы**: `/check` -> (select "✅ Done" via buttons)
     **Bot**: Status updated! 💪
 8.  **You**: `/status`
     **Bot**: (shows progress, e.g., 🎯 *Goal*: Write a book... 📊 *Progress*: 1% (✅ 1/90 days)...)
@@ -134,7 +134,8 @@ sudo systemctl enable --now targetbot.service
 
 ```bash
 sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
-# check for updates every 15 minutes
+# This script will now pull the latest release tag by default.
+# Check for updates e.g., every 15 minutes
 echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
 ```
 
@@ -148,6 +149,30 @@ echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_updat
 For Developers:
 * [Contribution Guidelines (CONTRIBUTING.md)](CONTRIBUTING.md)
 * [Development Checklist (current tasks - RU)](Чек-лист%20разработки%20(отмечать%20выполненное).md)
+
+---
+
+## 📖 Building API Documentation (Sphinx)
+
+The project's API documentation is generated from docstrings using [Sphinx](https://www.sphinx-doc.org/).
+
+**To build the documentation locally:**
+
+1.  Ensure you are in an activated virtual environment with all dependencies installed (including those in the `# --- Documentation ---` section of `requirements.txt`).
+2.  Navigate to the `docs/` directory:
+    ```bash
+    cd docs
+    ```
+3.  Run the build command:
+    *   For Linux/macOS/Git Bash:
+        ```bash
+        make html
+        ```
+    *   For Windows (CMD/PowerShell):
+        ```bash
+        .\make.bat html
+        ```
+4.  The generated documentation will be available in the `docs/build/html/` directory. Open `index.html` in your browser.
 
 ---
 
