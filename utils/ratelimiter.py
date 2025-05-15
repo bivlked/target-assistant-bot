@@ -1,11 +1,12 @@
 """Rate limiting utilities using the Token Bucket algorithm.
 
 This module provides:
+
 - `RateLimitException`: Custom exception raised when a rate limit is exceeded.
 - `TokenBucket`: Core implementation of the token bucket algorithm, managing
-                 token replenishment and consumption for a single resource.
+  token replenishment and consumption for a single resource.
 - `UserRateLimiter`: Manages multiple `TokenBucket` instances, typically one per user,
-                     to enforce user-specific rate limits for operations like LLM calls.
+  to enforce user-specific rate limits for operations like LLM calls.
 
 The `UserRateLimiter` is intended to be instantiated once per limited resource type
 (e.g., one for LLM calls) and then used by calling its `check_limit` method,
