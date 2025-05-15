@@ -100,11 +100,11 @@ def build_setgoal_conv(goal_manager: GoalManager) -> ConversationHandler:
         assert update.message is not None
         text_raw = update.message.text or ""
         text = text_raw.strip()
-        # Try to parse the period and ensure it does not exceed 90 days
+        # Try to parse the period and ensure it does not exceed 120 days
         try:
             days = parse_period(text)
-            if days > 90:
-                raise ValueError
+            if days <= 0 or days > 120:
+                raise ValueError("Invalid day range")
         except ValueError:
             await update.message.reply_text(VALIDATE_DEADLINE_RANGE_TEXT)
             return DEADLINE
