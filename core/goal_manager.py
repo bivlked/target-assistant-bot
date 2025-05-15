@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Optional, Final, cast, List, Dict
 
 from utils.helpers import format_date, get_day_of_week
@@ -100,11 +100,17 @@ class GoalManager:
         )
 
         # 3. Calculate dates
-        today = datetime.now()
+        today = datetime.now(timezone.utc)
+        print(
+            f"DEBUG [GoalManager.set_new_goal] 'today' after datetime.now(timezone.utc): {today}"
+        )  # DEBUG
         full_plan = []
         for item in plan_json:
             day_offset = item["day"] - 1
             date = today + timedelta(days=day_offset)
+            print(
+                f"DEBUG [GoalManager.set_new_goal] item_day={item['day']}, offset={day_offset}, calculated_date={date}"
+            )  # DEBUG
             full_plan.append(
                 {
                     COL_DATE: format_date(date),
