@@ -1,3 +1,5 @@
+"""Common handlers for the Telegram bot, such as /start, /help, /reset, etc."""
+
 from __future__ import annotations
 
 from telegram import Update
@@ -6,7 +8,7 @@ from telegram.ext import CommandHandler, MessageHandler, filters
 
 from core.goal_manager import GoalManager
 from scheduler.tasks import Scheduler
-from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, UNKNOWN_TEXT
+from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, UNKNOWN_TEXT, RESET_SUCCESS_TEXT
 from core.metrics import USER_COMMANDS_TOTAL
 
 
@@ -70,9 +72,7 @@ def reset_handler(goal_manager: GoalManager):
         assert update.effective_user is not None
         assert update.message is not None
         await goal_manager.reset_user(update.effective_user.id)
-        await update.message.reply_text(
-            "🗑️ Все ваши данные удалены. Используйте /setgoal, чтобы начать заново."
-        )
+        await update.message.reply_text(RESET_SUCCESS_TEXT)
 
     return _handler
 

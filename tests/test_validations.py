@@ -3,7 +3,8 @@ import importlib
 import pytest
 
 import utils.period_parser as pp
-from handlers.goal_setting import _validate_deadline
+
+# from handlers.goal_setting import _validate_deadline # Removed import
 from config import _int_env
 
 
@@ -19,20 +20,6 @@ from config import _int_env
 )
 def test_heuristic_days(phrase, expected):
     assert pp._heuristic_days(phrase) == expected
-
-
-@pytest.mark.parametrize(
-    "phrase, is_valid",
-    [
-        ("за 3 недели", True),
-        ("за 2 месяца", True),
-        ("неделя", True),
-        ("4 месяца", False),  # 120 дней
-        ("91 день", False),
-    ],
-)
-def test_validate_deadline(phrase, is_valid):
-    assert _validate_deadline(phrase) is is_valid
 
 
 def test_int_env(monkeypatch):

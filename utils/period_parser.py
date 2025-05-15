@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Парсер пользовательской фразы со сроком («за месяц», «6 недель», «45 дней» ...).
-Сначала пытаемся разобрать эвристически, затем (при неудаче) спрашиваем LLM.
-Возвращает количество дней (int). Если распознать не удалось — ValueError.
+"""Parses a user-provided phrase representing a period (e.g., "for a month", "6 weeks", "45 days").
+It first attempts to parse heuristically, then falls back to an LLM query if needed.
+Returns the number of days (int). Raises ValueError if parsing fails.
 """
 from typing import Optional
 import logging
@@ -16,7 +16,7 @@ from utils.retry_decorators import retry_openai_llm_no_reraise
 
 logger = logging.getLogger(__name__)
 
-# Словесные числа для русского языка (до 10 достаточно)
+# Word-based numbers in Russian (up to 10 is sufficient for typical inputs)
 _WORDS_MAP = {
     "ноль": 0,
     "один": 1,
@@ -35,14 +35,25 @@ _WORDS_MAP = {
 
 
 # ---------------------------------------------------------------------------
-# Эвристический парсер (быстрый, без сети)
+# Heuristic parser (fast, no network calls)
 # ---------------------------------------------------------------------------
 
 
 def _heuristic_days(text: str) -> Optional[int]:
+    """Heuristically parses a text string to extract the number of days.
+
+    Handles numbers in digits, numbers as Russian words, and common period units.
+    Assumes 1 if a unit (month/week/day) is present without an explicit number.
+
+    Args:
+        text: The input text string from the user.
+
+    Returns:
+        The number of days as an integer, or None if parsing fails.
+    """
     txt = text.lower()
 
-    # 1. Указано число цифрой
+    # 1. Number specified in digits
     num_match = re.search(r"(\d+[\,\.\d]*)", txt)
     if num_match:
         try:
@@ -50,39 +61,40 @@ def _heuristic_days(text: str) -> Optional[int]:
         except Exception:
             num = None
     else:
-        # 2. Словесное число
+        # 2. Number specified as a word
         num = None
         for w, val in _WORDS_MAP.items():
             if re.search(rf"\b{w}\b", txt):
                 num = val
                 break
-        # 3. Если число не найдено и присутствует ключевое слово — считаем 1
+        # 3. If no number is found but a keyword is present, assume 1
         if num is None and ("месяц" in txt or "недел" in txt or "день" in txt):
             num = 1
 
     if num is None:
         return None
 
-    # Единица измерения
+    # Unit of measurement
     if "нед" in txt:
         days = int(round(num * 7))
     elif "месяц" in txt or "мес" in txt:
         days = int(round(num * 30))
     else:
-        # По умолчанию дни
+        # Default to days
         days = int(round(num))
 
     return days if days > 0 else None
 
 
 # ---------------------------------------------------------------------------
-# LLM-парсер (fallback). Максимум 1 запрос при ошибке эвристики.
+# LLM parser (fallback). Max 1 request if heuristic parsing fails.
 # ---------------------------------------------------------------------------
 
 _client: Optional[OpenAI] = None
 
 
 def _get_client() -> OpenAI:
+    """(Internal) Initializes and returns the OpenAI client singleton."""
     global _client
     if _client is None:
         _client = OpenAI(api_key=openai_cfg.api_key)
@@ -91,9 +103,9 @@ def _get_client() -> OpenAI:
 
 @retry_openai_llm_no_reraise
 def _llm_days(text: str) -> Optional[int]:
-    """Спросить у LLM сколько дней содержит фраза. Возвращает int или None."""
+    """Asks the LLM how many days the phrase contains. Returns int or None."""
     prompt = (
-        "Определи количество календарных дней, содержащихся во фразе на русском языке. "
+        "Определи количество календарных дней, содержащихся во фразе на русском языке. "  # Russian prompt for LLM
         'Ответь ТОЛЬКО JSON формата {"days": <число>} без пояснений.\n\n'
         f'Фраза: "{text}"'
     )
@@ -102,7 +114,7 @@ def _llm_days(text: str) -> Optional[int]:
             model=openai_cfg.model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
-            timeout=5,  # секунд
+            timeout=5,  # seconds
         )
         # OpenAI may theoretically return empty choices or message without content.
         # Added explicit defensive checks to avoid AttributeError at runtime and
@@ -132,15 +144,15 @@ def _llm_days(text: str) -> Optional[int]:
 
 
 # ---------------------------------------------------------------------------
-# Публичная функция
+# Public function
 # ---------------------------------------------------------------------------
 
 
 def parse_period(text: str) -> int:
-    """Возвращает количество дней. Бросает ValueError при неудаче."""
+    """Returns the number of days. Raises ValueError on failure."""
     days = _heuristic_days(text)
     if days is None:
         days = _llm_days(text)
     if days is None:
-        raise ValueError("Не удалось распознать срок.")
+        raise ValueError("Failed to parse the period.")  # Translated error message
     return days

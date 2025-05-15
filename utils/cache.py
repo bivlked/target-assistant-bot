@@ -6,6 +6,7 @@ This module provides a singleton `SheetCache` instance (`sheet_cache_instance`)
 and a decorator (`cached_sheet_method`) to apply caching to methods that read
 from Google Sheets. It also includes a function (`invalidate_sheet_cache`)
 to clear cache entries for a specific user, typically called after write operations.
+Cache keys include user_id and a method-specific key. Entries expire based on TTL.
 """
 
 """Simple in-memory LRU cache for Google Sheets read operations.
@@ -28,7 +29,10 @@ TTL_SECONDS = 3600  # 1 hour
 
 
 class SheetCache:
-    def __init__(self) -> None:  # pylint: disable=useless-suppression
+    """A simple in-memory cache with Time-To-Live (TTL) for sheet data."""
+
+    def __init__(self) -> None:
+        """Initializes the cache store."""  #: pylint: disable=useless-suppression
         self._store: Dict[Tuple[int, str], Tuple[Any, float]] = {}
 
     def _get_from_store(self, cache_key: Tuple[int, str]) -> Any | None:
@@ -56,7 +60,7 @@ class SheetCache:
 
 # Using a global store to be shared across instances of SheetsManager
 # This is simpler than passing SheetCache instance around.
-_global_sheet_store: Dict[Tuple[int, str], Tuple[Any, float]] | None = None
+# _global_sheet_store: Dict[Tuple[int, str], Tuple[Any, float]] | None = None # Removed unused variable
 
 
 # Global singleton instance

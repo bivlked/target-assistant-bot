@@ -42,7 +42,7 @@ GOALS_SET_TOTAL = Counter(
 TASKS_STATUS_UPDATED_TOTAL = Counter(
     "targetbot_tasks_status_updated_total",
     "Total number of tasks whose status was updated.",
-    ["new_status"],  # e.g., Выполнено, Не выполнено, Частично выполнено
+    ["new_status"],  # e.g., DONE, NOT_DONE, PARTIALLY_DONE
 )
 
 USER_COMMANDS_TOTAL = Counter(

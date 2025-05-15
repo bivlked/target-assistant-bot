@@ -1,3 +1,5 @@
+"""Sentry integration setup for error tracking and performance monitoring."""
+
 import logging
 import os
 
@@ -6,7 +8,7 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 def setup_sentry() -> None:
-    """Инициализирует Sentry, если переменная SENTRY_DSN задана."""
+    """Initializes Sentry if the SENTRY_DSN environment variable is set."""
     dsn = os.getenv("SENTRY_DSN")
     if not dsn:
         return
