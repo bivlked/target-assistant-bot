@@ -40,6 +40,9 @@ AVAILABLE_TIME: Final = 2
 # User input validation
 # ------------------------------
 
+# Function _validate_deadline was here and has been removed as it was only used in tests
+# and its functionality is covered by utils.period_parser.parse_period.
+
 
 async def _ask_deadline(update: Update):
     """Sends a message asking the user for the goal deadline."""
