@@ -44,16 +44,20 @@ class Scheduler:
     def __init__(self, goal_manager):
         """Initializes the Scheduler with a GoalManager instance and sets up APScheduler."""
         self.goal_manager = goal_manager
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        self.scheduler = AsyncIOScheduler(
-            timezone=scheduler_cfg.timezone,
-            event_loop=loop,
-        )
+        # AsyncIOScheduler по умолчанию будет использовать asyncio.get_event_loop().
+        # Если он создается до того, как PTB Application запустит свой цикл,
+        # и в основном потоке еще нет активного цикла, он может создать новый.
+        # Важно, чтобы Application и AsyncIOScheduler использовали один и тот же цикл.
+        # PTB Application создает и управляет своим циклом при run_polling().
+        # Для совместимости, лучше инициализировать AsyncIOScheduler без явного event_loop,
+        # и запускать scheduler.start() уже после того, как приложение настроено,
+        # но до run_polling(), чтобы он подхватил цикл PTB или работал в контексте,
+        # где asyncio.get_event_loop() вернет тот же цикл, что использует PTB.
+        # Текущее место вызова в main.py (до run_polling) должно быть нормальным.
+        self.scheduler = AsyncIOScheduler(timezone=scheduler_cfg.timezone)
+        # Убрали явное управление event_loop здесь.
+        # AsyncIOScheduler должен сам использовать существующий цикл или создать дефолтный,
+        # который, надеемся, будет тем же, что и у PTB, если scheduler.start() вызывается правильно.
 
     def add_user_jobs(self, bot: Bot, user_id: int):
         """Adds all standard periodic jobs for a given user.
