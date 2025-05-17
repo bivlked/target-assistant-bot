@@ -31,6 +31,10 @@ class TelegramConfig:
     """Configuration for the Telegram Bot token."""
 
     token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    app_version: str = os.getenv("APP_VERSION", "0.0.0-dev")
+    sentry_dsn: str | None = os.getenv("SENTRY_DSN")
+    sentry_environment: str = os.getenv("SENTRY_ENVIRONMENT", "development")
+    prometheus_port: int | None = _int_env("PROMETHEUS_PORT", 0)
 
 
 @dataclass(frozen=True)
@@ -122,9 +126,22 @@ class RateLimiterConfig:
     )  # Default: allow burst of 5 requests
 
 
+@dataclass(frozen=True)
+class CacheConfig:
+    """Configuration for caching mechanisms."""
+
+    # Примерные параметры, настройте по необходимости
+    user_goal_ttl_seconds: int = _int_env("CACHE_USER_GOAL_TTL_SECONDS", 3600)  # 1 час
+    sheets_data_ttl_seconds: int = _int_env(
+        "CACHE_SHEETS_DATA_TTL_SECONDS", 600
+    )  # 10 минут
+    max_cache_size: int = _int_env("MAX_CACHE_SIZE", 128)
+
+
 telegram = TelegramConfig()
 openai_cfg = OpenAIConfig()
 google = GoogleConfig()
 scheduler_cfg = SchedulerConfig()
 logging_cfg = LoggingConfig()
 ratelimiter_cfg = RateLimiterConfig()
+cache_config = CacheConfig()
