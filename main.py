@@ -1,5 +1,11 @@
 from __future__ import annotations  # Should be the very first line
 
+import sys
+import os
+
+print(f"Initial sys.path: {sys.path}")
+print(f"Initial CWD: {os.getcwd()}")
+
 from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file at the very beginning
@@ -23,10 +29,10 @@ from config import (
 from core.goal_manager import GoalManager
 from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
 
-# Явные импорты функций добавления хендлеров
-from handlers.common_handlers import add_common_handlers
-from handlers.goal_setting_handlers import add_goal_setting_handlers
-from handlers.task_management_handlers import add_task_management_handlers
+# Явные импорты функций добавления хендлеров из правильных имен файлов
+from handlers.common import add_common_handlers
+from handlers.goal_setting import build_setgoal_conv
+from handlers.task_management import build_task_handlers
 from llm.llm_client import AsyncLLMClient
 from scheduler.config import configure_jobs as configure_scheduler_jobs
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # Добавлено для явности
@@ -79,9 +85,13 @@ async def main_async() -> None:
     """Асинхронная основная функция для запуска бота."""
     if telegram.sentry_dsn:
         setup_sentry()
-        logger.info("Sentry SDK инициализирован (или попытка инициализации была сделана).")
+        logger.info(
+            "Sentry SDK инициализирован (или попытка инициализации была сделана)."
+        )
     else:
-        logger.warning("Sentry DSN не найден в конфигурации. Sentry SDK не инициализирован.")
+        logger.warning(
+            "Sentry DSN не найден в конфигурации. Sentry SDK не инициализирован."
+        )
 
     setup_logging(logging_cfg.level)
 
@@ -103,9 +113,7 @@ async def main_async() -> None:
     llm_client: AsyncLLMInterface = AsyncLLMClient(config_llm=llm_config)
     logger.info("AsyncLLMClient инициализирован.")
 
-    goal_manager = GoalManager(
-        storage=sheets_manager, llm=llm_client
-    )
+    goal_manager = GoalManager(storage=sheets_manager, llm=llm_client)
     logger.info("GoalManager инициализирован.")
 
     application = Application.builder().token(telegram.token).build()
@@ -114,18 +122,35 @@ async def main_async() -> None:
     application.goal_manager = goal_manager  # type: ignore[attr-defined]
     logger.debug("GoalManager добавлен в контекст приложения.")
 
-    add_common_handlers(application)
-    add_goal_setting_handlers(application, goal_manager)
-    add_task_management_handlers(application, goal_manager)
-    logger.info("Обработчики команд зарегистрированы.")
+    # Используем явные импортированные функции/фабрики
+    # Для common_handlers теперь нужна ссылка на scheduler, которая создается позже.
+    # Поэтому add_common_handlers будет вызван после инициализации scheduler.
+    
+    # goal_setting_handlers и task_management_handlers
+    application.add_handler(build_setgoal_conv(goal_manager))
+    
+    today_h, status_h, motivation_h, check_c = build_task_handlers(goal_manager)
+    application.add_handler(CommandHandler("today", today_h))
+    application.add_handler(CommandHandler("status", status_h))
+    application.add_handler(CommandHandler("motivation", motivation_h))
+    application.add_handler(check_c)
+    logger.info("Обработчики goal_setting и task_management зарегистрированы.")
 
     current_loop = asyncio.get_running_loop()
     logger.info(f"Используется event loop: {current_loop} для APScheduler.")
 
-    scheduler = AsyncIOScheduler(
-        event_loop=current_loop, timezone=global_scheduler_config.timezone
-    )
+    scheduler = AsyncIOScheduler(event_loop=current_loop, timezone=global_scheduler_config.timezone)
     logger.info("APScheduler AsyncIOScheduler инициализирован.")
+
+    # Теперь, когда scheduler создан, можно зарегистрировать common_handlers, если они его используют
+    # Однако, start_handler из common.py требует и goal_manager, и scheduler
+    # и регистрируется внутри add_common_handlers.
+    # Значит, add_common_handlers нужно вызывать здесь.
+    add_common_handlers(application, goal_manager, scheduler) # Передаем scheduler
+    logger.info("Общие обработчики команд зарегистрированы.")
+
+    # Регистрируем error_handler, который все еще в main.py
+    application.add_error_handler(error_handler)
 
     try:
         metrics_port = telegram.prometheus_port

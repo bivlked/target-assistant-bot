@@ -6,6 +6,7 @@ import sentry_sdk
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.ext import CommandHandler, MessageHandler, filters
+from telegram.ext import Application
 
 from core.goal_manager import GoalManager
 from scheduler.tasks import Scheduler
@@ -100,3 +101,24 @@ def unknown_handler():
         await update.message.reply_text(UNKNOWN_TEXT)
 
     return _handler
+
+
+def add_common_handlers(application: Application, goal_manager: GoalManager, scheduler: Scheduler) -> None:
+    """Registers all common command and message handlers with the application."""
+    application.add_handler(CommandHandler("start", start_handler(goal_manager, scheduler)))
+    application.add_handler(CommandHandler("help", help_handler))
+    application.add_handler(CommandHandler("cancel", cancel_handler))
+    application.add_handler(CommandHandler("reset", reset_handler(goal_manager)))
+    
+    # Unknown commands - filter all except known ones
+    # Этот фильтр нужно будет проверить и убедиться, что он актуален
+    known_cmds_regex = (
+        r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
+    )
+    unknown_cmd_filter = filters.Command() & ~filters.Regex(known_cmds_regex)
+    application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler()))
+
+    # Error handler - если он должен быть здесь
+    # application.add_error_handler(error_handler) # error_handler должен быть импортирован или определен
+    # Пока error_handler находится в main.py, его регистрация останется там.
+    # Если мы перенесем error_handler в common.py, его нужно будет регистрировать здесь.
