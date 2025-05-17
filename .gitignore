@@ -20,6 +20,7 @@ venv/
 *.env
 *.json
 google_credentials.json
+dummy_credentials.json
 
 # Документы (конфиденциальные)
 *.docx
