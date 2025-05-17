@@ -33,7 +33,7 @@ from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
 from handlers.common import add_common_handlers
 from handlers.goal_setting import build_setgoal_conv
 from handlers.task_management import build_task_handlers
-from llm.llm_client import AsyncLLMClient
+from llm.async_client import AsyncLLMClient
 from scheduler.config import configure_jobs as configure_scheduler_jobs
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # Добавлено для явности
 from sheets.sheets_manager import AsyncSheetsManager
