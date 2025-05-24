@@ -21,24 +21,10 @@ venv/
 *.json
 google_credentials.json
 
-# Документы (конфиденциальные)
-*.docx
-*.pdf
-Техническое*
-Краткое*
-Пояснение*
-
-# Старые каталоги
-OLD/
-AnotherCrewCode/
-
 # ОС
 .DS_Store
 # Системные файлы Windows/Mac
 Thumbs.db
-
-# Исключения
-!Персональный ассистент для помощи в достижении поставленных целей.pdf
 
 # Кеши инструментов / тестов
 .pytest_cache/
@@ -53,5 +39,4 @@ coverage.xml
 # Sphinx documentation build output
 docs/build/
 
-# Локальный план разработки
-LOCAL_DEV_PLAN.md 
+.local/
