@@ -200,6 +200,18 @@ class AsyncLLMClient:  # Add : LLMInterface if we define/use it
         )
         try:
             content = resp.choices[0].message.content.strip()
+
+            # Try to parse as JSON first (in case LLM returns JSON despite not being asked to)
+            try:
+                json_content = json.loads(content)
+                if isinstance(json_content, dict) and "message" in json_content:
+                    content = json_content["message"]
+                elif isinstance(json_content, str):
+                    content = json_content
+            except (json.JSONDecodeError, KeyError):
+                # If not JSON or no 'message' key, use content as is
+                pass
+
             LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
             return content
         except Exception as e:

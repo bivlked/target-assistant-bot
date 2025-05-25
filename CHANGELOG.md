@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.1] - 2025-05-24
+
+### Fixed
+- **КРИТИЧЕСКИЙ БАГ**: Исправлен конфликт event loops между `python-telegram-bot`, `APScheduler` и `asyncio.to_thread`
+  - Рефакторинг `main.py` для использования единого event loop через `asyncio.run()`
+  - Обновление `Scheduler` для приёма event loop в качестве параметра
+  - Улучшение `AsyncSheetsManager` для корректной работы без сохранения loop
+  - Все компоненты теперь используют один и тот же event loop
+- Добавлены тесты для проверки корректности работы с единым event loop
+
+### Changed
+- `main()` теперь использует `asyncio.run(main_async())` для правильной инициализации
+- `Scheduler.__init__()` принимает опциональный параметр `event_loop`
+- `AsyncSheetsManager` больше не сохраняет event loop, а получает текущий при необходимости
+
+## [0.1.0] - 2025-05-23
+
+### Initial Release
+- Первый стабильный релиз с полной асинхронной архитектурой
+- Docker образы публикуются в GitHub Container Registry
+- Высокое покрытие тестами (~99%)
+- Полная документация на русском и английском языках
+
 ## [Unreleased]
 
 ### Major Refactoring & Enhancements

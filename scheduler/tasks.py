@@ -4,7 +4,7 @@ import logging
 import sentry_sdk
 from datetime import datetime, time as dt_time, timezone
 import asyncio
-from typing import TYPE_CHECKING, cast, Dict, Any
+from typing import TYPE_CHECKING, cast, Dict, Any, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -41,19 +41,41 @@ class Scheduler:
     Relies on GoalManager to fetch user-specific information for tasks.
     """
 
-    def __init__(self, goal_manager):
-        """Initializes the Scheduler with a GoalManager instance and sets up APScheduler."""
-        self.goal_manager = goal_manager
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+    def __init__(
+        self,
+        goal_manager: GoalManager,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
+        """Initializes the Scheduler with a GoalManager instance and sets up APScheduler.
 
-        self.scheduler = AsyncIOScheduler(
-            timezone=scheduler_cfg.timezone,
-            event_loop=loop,
-        )
+        Args:
+            goal_manager: GoalManager instance for accessing user data
+            event_loop: Optional event loop to use. If None, will get the current running loop when needed.
+        """
+        self.goal_manager = goal_manager
+        self._event_loop = event_loop
+        self.scheduler = None  # Will be initialized in start()
+
+    def start(self):
+        """Starts the APScheduler if it's not already running."""
+        if self.scheduler is None:
+            # If no event loop was provided, try to get the current one
+            if self._event_loop is None:
+                try:
+                    self._event_loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    logger.error("No running event loop found. Scheduler not started.")
+                    return
+
+            # Create scheduler with the event loop
+            self.scheduler = AsyncIOScheduler(
+                timezone=scheduler_cfg.timezone,
+                event_loop=self._event_loop,
+            )
+
+        if not self.scheduler.running:
+            self.scheduler.start()
+            logger.info("Scheduler started")
 
     def add_user_jobs(self, bot: Bot, user_id: int):
         """Adds all standard periodic jobs for a given user.
@@ -65,6 +87,10 @@ class Scheduler:
 
         Existing jobs with the same ID for the user will be replaced.
         """
+        if self.scheduler is None:
+            logger.error("Scheduler not initialized. Cannot add user jobs.")
+            return
+
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
         self.scheduler.add_job(
             self._send_today_task,
@@ -98,11 +124,6 @@ class Scheduler:
             replace_existing=True,
             coalesce=True,
         )
-
-    def start(self):
-        """Starts the APScheduler if it's not already running."""
-        if not self.scheduler.running:
-            self.scheduler.start()
 
     async def _send_today_task(self, bot: Bot, user_id: int):
         """(Job) Sends the daily task to the user if it's not completed."""

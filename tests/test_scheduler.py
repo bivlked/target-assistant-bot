@@ -58,9 +58,17 @@ def scheduler_instance():
     return Scheduler(gm), gm
 
 
-def test_add_user_jobs(scheduler_instance):
+@pytest.mark.asyncio
+async def test_add_user_jobs(scheduler_instance):
     """Tests that user-specific jobs are correctly added to APScheduler."""
+    import asyncio
+
     sched, _ = scheduler_instance
+
+    # Initialize scheduler with current event loop by calling start()
+    sched._event_loop = asyncio.get_running_loop()
+    sched.start()
+
     bot = DummyBot()
     sched.add_user_jobs(bot, 123)
     jobs = {j.id for j in sched.scheduler.get_jobs()}
