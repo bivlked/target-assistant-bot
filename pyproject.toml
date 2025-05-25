@@ -10,15 +10,20 @@ requires-python = ">=3.10"
 readme = "README.md"
 keywords = ["telegram", "bot", "goals", "openai", "google-sheets"]
 dependencies = [
-    "python-telegram-bot>=20.8",
-    "openai>=1.13",
-    "APScheduler>=3.10",
+    "python-telegram-bot==22.0",
+    "openai>=1.82,<2.0",
+    "APScheduler>=3.11,<4.0",
     "python-dotenv>=1.0",
     "pytz>=2024.1",
-    "gspread>=6.0",
+    "gspread>=6.1.4",
     "gspread-formatting>=1.1",
-    "google-auth>=2.29",
-    "tenacity>=8.2",
+    "google-auth>=2.40",
+    "google-auth-oauthlib>=1.2",
+    "google-api-python-client>=2.123",
+    "tenacity>=9.1",
+    "structlog>=25.3",
+    "prometheus-client>=0.21",
+    "sentry-sdk>=2.29",
 ]
 
 [project.urls]
