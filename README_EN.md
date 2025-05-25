@@ -149,7 +149,7 @@ echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_updat
 
 For Developers:
 * [Contribution Guidelines (CONTRIBUTING.md)](CONTRIBUTING.md)
-* [Development Checklist (current tasks - RU)](Чек-лист%20разработки%20(отмечать%20выполненное).md)
+* [Development Checklist (current tasks - RU)](DEVELOPMENT_CHECKLIST.md)
 
 ---
 

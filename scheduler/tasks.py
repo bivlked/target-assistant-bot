@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import sentry_sdk
 import asyncio
-from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
