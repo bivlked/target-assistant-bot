@@ -22,19 +22,14 @@ class AsyncSheetsManager:
     Implements the `AsyncStorageInterface` protocol.
     """
 
-    def __init__(
-        self, max_workers: int = 4, loop: Optional[asyncio.AbstractEventLoop] = None
-    ):
+    def __init__(self, max_workers: int = 4):
         """Initializes the AsyncSheetsManager.
 
         Args:
             max_workers: The number of worker threads for the ThreadPoolExecutor
                          to run blocking Google API calls.
-            loop: The asyncio event loop to use. If None, the current
-                  event loop is retrieved via `asyncio.get_event_loop()`.
         """
         self._sync = SheetsManager()
-        self._loop = loop or asyncio.get_event_loop()
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
     # ---------------------------- proxy helpers ---------------------------
@@ -49,9 +44,8 @@ class AsyncSheetsManager:
         Returns:
             The result of `func(*args, **kwargs)`.
         """
-        return await self._loop.run_in_executor(
-            self._executor, lambda: func(*args, **kwargs)
-        )
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._executor, lambda: func(*args, **kwargs))
 
     # ----------------------------- Публичные API --------------------------
     async def create_spreadsheet(self, user_id: int):

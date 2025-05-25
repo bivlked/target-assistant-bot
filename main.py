@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file at the very beginning
 
 import logging
+import asyncio
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram.ext import ContextTypes
@@ -68,10 +69,11 @@ async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
-def main():
-    """Main entry point for the Telegram bot application."""
+async def main_async():
+    """Main async entry point for the Telegram bot application."""
     # Initialize Sentry (if configured)
     setup_sentry()
+
     # Token check
     if not telegram.token:
         logger.error("TELEGRAM_BOT_TOKEN is not set")  # Translated log
@@ -81,13 +83,13 @@ def main():
     sheets_client = AsyncSheetsManager()
     llm_client = AsyncLLMClient()
     goal_manager = GoalManager(storage=sheets_client, llm=llm_client)
-    scheduler = Scheduler(goal_manager)
-
-    # Start scheduler
-    scheduler.start()
 
     # Create Telegram Application
     application = Application.builder().token(telegram.token).build()
+
+    # Create scheduler with current event loop
+    loop = asyncio.get_running_loop()
+    scheduler = Scheduler(goal_manager, event_loop=loop)
 
     # Register handlers
     application.add_handler(CommandHandler("help", help_handler))
@@ -118,9 +120,11 @@ def main():
     unknown_cmd_filter = filters.Command() & ~filters.Regex(known_cmds)
     application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler()))
 
-    # Start the bot
+    # Set error handler
     application.add_error_handler(error_handler)
-    logger.info("Bot started")  # Translated log
+
+    # Initialize application
+    await application.initialize()
 
     # Start Prometheus metrics server
     try:
@@ -135,7 +139,24 @@ def main():
             f"Could not start Prometheus metrics server: {e}"
         )  # Log already in EN
 
-    application.run_polling()
+    # Start scheduler AFTER application is initialized
+    scheduler.start()
+    logger.info("Bot started")  # Translated log
+
+    # Start the bot
+    await application.start()
+    await application.updater.start_polling()
+
+    # Keep the application running
+    await asyncio.Event().wait()
+
+
+def main():
+    """Main entry point that creates and runs the event loop."""
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
 
 
 if __name__ == "__main__":
