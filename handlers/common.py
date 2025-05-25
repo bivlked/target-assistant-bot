@@ -5,7 +5,6 @@ from __future__ import annotations
 import sentry_sdk
 from telegram import Update
 from telegram.ext import ContextTypes
-from telegram.ext import CommandHandler, MessageHandler, filters
 
 from core.goal_manager import GoalManager
 from scheduler.tasks import Scheduler

@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # from dotenv import load_dotenv # Removed from here, should be called in main entry point
@@ -122,9 +122,19 @@ class RateLimiterConfig:
     )  # Default: allow burst of 5 requests
 
 
+@dataclass(frozen=True)
+class PrometheusConfig:
+    """Configuration for prometheus_client exporter."""
+
+    port: int = field(
+        default_factory=lambda: int(os.getenv("PROMETHEUS_PORT", "8000"))
+    )  # Port for metrics exporter
+
+
 telegram = TelegramConfig()
 openai_cfg = OpenAIConfig()
 google = GoogleConfig()
 scheduler_cfg = SchedulerConfig()
 logging_cfg = LoggingConfig()
 ratelimiter_cfg = RateLimiterConfig()
+prometheus_cfg = PrometheusConfig()

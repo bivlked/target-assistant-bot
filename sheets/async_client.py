@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, List, Optional, Dict
+from typing import Any, List
 
 from sheets.client import SheetsManager  # существующий синхронный клиент
 from utils.cache import invalidate_sheet_cache

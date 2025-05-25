@@ -1,17 +1,12 @@
 """Tests for the LLM-based period parsing functionality in utils.period_parser."""
 
 import pytest
-import json
 from unittest.mock import (
-    AsyncMock,
     MagicMock,
     patch,
 )  # Используем MagicMock для синхронного клиента
 from typing import (
-    Any,
     List,
-    Dict,
-    Optional,
 )  # Добавляем List, Dict, Optional сюда, если они нужны для моков
 
 from openai import APIError  # Используем из openai напрямую

@@ -1,8 +1,7 @@
 """Tests for the asynchronous core.goal_manager.GoalManager."""
 
 import pytest
-import asyncio  # Added for potential future use, though not strictly needed for current stubs
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone  # Используем прямые импорты
 from freezegun import freeze_time  # Импорт freeze_time
 

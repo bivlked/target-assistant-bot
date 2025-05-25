@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import re
 import sentry_sdk
-from datetime import timedelta, datetime
 from typing import Final, cast, Any, Dict
 
 from telegram import Update

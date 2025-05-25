@@ -4,13 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file at the very beginning
 
-import logging
 import asyncio
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram.ext import ContextTypes
 
-from config import telegram, logging_cfg
+from config import telegram, logging_cfg, prometheus_cfg
 from core.goal_manager import GoalManager
 
 # from llm.client import LLMClient # Not used directly, GoalManager uses AsyncLLMClient
@@ -127,21 +126,26 @@ async def main_async():
     await application.initialize()
 
     # Start Prometheus metrics server
-    try:
-        # TODO: Make port configurable
-        metrics_port = 8000
-        start_http_server(metrics_port)
-        logger.info(f"Prometheus metrics available on port {metrics_port} /metrics")
-        # TODO: Get version from a more reliable source (e.g., pyproject.toml or env var)
-        APP_INFO.labels(version="1.2.0-dev").set(1)  # Example version
-    except Exception as e:
-        logger.error(
-            f"Could not start Prometheus metrics server: {e}"
-        )  # Log already in EN
+    start_http_server(prometheus_cfg.port)
+    logger.info(f"Prometheus metrics available on port {prometheus_cfg.port} /metrics")
 
     # Start scheduler AFTER application is initialized
     scheduler.start()
-    logger.info("Bot started")  # Translated log
+
+    # Get version from pyproject.toml
+    try:
+        try:
+            import tomllib  # Python 3.11+
+        except ImportError:
+            import toml as tomllib  # type: ignore  # fallback for older Python
+        with open("pyproject.toml", "rb" if hasattr(tomllib, "load") else "r") as f:
+            pyproject = tomllib.load(f)
+            version = pyproject.get("project", {}).get("version", "unknown")
+    except Exception:
+        version = "1.0.0"  # Fallback version
+
+    logger.info(f"Bot started v{version}")
+    APP_INFO.labels(version=version).set(1)  # Set version metric
 
     # Start the bot
     await application.start()

@@ -2,9 +2,8 @@
 
 import asyncio
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
 
-from main import main_async
 from scheduler.tasks import Scheduler
 from core.goal_manager import GoalManager
 from sheets.async_client import AsyncSheetsManager

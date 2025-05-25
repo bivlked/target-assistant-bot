@@ -2,26 +2,21 @@ from __future__ import annotations
 
 import logging
 import sentry_sdk
-from datetime import datetime, time as dt_time, timezone
 import asyncio
-from typing import TYPE_CHECKING, cast, Dict, Any, Optional
+from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from telegram import Bot
 
 from config import scheduler_cfg
-from utils.helpers import get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 from core.goal_manager import GoalManager
 
 from texts import (
-    MORNING_REMINDER_TEXT,
     EVENING_REMINDER_TEXT,  # Add new scheduler texts
     NO_TASKS_FOR_TODAY_SCHEDULER_TEXT,
     TODAY_TASK_DETAILS_TEMPLATE,  # Reuse from task_management
 )
-from core.metrics import SCHEDULED_JOBS_EXECUTED_TOTAL
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +39,7 @@ class Scheduler:
     def __init__(
         self,
         goal_manager: GoalManager,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        event_loop: asyncio.AbstractEventLoop | None = None,
     ):
         """Initializes the Scheduler with a GoalManager instance and sets up APScheduler.
 

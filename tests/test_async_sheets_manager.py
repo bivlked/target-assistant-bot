@@ -2,7 +2,7 @@
 
 import pytest
 import pytest_asyncio  # Для асинхронных фикстур
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 from typing import Tuple, AsyncGenerator  # Добавляем AsyncGenerator
 
 from sheets.async_client import AsyncSheetsManager

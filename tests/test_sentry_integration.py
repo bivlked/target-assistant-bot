@@ -1,8 +1,7 @@
 """Tests for Sentry integration setup."""
 
 import pytest
-from unittest.mock import patch, MagicMock
-import logging
+from unittest.mock import MagicMock
 
 from utils.sentry_integration import setup_sentry
 

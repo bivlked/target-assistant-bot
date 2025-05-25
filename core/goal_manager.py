@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Optional, Final, cast, List, Dict
+from typing import TYPE_CHECKING, Any, Final, Dict
 
 from utils.helpers import format_date, get_day_of_week
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
@@ -19,10 +19,7 @@ from core.metrics import (
 )  # Import metrics
 
 if TYPE_CHECKING:  # Avoid import cycles
-    from sheets.client import SheetsManager
-    from sheets.async_client import AsyncSheetsManager
-    from llm.client import LLMClient
-    from llm.async_client import AsyncLLMClient
+    pass
 
 # Status string types (internal, for logic/metrics)
 STATUS_NOT_DONE: Final[str] = "NOT_DONE"

@@ -1,18 +1,18 @@
 python-telegram-bot==22.0
-openai>=1.77,<2.0
+openai>=1.82,<2.0
 APScheduler>=3.11,<4.0
 python-dotenv>=1.0
 pytz>=2024.1
-gspread==6.0.2
+gspread>=6.1.4
 gspread-formatting>=1.1
 google-auth>=2.40
 google-auth-oauthlib>=1.2
 google-api-python-client>=2.123
 gspread-asyncio==2.0.0
-tenacity>=8.3
-structlog>=24.1
-prometheus-client>=0.20
-sentry-sdk>=1.43
+tenacity>=9.1
+structlog>=25.3
+prometheus-client>=0.21
+sentry-sdk>=2.29
 # --- Dev & тесты ---
 black>=24.4.2
 ruff>=0.4.1
@@ -23,6 +23,7 @@ pytest-cov>=5.0
 pytest-mock>=3.14
 types-pytz>=2023.3
 types-requests>=2.25.0 # Stubs for requests
+types-toml>=0.10.8  # Stubs for toml
 
 # --- Documentation ---
 sphinx>=7.0

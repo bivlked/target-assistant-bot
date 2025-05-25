@@ -2,8 +2,6 @@
 
 import pytest
 from datetime import datetime
-from pathlib import Path
-import os
 
 # Test cache.py
 from utils.cache import (
@@ -158,7 +156,7 @@ def test_rate_limiter_custom_cost():
 
 
 # Test retry_decorators.py
-from utils.retry_decorators import retry_openai_llm, retry_google_sheets
+from utils.retry_decorators import retry_openai_llm
 
 
 @pytest.mark.asyncio
