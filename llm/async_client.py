@@ -9,7 +9,7 @@ import time
 import re
 import ast
 
-from openai import AsyncOpenAI, APIError
+from openai import AsyncOpenAI
 
 # tenacity.retry related imports are now handled by the decorator from utils
 # from tenacity import (

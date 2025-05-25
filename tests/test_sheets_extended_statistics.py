@@ -2,9 +2,9 @@
 
 import pytest
 import pytest_asyncio  # Добавляем импорт
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Tuple
 from freezegun import freeze_time  # Import freezegun
-from unittest.mock import MagicMock, AsyncMock  # For mocking managers if needed
+from unittest.mock import MagicMock  # For mocking managers if needed
 
 from sheets.client import (
     SheetsManager,

@@ -1,11 +1,9 @@
 """Tests for helper functions in utils/helpers.py."""
 
-from datetime import datetime, timezone  # Added timezone for clarity
-import pytest  # Added pytest import
+from datetime import datetime  # Added timezone for clarity
 import pytz  # pytz is used
 
 from utils.helpers import format_date, get_day_of_week
-from config import scheduler_cfg  # Import for checking default timezone
 
 
 def test_format_date_uses_default_config_tz():

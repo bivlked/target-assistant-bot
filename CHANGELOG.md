@@ -59,6 +59,28 @@
 - Corrected error in `period_parser` heuristic and LLM fallback logic.
 - Resolved multiple issues in tests related to mocking, asynchronous operations, and date/time handling.
 
+### Added
+- Configurable Prometheus metrics port via `PROMETHEUS_PORT` environment variable
+- Script for dependency analysis (`scripts/analyze_dependencies.py`)
+- Automatic version detection from `pyproject.toml`
+
+### Changed
+- Updated dependencies to latest stable versions:
+  - `openai` >=1.82
+  - `gspread` >=6.1.4
+  - `tenacity` >=9.1
+  - `structlog` >=25.3
+  - `prometheus-client` >=0.21
+  - `sentry-sdk` >=2.29
+
+### Fixed
+- Removed 66 unused imports across the codebase
+- Fixed compatibility with Python 3.10 for reading `pyproject.toml`
+
+### Removed
+- Commented out legacy code in `scheduler/tasks.py`
+- Unnecessary TODO comments that were already addressed
+
 ## 1.2 — 2025-05-05
 
 ### Added

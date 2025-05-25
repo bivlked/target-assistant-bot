@@ -1,7 +1,6 @@
 """Tests for the caching mechanism in utils/cache.py."""
 
 import pytest
-from unittest.mock import MagicMock
 import time
 
 from utils.cache import sheet_cache_instance, TTL_SECONDS, cached_sheet_method

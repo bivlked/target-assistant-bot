@@ -1,7 +1,6 @@
 """Logging setup for the application using structlog and standard logging."""
 
 import logging
-from typing import Optional
 import structlog
 
 

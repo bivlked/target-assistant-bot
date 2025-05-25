@@ -3,8 +3,8 @@
 import pytest
 import json  # For json.JSONDecodeError
 from llm.async_client import AsyncLLMClient
-from typing import Any, List, Dict  # Добавил Dict для единообразия
-from unittest.mock import AsyncMock, patch, MagicMock  # Добавил MagicMock
+from typing import Any  # Добавил Dict для единообразия
+from unittest.mock import AsyncMock, MagicMock  # Добавил MagicMock
 from openai import APIError  # Добавил APIError
 
 # --- Tests for _extract_plan ---

@@ -19,7 +19,6 @@ For safety we also set a TTL (time-to-live) – even if invalidate was not
 called, entries older than ``TTL_SECONDS`` are silently ignored.
 """
 
-from functools import lru_cache
 from typing import Callable, TypeVar, Any, Dict, Tuple
 import time
 

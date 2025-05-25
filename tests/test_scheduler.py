@@ -1,8 +1,7 @@
 """Tests for the Scheduler and its job scheduling logic."""
 
-from datetime import datetime
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from scheduler.tasks import Scheduler
 from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS

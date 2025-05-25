@@ -7,9 +7,6 @@ from unittest.mock import (
     MagicMock,
 )  # Убираем patch, он не используется здесь
 from datetime import datetime, timezone
-from typing import (
-    cast,
-)  # Добавим cast для альтернативного решения, если type:ignore не сработает
 
 from telegram import Update, User, Message, Chat, Bot
 from telegram.ext import ContextTypes
