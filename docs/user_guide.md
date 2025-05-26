@@ -94,10 +94,11 @@
 |------------|----------|
 | `TELEGRAM_BOT_TOKEN` | Токен бота от BotFather |
 | `OPENAI_API_KEY` | Ключ доступа к OpenAI API |
+| `OPENAI_MODEL` | Модель OpenAI для генерации текста, по умолчанию `gpt-4o-mini` |
 | `GOOGLE_CREDENTIALS_PATH` | Путь к JSON-файлу сервисного аккаунта Google |
 | `SCHEDULER_TIMEZONE` | Часовой пояс, по умолчанию `Europe/Moscow` |
 | `MORNING_REMINDER_TIME` | Время утреннего напоминания о задаче (HH:MM), например, `08:00` |
-| `EVENING_REMINDER_TIME` | Время вечернего напоминания (HH:MM) – *функционал в разработке* |
+| `EVENING_REMINDER_TIME` | Время вечернего напоминания о задаче (HH:MM), например, `20:00` |
 | `LLM_REQUESTS_PER_MINUTE` | Ограничение частоты запросов к OpenAI (в минуту на пользователя), по умолчанию `20` |
 | `LLM_MAX_BURST` | Максимальное количество "всплеска" запросов к OpenAI, по умолчанию `5` |
 
