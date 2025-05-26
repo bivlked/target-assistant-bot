@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath("../../"))  # Point to the project root
 project = "Target Assistant Bot"
 copyright = "2025, bivlked"
 author = "bivlked"
-release = "1.0.0"
+release = "0.1.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
