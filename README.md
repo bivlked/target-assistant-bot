@@ -212,7 +212,8 @@ echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_updat
 ## 📚 Документация и ресурсы
 
 * [Руководство пользователя](docs/user_guide.md)
-* [Установка на Ubuntu 24.04 LTS](docs/install_ubuntu.md)
+* [Установка на Ubuntu (краткая)](docs/install_ubuntu.md)
+* [Установка на Ubuntu (подробная)](docs/install_ubuntu_detailed.md)
 * [Архитектура проекта](docs/architecture.md)
 * [Список изменений](CHANGELOG.md)
 

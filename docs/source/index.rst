@@ -1,35 +1,136 @@
-.. Target Assistant Bot documentation master file, created by
-   sphinx-quickstart on Thu May 15 14:38:18 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. Target Assistant Bot documentation master file
 
-Добро пожаловать в документацию Target Assistant Bot!
-=====================================================
+====================================
+🎯 Target Assistant Bot Documentation
+====================================
 
-Это документация для Telegram-бота Target Assistant, который помогает ставить цели и достигать их.
+.. image:: https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml
+   :alt: CI/CD Pipeline
+
+.. image:: https://codecov.io/gh/bivlked/target-assistant-bot/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/bivlked/target-assistant-bot
+   :alt: Coverage Status
+
+.. image:: https://img.shields.io/badge/python-3.10%2B-blue.svg
+   :target: https://www.python.org/downloads/
+   :alt: Python Version
+
+**Версия**: v0.1.1 | **Лицензия**: MIT | **GitHub**: `bivlked/target-assistant-bot <https://github.com/bivlked/target-assistant-bot>`_
+
+---
+
+📋 Содержание
+=============
 
 .. toctree::
    :maxdepth: 2
-   :caption: Содержание:
+   :caption: Начало работы
 
-   self
-
-API документация
-----------------
+   getting_started
+   installation
+   configuration
 
 .. toctree::
    :maxdepth: 2
-   :caption: Справка по API:
+   :caption: Руководство пользователя
 
-   api/main_module
-   api/config_module
+   user_guide
+   commands
+   faq
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Для разработчиков
+
+   architecture
+   contributing
+   api_reference
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API документация
+
+   api/main
+   api/config
    api/core
    api/handlers
    api/scheduler
+   api/sheets
+   api/llm
    api/utils
 
-Индексы и таблицы
+🚀 О проекте
+============
+
+**Target Assistant Bot** — это персональный Telegram-ассистент, который помогает:
+
+* 🎯 Формулировать четкие цели
+* 📅 Разбивать их на ежедневные задачи
+* 📊 Отслеживать прогресс достижения
+* 💪 Поддерживать мотивацию
+
+Все данные хранятся в **Google Sheets**, а планирование и мотивационные сообщения генерируются с помощью **OpenAI GPT-4**.
+
+✨ Ключевые возможности
+======================
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Команда
+     - Описание
+   * - ``/start``
+     - 🚀 Начать работу с ботом
+   * - ``/help``
+     - ℹ️ Справка по доступным командам
+   * - ``/setgoal``
+     - 🎯 Установить новую цель
+   * - ``/today``
+     - 📅 Задача на сегодня
+   * - ``/check``
+     - ✍️ Отметить выполнение задачи
+   * - ``/status``
+     - 📊 Посмотреть прогресс
+   * - ``/motivation``
+     - 💡 Получить мотивацию
+   * - ``/reset``
+     - 🗑️ Сбросить все цели
+
+🏗️ Архитектура
+===============
+
+Проект построен на современной асинхронной архитектуре:
+
+* **Асинхронность**: Все компоненты работают через ``asyncio``
+* **DI**: Dependency Injection через интерфейсы
+* **Кэширование**: Google Sheets данные кэшируются в памяти
+* **Rate Limiting**: Защита от превышения лимитов API
+* **Мониторинг**: Prometheus метрики и Sentry для ошибок
+
+📊 Статистика проекта
+====================
+
+* **Покрытие тестами**: ~99.13% ✅
+* **Поддерживаемые Python**: 3.10+ (рекомендуется 3.11-3.12)
+* **Основные зависимости**:
+  
+  * ``python-telegram-bot`` 22.0
+  * ``openai`` 1.77+
+  * ``gspread`` 6.0.2
+  * ``APScheduler`` 3.11.0
+
+🔗 Полезные ссылки
 ==================
+
+* `GitHub репозиторий <https://github.com/bivlked/target-assistant-bot>`_
+* `Руководство по установке <https://github.com/bivlked/target-assistant-bot/blob/main/docs/install_ubuntu_detailed.md>`_
+* `Чек-лист разработки <https://github.com/bivlked/target-assistant-bot/blob/main/DEVELOPMENT_CHECKLIST.md>`_
+* `Issues и баг-репорты <https://github.com/bivlked/target-assistant-bot/issues>`_
+
+📝 Индексы и таблицы
+====================
 
 * :ref:`genindex`
 * :ref:`modindex`
