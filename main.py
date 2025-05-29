@@ -107,6 +107,14 @@ async def main_async():
     # /start depends on scheduler
     application.add_handler(CommandHandler("start", start_handler(scheduler)))
 
+    # Reset confirmation handlers (должны быть раньше goals handlers)
+    application.add_handler(
+        CallbackQueryHandler(confirm_reset, pattern="^confirm_reset$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(cancel_reset, pattern="^cancel_reset$")
+    )
+
     # Multi-goal handlers
     for handler in get_goals_handlers():
         application.add_handler(handler)
@@ -117,14 +125,6 @@ async def main_async():
 
     # Legacy /setgoal conversation (updated for new architecture)
     application.add_handler(build_setgoal_conv())
-
-    # Reset confirmation handlers
-    application.add_handler(
-        CallbackQueryHandler(confirm_reset, pattern="^confirm_reset$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(cancel_reset, pattern="^cancel_reset$")
-    )
 
     # Unknown commands - filter all except known ones
     known_cmds = r"^(\/)(start|help|setgoal|my_goals|add_goal|today|motivation|status|check|cancel|reset)(?:@\w+)?"

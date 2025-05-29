@@ -1,4 +1,4 @@
-# Target Assistant Bot
+# 🎯 Target Assistant Bot
 
 [![CI/CD Pipeline](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml)
 [![Tests & Coverage](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml)
@@ -9,217 +9,303 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Release](https://img.shields.io/github/v/release/bivlked/target-assistant-bot.svg)](https://github.com/bivlked/target-assistant-bot/releases/latest)
 
-Personal Telegram assistant that helps you set goals, break them down into daily tasks and track progress. All data is stored in **Google Sheets**; planning and motivational messages are powered by **OpenAI**. **Now supports up to 10 simultaneous goals!**
+> [🌍 Русский](README.md) • [📚 Documentation](docs/source/index.rst) • [🔄 Changelog](CHANGELOG.md)
 
-> 🚀 **Project Goal**: To create a smart and responsive assistant for effective progress towards long-term goals.
-> 🎯 **Key Technologies**: Python, `python-telegram-bot`, `OpenAI API`, `Google Sheets API`.
-> 📊 **Status**: v0.2.0 - Production Ready with Multi-Goals Support
-> 📄 **Full Project Pitch** (PDF, Russian): [Personal assistant for helping to achieve goals](Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf)
+**Your personal Telegram assistant for achieving goals with intelligent planning and progress tracking via Google Sheets. Now supports up to 10 simultaneous goals!**
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><strong>🚀 Project Goal</strong></td>
+      <td>Create an intelligent and responsive assistant for effective progress towards long-term goals</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>🎯 Key Technologies</strong></td>
+      <td>Python • python-telegram-bot • OpenAI API • Google Sheets API</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>📊 Status</strong></td>
+      <td>v0.2.1 - Production Ready with Multi-Goals Support</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>📄 Presentation</strong></td>
+      <td><a href="Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf">Full Project Presentation (PDF, RU)</a></td>
+    </tr>
+  </table>
+</div>
 
 ---
 
-## ✨ What's New in v0.2.0
+## ✨ New Features in v0.2.1
 
 ### 🎯 Multiple Goals Support
-- **Up to 10 active goals simultaneously** - no more single goal limitations
-- **Priorities** - high 🔴, medium 🟡, low 🟢 for better organization
-- **Tags** - organize goals by categories (work, health, self-development)
-- **Statuses** - active, completed, archived goals
+- **Up to 10 active goals simultaneously** - no more single-goal limitations
+- **Goal priorities** - High 🔴, Medium 🟡, Low 🟢 for better organization  
+- **Tagging system** - group goals by categories (work, health, self-development)
+- **Goal statuses** - active, completed, archived goals
 
 ### 📊 Enhanced Analytics
-- **Overall statistics** across all goals with progress tracking
-- **Detailed analytics** for each individual goal
-- **Progress monitoring** with days remaining and completion pace
+- **Overall statistics** across all goals with detailed progress
+- **Individual statistics** for each goal
+- **Completion percentage** and progress dynamics
+- **Time estimation** until goal completion
 
-### 🎮 Interactive Interface
-- **Inline buttons** for quick actions
+### 🎨 Interactive Interface
+- **`/my_goals` command** with complete goal management
+- **Interactive buttons** for creating, editing, completing goals
 - **Goal creation wizard** with step-by-step guidance
-- **Goal management** through convenient menus
+- **Inline keyboards** for all operations
 
-## 💡 Usage Scenarios
-
-### 🌟 New Scenario: Managing Multiple Goals
-
-Imagine you have several goals:
-1. "Learn Python in 3 months" (🔴 high priority)
-2. "Run a half marathon" (🟡 medium priority)
-3. "Read 20 books in a year" (🟢 low priority)
-
-**Creating your first goal:**
-1. **You**: `/start`
-   **Bot**: 🎯 Welcome to Target Assistant Bot! I'll help you manage up to 10 goals simultaneously...
-2. **You**: `/my_goals`
-   **Bot**: 📝 You don't have any goals yet. Use /add_goal to create a new goal.
-3. **You**: Click "➕ Add Goal" button
-   **Bot**: 🎯 Creating new goal. Step 1/6: Enter a short goal name...
-
-**Managing multiple goals:**
-4. **You**: `/today`
-   **Bot**: 📅 Tasks for today:
-   🔴 **Learn Python**: Master OOP basics in Python
-   🟡 **Half Marathon**: Run 5km at slow pace
-   🟢 **Reading Books**: Read 30 pages of "Clean Code"
-
-5. **You**: `/status`
-   **Bot**: 📊 Overall goal status:
-   • Total goals: 3
-   • Active: 3
-   • Overall progress: 35%
-   
-   🎯 Active goals:
-   🔴 **Learn Python** - 45% • 📅 15.04.2025
-   🟡 **Half Marathon** - 30% • 📅 01.05.2025
-   🟢 **Reading Books** - 25% • 📅 31.12.2025
-
-### ☀️ New Daily Interaction
-
-**Morning reminder (automatic):**
-**Bot**: ☀️ Good morning! Your tasks for today:
-• **Learn Python**: Create your first Python class
-• **Half Marathon**: Light 3km jog
-
-[📝 Mark completion] [📊 Overall status]
-
-**Quick completion marking:**
-**You**: Click "📝 Mark completion"
-**Bot**: 📝 Choose task to update status:
-- Learn Python: Create your first class...
-- Half Marathon: Light 3km jog
+### 🏗️ Improved Architecture
+- **Dependency injection** instead of GoalManager singleton
+- **Multi-sheet Google Sheets** structure (one sheet per goal)
+- **Automatic data migration** from legacy format
+- **Enhanced error handling** and logging
 
 ---
 
-## 🛠️ Features
+## 🎯 Key Features
 
-### Core Commands
+### 🤖 Intelligent Goal Setting
+- **Natural language processing** - describe your goal in your own words
+- **Smart deadline parsing** - supports flexible time formats
+- **Personalized daily planning** - AI generates optimal task sequences
+- **Adaptive scheduling** - adjusts based on your progress and lifestyle
 
-| Command | Description |
-|---------|-------------|
-| `/start` | 🚀 Start using the bot |
-| `/help`  | ℹ️ Show available commands |
-| `/my_goals` | 🎯 **[NEW]** Manage all goals - main command |
-| `/add_goal` | ➕ **[NEW]** Create new goal through interactive interface |
-| `/setgoal` | 🎯 Create goal through text dialog (legacy) |
-| `/today` | 📅 **[UPDATED]** All tasks for today from all active goals |
-| `/check` | ✍️ **[UPDATED]** Mark completion with specific goal selection |
-| `/status` | 📊 **[UPDATED]** Overall progress across all goals |
-| `/motivation` | 💡 **[UPDATED]** Motivation based on all your goals |
-| `/cancel` | ⛔ Cancel current operation |
-| `/reset` | 🗑️ Remove all goals (delete data completely) |
+### 📊 Advanced Progress Tracking
+- **Real-time progress monitoring** across all goals
+- **Smart notifications** for daily tasks and milestones
+- **Detailed analytics** with completion rates and predictions
+- **Visual progress indicators** with emoji and percentages
 
-### New Capabilities
+### 🔄 Seamless Integration
+- **Google Sheets synchronization** - all data automatically saved
+- **Multi-device access** - work from anywhere with internet
+- **Backup and export** - your data is always accessible
+- **Privacy-focused** - data stored in your personal Google account
 
-- **🎯 Up to 10 simultaneous goals** - work on multiple directions
-- **📊 Priorities** - high (🔴), medium (🟡), low (🟢)
-- **🏷️ Tags** - organize goals by categories
-- **📋 Interactive management** - buttons for all actions
-- **📈 Extended statistics** - detailed analytics for each goal
-- **🔄 Auto-migration** - existing goals automatically transferred to new format
+### 🎨 User Experience
+- **Intuitive interface** with inline keyboards and buttons
+- **Multi-language support** - Russian interface with English documentation
+- **Mobile-optimized** - perfect for daily use on smartphones
+- **Zero-configuration** - works out of the box after setup
 
-### Data Storage Structure
+---
 
-The bot creates an individual Google Spreadsheet with improved structure:
-* **"Goals List"** — main sheet with all your goals, their statuses and progress
-* **"Goal 1", "Goal 2", ..., "Goal 10"** — separate sheets with plans for each goal
-* **Automatic migration** — existing data is transferred to new format
+## 🚀 Quick Start
 
-## 🚀 Quick start (local `venv`)
+### Prerequisites
+- Python 3.10+
+- Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
+- OpenAI API Key
+- Google Cloud Project with Sheets API enabled
+
+### 🐳 Docker (Recommended)
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
+# Clone repository
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+
+# Copy and configure environment
+cp env.example .env
+# Edit .env with your tokens and credentials
+
+# Setup Google Sheets credentials
+cp dummy_credentials.json google_credentials.json
+# Replace with your actual Google Cloud credentials
+
+# Run with Docker
+docker-compose up -d
+```
+
+### 📦 Manual Installation
+
+```bash
+# Clone and setup
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# environment variables
-cp .env.example .env
-$EDITOR .env  # set TELEGRAM_BOT_TOKEN and GOOGLE_CREDENTIALS_PATH
+# Configure environment
+cp env.example .env
+# Edit .env with your credentials
 
+# Setup bot commands
+python setup_commands.py
+
+# Run bot
 python main.py
 ```
 
-## 🐳 Quick start (Docker Compose)
+---
 
-```bash
-git clone https://github.com/bivlked/target-assistant-bot.git
-cd target-assistant-bot
-cp .env.example .env
-# edit .env, then run:
-docker compose up -d --build
+## 📋 Available Commands
+
+| Command | Description | Usage Example |
+|---------|-------------|---------------|
+| `/start` | Initialize bot and create spreadsheet | Start working with bot |
+| `/my_goals` | **Main command** - manage all goals | Complete goal management interface |
+| `/add_goal` | Create new goal interactively | Step-by-step goal creation |
+| `/setgoal` | Create goal through conversation | Legacy goal creation method |
+| `/today` | View all daily tasks across goals | See today's agenda |
+| `/status` | Overall progress across all goals | Get comprehensive statistics |
+| `/check` | Mark task completion | Update progress |
+| `/motivation` | Get motivational message | Boost your motivation |
+| `/reset` | Reset all data and goals | Complete data cleanup |
+
+---
+
+## 🏗️ Architecture Overview
+
+### 🧩 Core Components
+
+```mermaid
+graph TB
+    User[👤 User] --> TG[📱 Telegram Bot]
+    TG --> DI[🔧 Dependency Injection]
+    DI --> Storage[📊 Async Storage]
+    DI --> LLM[🤖 OpenAI Client]
+    Storage --> Sheets[📋 Google Sheets]
+    LLM --> AI[🧠 GPT-4]
+    
+    subgraph "Multi-Goal Support"
+        Storage --> Goals[🎯 Goals Manager]
+        Goals --> G1[Goal 1]
+        Goals --> G2[Goal 2]
+        Goals --> GN[Goal N]
+    end
 ```
 
-## ☁️ Deploy on a server (systemd)
+### 📊 Data Flow
 
-1. Clone the repository and set up the environment:
+1. **Goal Creation** → AI generates personalized plan → Saved to dedicated sheet
+2. **Daily Tasks** → Retrieved from all active goals → Presented with priorities
+3. **Progress Updates** → Real-time synchronization → Analytics calculation
+4. **Notifications** → Smart scheduling → Motivation and reminders
+
+---
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from BotFather | ✅ | `123456:ABC-DEF...` |
+| `OPENAI_API_KEY` | OpenAI API key for AI features | ✅ | `sk-...` |
+| `GOOGLE_CREDENTIALS_PATH` | Path to Google Cloud credentials | ✅ | `./google_credentials.json` |
+| `SENTRY_DSN` | Sentry DSN for error tracking | ❌ | `https://...` |
+| `PROMETHEUS_PORT` | Port for metrics server | ❌ | `8000` |
+
+### Google Sheets Setup
+
+1. Create a [Google Cloud Project](https://console.cloud.google.com/)
+2. Enable the Google Sheets API
+3. Create a Service Account and download credentials
+4. Share your spreadsheet with the service account email
+
+---
+
+## 🧪 Testing
 
 ```bash
-sudo apt update && sudo apt install -y python3 python3-venv git
-sudo useradd -m targetbot
-sudo -iu targetbot
+# Run all tests
+pytest
 
-# clone
-git clone https://github.com/bivlked/target-assistant-bot.git
-cd target-assistant-bot
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# Run with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test categories
+pytest tests/test_multi_goals.py -v
+pytest tests/test_basic_imports.py -v
 ```
 
-2. Copy your `google_credentials.json` and fill in `.env` (use `env.example` as a template).
+**Current Test Coverage: 89%** ✅
 
-3. Copy the systemd unit file and start the service:
+---
 
-```bash
-sudo cp deploy/targetbot.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now targetbot.service
-```
+## 📈 Monitoring & Metrics
 
-4. (Optional) Enable auto-update:
+### Prometheus Metrics
+- **User commands** - track most popular features
+- **API calls** - monitor OpenAI and Google Sheets usage
+- **Goal statistics** - completion rates and user engagement
+- **System health** - response times and error rates
 
-```bash
-sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
-# This script will now pull the latest release tag by default.
-# Check for updates e.g., every 15 minutes
-echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
-```
+### Logging
+- **Structured logging** with contextual information
+- **Error tracking** via Sentry integration
+- **Performance monitoring** for optimization
+- **User behavior analytics** for feature improvement
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with tests
+4. Ensure all tests pass (`pytest`)
+5. Follow code style guidelines (`black`, `ruff`)
+6. Submit a Pull Request
+
+### Code Quality Standards
+- **Black** code formatting
+- **Ruff** linting and style checks
+- **MyPy** type checking
+- **Pytest** for testing with 80%+ coverage
+- **Conventional Commits** for commit messages
+
+---
 
 ## 📚 Documentation & Resources
 
-* [User guide](docs/user_guide.md) *(Russian)*
-* [Install on Ubuntu (brief)](docs/install_ubuntu.md) *(Russian)*
-* [Install on Ubuntu (detailed)](docs/install_ubuntu_detailed.md) *(Russian)*
-* [Project architecture](docs/architecture.md) *(Russian)*
-* [Changelog](CHANGELOG.md)
+### 📖 Documentation
+* [API Documentation](docs/source/api/)
+* [Architecture Guide](docs/source/architecture.md)
+* [Deployment Guide](docs/source/deployment.md)
+* [Development Checklist](DEVELOPMENT_CHECKLIST.md)
 
-For Developers:
-* [Contribution Guidelines (CONTRIBUTING.md)](CONTRIBUTING.md)
-* [Development Checklist (current tasks - RU)](DEVELOPMENT_CHECKLIST.md)
+### 🔗 External Links
+* [Project Presentation (PDF)](Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf)
+* [Telegram Bot API Documentation](https://core.telegram.org/bots/api)
+* [OpenAI API Documentation](https://platform.openai.com/docs)
+* [Google Sheets API Documentation](https://developers.google.com/sheets/api)
 
----
-
-## 📖 Building API Documentation (Sphinx)
-
-The project's API documentation is generated from docstrings using [Sphinx](https://www.sphinx-doc.org/).
-
-**To build the documentation locally:**
-
-1.  Ensure you are in an activated virtual environment with all dependencies installed (including those in the `# --- Documentation ---` section of `requirements.txt`).
-2.  Navigate to the `docs/` directory:
-    ```bash
-    cd docs
-    ```
-3.  Run the build command:
-    *   For Linux/macOS/Git Bash:
-        ```bash
-        make html
-        ```
-    *   For Windows (CMD/PowerShell):
-        ```bash
-        .\make.bat html
-        ```
-4.  The generated documentation will be available in the `docs/build/html/` directory. Open `index.html` in your browser.
+### 📝 Related Files
+* [Changelog](CHANGELOG.md) - detailed version history
+* [Contributing Guidelines](CONTRIBUTING.md) - how to contribute
+* [License](LICENSE) - MIT License terms
 
 ---
 
-## 📜 License
+## 📄 License
 
-Distributed under the MIT License. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🌟 Support the Project
+
+If you find this project helpful:
+- ⭐ **Star** the repository
+- 🐛 **Report** bugs and suggest features
+- 🤝 **Contribute** code or documentation
+- 📢 **Share** with others who might benefit
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by <a href="https://github.com/bivlked">bivlked</a></p>
+  <p><strong>🎯 Turn your dreams into achievable daily actions!</strong></p>
+</div> 

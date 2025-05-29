@@ -35,19 +35,25 @@ logger = structlog.get_logger(__name__)
 
 async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /my_goals command - show all user goals."""
-    user_id = update.effective_user.id
+    # Handle both message and callback query
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        user_id = query.from_user.id
+        send_message = query.edit_message_text
+    else:
+        user_id = update.effective_user.id
+        send_message = update.message.reply_text
 
     if not await is_subscribed(user_id):
-        await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
-        )
+        await send_message("❌ Вы не подписаны на бота. Используйте /start для начала.")
         return
 
     storage = get_async_storage()
     stats = await storage.get_overall_statistics(user_id)
 
     if stats["total_goals"] == 0:
-        await update.message.reply_text(
+        await send_message(
             "📝 У вас пока нет целей.\n"
             "Используйте /add_goal для создания новой цели."
         )
@@ -101,7 +107,7 @@ async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
+    await send_message(
         message,
         parse_mode="Markdown",
         reply_markup=reply_markup,
@@ -136,7 +142,19 @@ async def add_goal_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def goal_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle goal name input."""
-    context.user_data["goal_name"] = update.message.text.strip()
+    # Убеждаемся что это текстовое сообщение, не callback
+    if not update.message or not update.message.text:
+        return GOAL_NAME  # Остаемся в том же состоянии
+
+    goal_name = update.message.text.strip()
+    if len(goal_name) < 3:
+        await update.message.reply_text(
+            "⚠️ Название цели должно содержать минимум 3 символа.\n"
+            "Попробуйте еще раз:"
+        )
+        return GOAL_NAME
+
+    context.user_data["goal_name"] = goal_name
 
     await update.message.reply_text(
         "Шаг 2/6: Опишите вашу цель подробнее.\n" "Что именно вы хотите достичь?"
@@ -149,7 +167,19 @@ async def goal_description_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle goal description input."""
-    context.user_data["goal_description"] = update.message.text.strip()
+    # Убеждаемся что это текстовое сообщение
+    if not update.message or not update.message.text:
+        return GOAL_DESCRIPTION
+
+    goal_description = update.message.text.strip()
+    if len(goal_description) < 10:
+        await update.message.reply_text(
+            "⚠️ Описание цели должно быть более подробным (минимум 10 символов).\n"
+            "Попробуйте еще раз:"
+        )
+        return GOAL_DESCRIPTION
+
+    context.user_data["goal_description"] = goal_description
 
     await update.message.reply_text(
         "Шаг 3/6: Укажите срок достижения цели.\n"
@@ -163,6 +193,10 @@ async def goal_deadline_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle goal deadline input."""
+    # Убеждаемся что это текстовое сообщение
+    if not update.message or not update.message.text:
+        return GOAL_DEADLINE
+
     context.user_data["goal_deadline"] = update.message.text.strip()
 
     await update.message.reply_text(
@@ -177,6 +211,10 @@ async def goal_daily_time_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle daily time input."""
+    # Убеждаемся что это текстовое сообщение
+    if not update.message or not update.message.text:
+        return GOAL_DAILY_TIME
+
     context.user_data["goal_daily_time"] = update.message.text.strip()
 
     # Priority buttons
@@ -223,6 +261,10 @@ async def goal_priority_received(
 
 async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle tags input and show confirmation."""
+    # Убеждаемся что это текстовое сообщение
+    if not update.message or not update.message.text:
+        return GOAL_TAGS
+
     tags_text = update.message.text.strip()
 
     if tags_text == "-":
@@ -592,8 +634,12 @@ add_goal_conversation = ConversationHandler(
             CallbackQueryHandler(goal_confirmed, pattern="^(confirm|cancel)_goal$")
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel_conversation)],
+    fallbacks=[
+        CommandHandler("cancel", cancel_conversation),
+        CommandHandler("my_goals", cancel_conversation),  # Allow going back
+    ],
     per_message=False,
+    conversation_timeout=300,  # 5 minutes timeout
 )
 
 
