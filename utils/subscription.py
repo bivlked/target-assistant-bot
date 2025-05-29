@@ -19,7 +19,7 @@ def subscribe_user(user_id: int) -> None:
         user_id: Telegram user ID
     """
     _subscribed_users.add(user_id)
-    logger.info(f"User {user_id} subscribed")
+    logger.info("User subscribed", user_id=user_id)
 
 
 def unsubscribe_user(user_id: int) -> None:
@@ -29,7 +29,7 @@ def unsubscribe_user(user_id: int) -> None:
         user_id: Telegram user ID
     """
     _subscribed_users.discard(user_id)
-    logger.info(f"User {user_id} unsubscribed")
+    logger.info("User unsubscribed", user_id=user_id)
 
 
 async def is_subscribed(user_id: int) -> bool:

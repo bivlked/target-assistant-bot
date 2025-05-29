@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Final, Dict
 
@@ -38,7 +38,7 @@ RUSSIAN_TO_ENGLISH_STATUS_MAP: Final[Dict[str, str]] = {
     USER_FACING_STATUS_PARTIAL: STATUS_PARTIAL,
 }
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class GoalManager:
@@ -79,13 +79,18 @@ class GoalManager:
         available_time_str: str,
     ) -> str:
         """Asynchronously sets a new goal, generates a plan, and saves all data."""
-        await self.storage.clear_user_data(user_id)
+        # Clear previous data using legacy method
+        goals = await self.storage.get_active_goals(user_id)
+        for goal in goals:
+            await self.storage.archive_goal(user_id, goal.goal_id)
 
         # 1.5 Check rate limit for LLM
         try:
             self.llm_rate_limiter.check_limit(user_id)
         except RateLimitException as e:
-            logger.warning(f"User {user_id} rate limited on generate_plan: {e}")
+            logger.warning(
+                "User rate limited on generate_plan", user_id=user_id, exc_info=e
+            )
             LLM_API_CALLS.labels(
                 method_name="generate_plan", status="ratelimited"
             ).inc()
@@ -98,16 +103,10 @@ class GoalManager:
 
         # 3. Calculate dates
         today = datetime.now(timezone.utc)
-        print(
-            f"DEBUG [GoalManager.set_new_goal] 'today' after datetime.now(timezone.utc): {today}"
-        )  # DEBUG
         full_plan = []
         for item in plan_json:
             day_offset = item["day"] - 1
             date = today + timedelta(days=day_offset)
-            print(
-                f"DEBUG [GoalManager.set_new_goal] item_day={item['day']}, offset={day_offset}, calculated_date={date}"
-            )  # DEBUG
             full_plan.append(
                 {
                     COL_DATE: format_date(date),
@@ -124,16 +123,16 @@ class GoalManager:
             "Затраты в день": available_time_str,  # Russian key for Sheets
             "Начало выполнения": format_date(today),  # Russian key for Sheets
         }
-        spreadsheet_url = await self.storage.save_goal_info(user_id, goal_info)
-        await self.storage.save_plan(user_id, full_plan)
+        spreadsheet_url = await self.storage.save_goal_and_plan(
+            user_id, goal_info, full_plan
+        )
 
         GOALS_SET_TOTAL.inc()  # Increment goals set counter
         return spreadsheet_url
 
     async def get_today_task(self, user_id: int) -> Dict[str, Any] | None:
         """Asynchronously retrieves today's task."""
-        date_str = format_date(datetime.now())
-        return await self.storage.get_task_for_date(user_id, date_str)
+        return await self.storage.get_task_for_today(user_id)
 
     async def update_today_task_status(self, user_id: int, status: str) -> None:
         """Asynchronously updates the status of today's task.
@@ -141,7 +140,7 @@ class GoalManager:
         """
         date_str = format_date(datetime.now())
         # 'status' is already Russian, save it to Sheets as is
-        await self.storage.update_task_status(user_id, date_str, status)
+        await self.storage.update_task_status_old(user_id, date_str, status)
 
         # For metrics, map to English status
         english_status = RUSSIAN_TO_ENGLISH_STATUS_MAP.get(
@@ -151,21 +150,23 @@ class GoalManager:
 
     async def get_goal_status_details(self, user_id: int) -> str:
         """Asynchronously gets a brief string summary of goal progress."""
-        return await self.storage.get_statistics(user_id)
+        return await self.storage.get_status_message(user_id)
 
     async def generate_motivation_message(self, user_id: int) -> str:
         """Asynchronously generates a motivational message."""
         try:
             self.llm_rate_limiter.check_limit(user_id)
         except RateLimitException as e:
-            logger.warning(f"User {user_id} rate limited on generate_motivation: {e}")
+            logger.warning(
+                "User rate limited on generate_motivation", user_id=user_id, exc_info=e
+            )
             LLM_API_CALLS.labels(
                 method_name="generate_motivation", status="ratelimited"
             ).inc()
             raise
 
         goal_info = await self.storage.get_goal_info(user_id)
-        stats = await self.storage.get_statistics(user_id)
+        stats = await self.storage.get_status_message(user_id)
         # Assuming goal_info and stats are dict-like or have .get()
         goal_text = (
             goal_info.get("Глобальная цель", "") if goal_info else ""
@@ -210,8 +211,13 @@ class GoalManager:
 
         Also, increments the TASKS_STATUS_UPDATED_TOTAL metric for each status update.
         """
-        # 'updates' values are already Russian, save them to Sheets as is
-        await self.storage.batch_update_task_statuses(user_id, updates)
+        # Convert to new format expected by interface
+        new_updates = {}
+        for date_str, status in updates.items():
+            # Assume goal_id 1 for legacy compatibility
+            new_updates[(1, date_str)] = status
+
+        await self.storage.batch_update_task_statuses(user_id, new_updates)
 
         # For metrics, map to English statuses
         for status_val in updates.values():  # status_val is Russian

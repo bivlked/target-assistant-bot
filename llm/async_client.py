@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import logging
+import structlog
 from typing import Any, List
 import time
 import re
@@ -11,34 +11,17 @@ import ast
 
 from openai import AsyncOpenAI
 
-# tenacity.retry related imports are now handled by the decorator from utils
-# from tenacity import (
-#     retry,
-#     wait_exponential,
-#     stop_after_attempt,
-#     retry_if_exception_type,
-# )
-
 from config import openai_cfg
 from core.metrics import LLM_API_CALLS, LLM_API_LATENCY
 
-# from llm.prompts import SYSTEM_PROMPT # SYSTEM_PROMPT is used, ensure it's imported or defined if not.
-# Assuming SYSTEM_PROMPT is correctly imported or defined elsewhere if used.
-# If it was meant to be from llm.prompts, and that file exists with SYSTEM_PROMPT, the import should be active.
-# For now, let's assume it comes from where it should.
-# TODO: Double check SYSTEM_PROMPT import from llm.prompts if that file exists and is intended.
-# For now, I will re-enable it as it was in the original file.
 from llm.prompts import SYSTEM_PROMPT
 
 from utils.retry_decorators import retry_openai_llm
 
-logger = logging.getLogger(__name__)
-
-# Unused local RETRY decorator removed
-# RETRY = retry(...)
+logger = structlog.get_logger(__name__)
 
 
-class AsyncLLMClient:  # Add : LLMInterface if we define/use it
+class AsyncLLMClient:
     """Asynchronous client for OpenAI Chat Completions.
 
     Wraps the `openai.AsyncOpenAI` client and provides high-level methods
@@ -97,28 +80,25 @@ class AsyncLLMClient:  # Add : LLMInterface if we define/use it
         except json.JSONDecodeError as e_json:
             # Try ast.literal_eval as a fallback if json.loads fails
             try:
-                # print(f"_extract_plan: json.loads failed, trying ast.literal_eval on: {json_str_cleaned[:100]}...")
                 evaluated_data = ast.literal_eval(json_str_cleaned)
                 if not isinstance(evaluated_data, list):
-                    # print(f"_extract_plan: ast.literal_eval did not return a list.")
                     raise ValueError(
                         "Fallback ast.literal_eval did not produce a list."
                     ) from e_json
-                # print(f"_extract_plan: ast.literal_eval succeeded.")
                 return evaluated_data
             except (
                 Exception
             ) as e_ast:  # Catch any error from ast.literal_eval (SyntaxError, ValueError, etc.)
-                # print(f"_extract_plan: ast.literal_eval also failed: {e_ast}")
                 # Re-raise the original json.JSONDecodeError if ast.literal_eval also fails or returns wrong type
                 logger.warning(
-                    f"Failed to parse LLM plan response after multiple attempts. Content: {content[:500]}"
+                    "Failed to parse LLM plan response after multiple attempts",
+                    content_preview=content[:500],
                 )
                 raise json.JSONDecodeError(
                     "Invalid JSON list in LLM response after all parsing attempts",
-                    content,
+                    json_str_cleaned,
                     0,
-                ) from e_json
+                ) from e_ast
 
     # --------------------------- Public methods -----------------------------
     @retry_openai_llm
@@ -162,7 +142,9 @@ class AsyncLLMClient:  # Add : LLMInterface if we define/use it
             return self._extract_plan(content)
         except Exception as e:
             LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
-            logger.error(f"Error processing LLM response for {method_name}: {e}")
+            logger.error(
+                "Error processing LLM response", method_name=method_name, exc_info=e
+            )
             raise
         finally:
             LLM_API_LATENCY.labels(method_name=method_name).observe(
@@ -216,7 +198,9 @@ class AsyncLLMClient:  # Add : LLMInterface if we define/use it
             return content
         except Exception as e:
             LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
-            logger.error(f"Error processing LLM response for {method_name}: {e}")
+            logger.error(
+                "Error processing LLM response", method_name=method_name, exc_info=e
+            )
             raise
         finally:
             LLM_API_LATENCY.labels(method_name=method_name).observe(

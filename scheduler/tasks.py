@@ -200,7 +200,9 @@ class Scheduler:
 
         except Exception as e:
             logger.error(
-                f"Error sending morning tasks for user {user_id}: {e}", exc_info=True
+                "Error sending morning tasks",
+                user_id=user_id,
+                exc_info=True,
             )
 
     async def _send_evening_reminder(self, bot: Bot, user_id: int):
@@ -231,7 +233,9 @@ class Scheduler:
 
         except Exception as e:
             logger.error(
-                f"Error sending evening reminder for user {user_id}: {e}", exc_info=True
+                "Error sending evening reminder",
+                user_id=user_id,
+                exc_info=True,
             )
 
     async def _send_motivation(self, bot: Bot, user_id: int):
@@ -269,6 +273,7 @@ class Scheduler:
 
         except Exception as e:
             logger.error(
-                f"Error sending motivation message for user {user_id}: {e}",
+                "Error sending motivation message",
+                user_id=user_id,
                 exc_info=True,
             )

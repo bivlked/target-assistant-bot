@@ -356,8 +356,10 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
 
     except Exception as e:
-        logger.error(f"Error updating task status: {e}")
-        await query.edit_message_text("❌ Произошла ошибка при обновлении статуса.")
+        logger.error("Error updating task status", exc_info=e)
+        await query.edit_message_text(
+            "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+        )
 
     return ConversationHandler.END
 
@@ -403,8 +405,10 @@ async def quick_status_update(
         )
 
     except Exception as e:
-        logger.error(f"Error updating task status: {e}")
-        await query.edit_message_text("❌ Произошла ошибка при обновлении статуса.")
+        logger.error("Error updating task status", exc_info=e)
+        await query.edit_message_text(
+            "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+        )
 
 
 async def motivation_command(
@@ -453,9 +457,9 @@ async def motivation_command(
         )
 
     except Exception as e:
-        logger.error(f"Error generating motivation: {e}")
+        logger.error("Error generating motivation", exc_info=e)
         await update.message.reply_text(
-            "❌ Не удалось сгенерировать мотивационное сообщение.\n" "Попробуйте позже."
+            "❌ Не удалось получить мотивацию. Попробуйте позже."
         )
 
 

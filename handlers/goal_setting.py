@@ -205,8 +205,9 @@ def build_setgoal_conv() -> ConversationHandler:
             )
 
         except Exception as e:
-            logger.error(f"Error creating goal: {e}")
+            logger.error("Error creating goal", exc_info=e)
             await update.message.reply_text(SETGOAL_ERROR_TEXT)
+            return ConversationHandler.END
 
         return ConversationHandler.END
 

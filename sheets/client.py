@@ -295,7 +295,7 @@ class SheetsManager:
                         plan_ws.update_title(f"{GOAL_SHEET_PREFIX}1")
 
         except Exception as e:
-            logger.error(f"Error during migration: {e}")
+            logger.error("Error during migration", exc_info=e)
 
     # -------------------------------------------------
     # Multi-goal management methods
@@ -312,7 +312,7 @@ class SheetsManager:
                 try:
                     goals.append(Goal.from_sheet_row(row))
                 except Exception as e:
-                    logger.error(f"Error parsing goal row: {e}")
+                    logger.error("Error parsing goal row", exc_info=e)
 
         return goals
 

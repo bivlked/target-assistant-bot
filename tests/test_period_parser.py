@@ -1,4 +1,4 @@
-"""Tests for the period parsing utility (utils/period_parser.py), 
+"""Tests for the period parsing utility (utils/period_parser.py),
 focusing on the heuristic part and overall logic.
 """
 

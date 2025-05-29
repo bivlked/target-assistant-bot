@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import logging
 
-# Load environment variables from .env file if it exists # This comment also refers to the removed call
+# Load environment variables from .env file if it exists
 # load_dotenv() # Removed call
 
 BASE_DIR = Path(__file__).resolve().parent

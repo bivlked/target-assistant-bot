@@ -177,7 +177,7 @@ async def confirm_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     except Exception as e:
-        logger.error(f"Error resetting user data: {e}")
+        logger.error("Error resetting user data", exc_info=e)
         await query.edit_message_text(
             "❌ Произошла ошибка при удалении данных.\n"
             "Попробуйте позже или обратитесь в поддержку."
