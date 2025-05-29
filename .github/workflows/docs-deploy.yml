@@ -55,4 +55,23 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      
+      - name: Wait before retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      
+      - name: Retry Deploy to GitHub Pages
+        if: steps.deployment.outcome == 'failure'
+        id: deployment-retry
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      
+      - name: Wait longer before final retry
+        if: steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
+        run: sleep 60
+      
+      - name: Final Deploy Attempt
+        if: steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
         uses: actions/deploy-pages@v4 
