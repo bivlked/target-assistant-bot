@@ -16,13 +16,13 @@ logger = structlog.get_logger(__name__)
 
 # Text constants
 WELCOME_TEXT = (
-    "🎯 **Добро пожаловать в Target Assistant Bot!**\n\n"
+    "🎯 Добро пожаловать в Target Assistant Bot!\n\n"
     "Я помогу вам:\n"
     "• 📝 Ставить и управлять целями\n"
     "• 📋 Создавать ежедневные планы\n"
     "• 📊 Отслеживать прогресс\n"
     "• 💪 Получать мотивацию\n\n"
-    "**Возможности:**\n"
+    "Возможности:\n"
     "• Поддержка до 10 активных целей\n"
     "• Автоматическое планирование задач\n"
     "• Умная статистика и аналитика\n"
@@ -31,8 +31,8 @@ WELCOME_TEXT = (
 )
 
 HELP_TEXT = (
-    "🤖 **Помощь по Target Assistant Bot**\n\n"
-    "**Основные команды:**\n"
+    "🤖 Помощь по Target Assistant Bot\n\n"
+    "Основные команды:\n"
     "• /my_goals - управление целями\n"
     "• /add_goal - создать новую цель (через кнопки)\n"
     "• /setgoal - создать цель (через диалог)\n"
@@ -41,7 +41,7 @@ HELP_TEXT = (
     "• /check - отметить выполнение\n"
     "• /motivation - получить мотивацию\n"
     "• /reset - сброс всех данных\n\n"
-    "**Возможности:**\n"
+    "Возможности:\n"
     "• Создавайте до 10 активных целей\n"
     "• Устанавливайте приоритеты и теги\n"
     "• Отслеживайте прогресс в реальном времени\n"
@@ -102,7 +102,6 @@ def start_handler(scheduler: Scheduler):
 
         await update.message.reply_text(
             WELCOME_TEXT,
-            parse_mode="Markdown",
             reply_markup=reply_markup,
         )
 
@@ -115,9 +114,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
-    await update.message.reply_text(
-        HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True
-    )
+    await update.message.reply_text(HELP_TEXT, disable_web_page_preview=True)
 
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -151,15 +148,14 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⚠️ **Внимание!**\n\n"
+        "⚠️ ВНИМАНИЕ!\n\n"
         "Это действие удалит:\n"
         "• Все ваши цели\n"
         "• Все планы и задачи\n"
         "• Google Sheets таблицу\n"
         "• Весь прогресс\n\n"
-        "**Это действие нельзя отменить!**\n\n"
+        "Это действие нельзя отменить!\n\n"
         "Вы действительно хотите продолжить?",
-        parse_mode="Markdown",
         reply_markup=reply_markup,
     )
 
