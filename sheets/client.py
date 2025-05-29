@@ -22,7 +22,6 @@ from tenacity import (
 )
 
 from config import GoogleConfig, google
-from core.cache import Cache, InvalidateSheetsCache, get_sheet_cache_key, sheets_cache
 from core.metrics import SHEETS_API_CALLS, SHEETS_API_LATENCY
 from core.models import Goal, GoalPriority, GoalStatistics, GoalStatus, Task, TaskStatus
 from utils.cache import cached_sheet_method, invalidate_sheet_cache
