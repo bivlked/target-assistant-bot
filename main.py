@@ -6,13 +6,18 @@ load_dotenv()  # Load environment variables from .env file at the very beginning
 
 import asyncio
 
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    CallbackQueryHandler,
+)
 from telegram.ext import ContextTypes
 
 from config import telegram, logging_cfg, prometheus_cfg
-from core.goal_manager import GoalManager
+from core.dependency_injection import initialize_dependencies
 
-# from llm.client import LLMClient # Not used directly, GoalManager uses AsyncLLMClient
 from llm.async_client import AsyncLLMClient
 from sheets.async_client import AsyncSheetsManager
 from scheduler.tasks import Scheduler
@@ -22,15 +27,19 @@ from handlers.common import (
     cancel_handler,
     reset_handler,
     unknown_handler,
+    confirm_reset,
+    cancel_reset,
 )
 from handlers.goal_setting import build_setgoal_conv
-from handlers.task_management import build_task_handlers
+from handlers.task_management import get_task_handlers
+from handlers.goals import get_goals_handlers
 from utils.logging import setup_logging
 from core.exceptions import BotError
 from utils.sentry_integration import setup_sentry
 from prometheus_client import start_http_server  # For metrics
 from core.metrics import APP_INFO  # For app version metric
-from texts import DEFAULT_ERROR_TEXT  # Import new text
+
+DEFAULT_ERROR_TEXT = "❌ Произошла ошибка. Попробуйте позже или обратитесь в поддержку."
 
 # ---------------------------------------------------------------------------
 # PTB >=20.9 includes a fix for the __polling_cleanup_cb slot, no extra patch needed.
@@ -78,46 +87,49 @@ async def main_async():
         logger.error("TELEGRAM_BOT_TOKEN is not set")  # Translated log
         return
 
-    # Initialize dependencies
+    # Initialize dependencies (DI container)
     sheets_client = AsyncSheetsManager()
     llm_client = AsyncLLMClient()
-    goal_manager = GoalManager(storage=sheets_client, llm=llm_client)
+    initialize_dependencies(sheets_client, llm_client)
 
     # Create Telegram Application
     application = Application.builder().token(telegram.token).build()
 
-    # Create scheduler with current event loop
+    # Create scheduler with current event loop (for backward compatibility)
     loop = asyncio.get_running_loop()
-    scheduler = Scheduler(goal_manager, event_loop=loop)
+    scheduler = Scheduler(sheets_client, llm_client, event_loop=loop)
 
     # Register handlers
     application.add_handler(CommandHandler("help", help_handler))
     application.add_handler(CommandHandler("cancel", cancel_handler))
-    application.add_handler(CommandHandler("reset", reset_handler(goal_manager)))
+    application.add_handler(CommandHandler("reset", reset_handler))
 
-    # /start depends on goal_manager and scheduler
+    # /start depends on scheduler
+    application.add_handler(CommandHandler("start", start_handler(scheduler)))
+
+    # Multi-goal handlers
+    for handler in get_goals_handlers():
+        application.add_handler(handler)
+
+    # Task management handlers
+    for handler in get_task_handlers():
+        application.add_handler(handler)
+
+    # Legacy /setgoal conversation (updated for new architecture)
+    application.add_handler(build_setgoal_conv())
+
+    # Reset confirmation handlers
     application.add_handler(
-        CommandHandler("start", start_handler(goal_manager, scheduler))
+        CallbackQueryHandler(confirm_reset, pattern="^confirm_reset$")
     )
-
-    # /setgoal conversation
-    application.add_handler(build_setgoal_conv(goal_manager))
-
-    # /today, /status, /motivation, /check
-    today_handler, status_handler, motivation_handler, check_conv = build_task_handlers(
-        goal_manager
+    application.add_handler(
+        CallbackQueryHandler(cancel_reset, pattern="^cancel_reset$")
     )
-    application.add_handler(CommandHandler("today", today_handler))
-    application.add_handler(CommandHandler("status", status_handler))
-    application.add_handler(CommandHandler("motivation", motivation_handler))
-    application.add_handler(check_conv)
 
     # Unknown commands - filter all except known ones
-    known_cmds = (
-        r"^(\/)(start|help|setgoal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
-    )
+    known_cmds = r"^(\/)(start|help|setgoal|my_goals|add_goal|today|motivation|status|check|cancel|reset)(?:@\w+)?"
     unknown_cmd_filter = filters.Command() & ~filters.Regex(known_cmds)
-    application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler()))
+    application.add_handler(MessageHandler(unknown_cmd_filter, unknown_handler))
 
     # Set error handler
     application.add_error_handler(error_handler)
@@ -144,7 +156,7 @@ async def main_async():
     except Exception:
         version = "1.0.0"  # Fallback version
 
-    logger.info(f"Bot started v{version}")
+    logger.info(f"Bot started v{version} with multi-goal support")
     APP_INFO.labels(version=version).set(1)  # Set version metric
 
     # Start the bot

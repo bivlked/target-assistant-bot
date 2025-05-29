@@ -9,76 +9,118 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Release](https://img.shields.io/github/v/release/bivlked/target-assistant-bot.svg)](https://github.com/bivlked/target-assistant-bot/releases/latest)
 
-Personal Telegram assistant that helps you set goals, break them down into daily tasks and track progress. All data is stored in **Google Sheets**; planning and motivational messages are powered by **OpenAI**.
+Personal Telegram assistant that helps you set goals, break them down into daily tasks and track progress. All data is stored in **Google Sheets**; planning and motivational messages are powered by **OpenAI**. **Now supports up to 10 simultaneous goals!**
 
 > 🚀 **Project Goal**: To create a smart and responsive assistant for effective progress towards long-term goals.
 > 🎯 **Key Technologies**: Python, `python-telegram-bot`, `OpenAI API`, `Google Sheets API`.
+> 📊 **Status**: v0.2.0 - Production Ready with Multi-Goals Support
 > 📄 **Full Project Pitch** (PDF, Russian): [Personal assistant for helping to achieve goals](Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf)
 
 ---
 
+## ✨ What's New in v0.2.0
+
+### 🎯 Multiple Goals Support
+- **Up to 10 active goals simultaneously** - no more single goal limitations
+- **Priorities** - high 🔴, medium 🟡, low 🟢 for better organization
+- **Tags** - organize goals by categories (work, health, self-development)
+- **Statuses** - active, completed, archived goals
+
+### 📊 Enhanced Analytics
+- **Overall statistics** across all goals with progress tracking
+- **Detailed analytics** for each individual goal
+- **Progress monitoring** with days remaining and completion pace
+
+### 🎮 Interactive Interface
+- **Inline buttons** for quick actions
+- **Goal creation wizard** with step-by-step guidance
+- **Goal management** through convenient menus
+
 ## 💡 Usage Scenarios
 
-To better understand how the bot helps in achieving goals, let's consider a few scenarios:
+### 🌟 New Scenario: Managing Multiple Goals
 
-### 🌟 Scenario 1: Setting Your First Goal
+Imagine you have several goals:
+1. "Learn Python in 3 months" (🔴 high priority)
+2. "Run a half marathon" (🟡 medium priority)
+3. "Read 20 books in a year" (🟢 low priority)
 
-Let's say your goal is "Write a book in 3 months, dedicating 2 hours цьому daily."
+**Creating your first goal:**
+1. **You**: `/start`
+   **Bot**: 🎯 Welcome to Target Assistant Bot! I'll help you manage up to 10 goals simultaneously...
+2. **You**: `/my_goals`
+   **Bot**: 📝 You don't have any goals yet. Use /add_goal to create a new goal.
+3. **You**: Click "➕ Add Goal" button
+   **Bot**: 🎯 Creating new goal. Step 1/6: Enter a short goal name...
 
-1.  **You**: `/start`
-    **Bot**: 🤖 Hello! I'm your personal goal assistant... Press `/setgoal` to begin!
-2.  **You**: `/setgoal`
-    **Bot**: What goal do you want to achieve? Describe it in as much detail as possible.
-3.  **You**: Write a book "My Adventures in the World of Code"
-    **Bot**: What is the deadline for achieving your goal (e.g., 'in 2 months', 'in 6 weeks', 'in 50 days')? Please specify a period up to 3 months.
-4.  **You**: in 3 months
-    **Bot**: How much time are you approximately willing to dedicate to achieving your goal daily (e.g., '30 minutes', '1-2 hours')?
-5.  **You**: 2 hours a day
-    **Bot**: Generating your personal plan... This might take a moment.
-    *(After a short while)*
-    **Bot**: ✅ Your goal *Write a book "My Adventures in the World of Code"* is set! The plan has been saved.
-    📄 [Open Spreadsheet](https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_LINK)
+**Managing multiple goals:**
+4. **You**: `/today`
+   **Bot**: 📅 Tasks for today:
+   🔴 **Learn Python**: Master OOP basics in Python
+   🟡 **Half Marathon**: Run 5km at slow pace
+   🟢 **Reading Books**: Read 30 pages of "Clean Code"
 
-    Use `/today` to see today's task, and `/check` to mark it as complete.
-6.  **You**: `/today`
-    **Bot**: 📅 Task for today (DD.MM.YYYY, Weekday):
-    📝 Outline the first chapter of the book.
-    Status: Not completed
-7.  **Вы**: `/check` -> (select "✅ Done" via buttons)
-    **Bot**: Status updated! 💪
-8.  **You**: `/status`
-    **Bot**: (shows progress, e.g., 🎯 *Goal*: Write a book... 📊 *Progress*: 1% (✅ 1/90 days)...)
+5. **You**: `/status`
+   **Bot**: 📊 Overall goal status:
+   • Total goals: 3
+   • Active: 3
+   • Overall progress: 35%
+   
+   🎯 Active goals:
+   🔴 **Learn Python** - 45% • 📅 15.04.2025
+   🟡 **Half Marathon** - 30% • 📅 01.05.2025
+   🟢 **Reading Books** - 25% • 📅 31.12.2025
 
-### ☀️ Scenario 2: Daily Interaction
+### ☀️ New Daily Interaction
 
-1.  *(Morning)* **Bot** (automatic reminder, if configured):
-    ☀️ Good morning! Time to tackle today's task for your goal!
-    📝 Your task: Write 5 pages of text for the second chapter.
-2.  **You**: (work on the task during the day)
-3.  **You**: `/check` -> (select "✅ Done")
-    **Bot**: Status updated! 💪
-4.  **You**: `/motivation`
-    **Bot**: Great job! Every step brings you closer to your dream. Keep up the pace! ✨
+**Morning reminder (automatic):**
+**Bot**: ☀️ Good morning! Your tasks for today:
+• **Learn Python**: Create your first Python class
+• **Half Marathon**: Light 3km jog
+
+[📝 Mark completion] [📊 Overall status]
+
+**Quick completion marking:**
+**You**: Click "📝 Mark completion"
+**Bot**: 📝 Choose task to update status:
+- Learn Python: Create your first class...
+- Half Marathon: Light 3km jog
 
 ---
 
 ## 🛠️ Features
 
+### Core Commands
+
 | Command | Description |
 |---------|-------------|
 | `/start` | 🚀 Start using the bot |
 | `/help`  | ℹ️ Show available commands |
-| `/setgoal` | 🎯 Set a new goal |
-| `/today` | 📅 Task for today |
-| `/check` | ✍️ Mark task as completed |
-| `/status` | 📊 Show progress towards goal |
-| `/motivation` | 💡 Get a motivational message |
+| `/my_goals` | 🎯 **[NEW]** Manage all goals - main command |
+| `/add_goal` | ➕ **[NEW]** Create new goal through interactive interface |
+| `/setgoal` | 🎯 Create goal through text dialog (legacy) |
+| `/today` | 📅 **[UPDATED]** All tasks for today from all active goals |
+| `/check` | ✍️ **[UPDATED]** Mark completion with specific goal selection |
+| `/status` | 📊 **[UPDATED]** Overall progress across all goals |
+| `/motivation` | 💡 **[UPDATED]** Motivation based on all your goals |
 | `/cancel` | ⛔ Cancel current operation |
 | `/reset` | 🗑️ Remove all goals (delete data completely) |
 
-For every Telegram user the bot creates a personal Google Spreadsheet:
-* sheet **Goal Info** — goal parameters;
-* sheet **Plan** — a list of daily tasks with auto-updated status.
+### New Capabilities
+
+- **🎯 Up to 10 simultaneous goals** - work on multiple directions
+- **📊 Priorities** - high (🔴), medium (🟡), low (🟢)
+- **🏷️ Tags** - organize goals by categories
+- **📋 Interactive management** - buttons for all actions
+- **📈 Extended statistics** - detailed analytics for each goal
+- **🔄 Auto-migration** - existing goals automatically transferred to new format
+
+### Data Storage Structure
+
+The bot creates an individual Google Spreadsheet with improved structure:
+* **"Goals List"** — main sheet with all your goals, their statuses and progress
+* **"Goal 1", "Goal 2", ..., "Goal 10"** — separate sheets with plans for each goal
+* **Automatic migration** — existing data is transferred to new format
 
 ## 🚀 Quick start (local `venv`)
 

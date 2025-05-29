@@ -2,51 +2,69 @@ from __future__ import annotations
 
 import logging
 import sentry_sdk
+import structlog
 import asyncio
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 
 from config import scheduler_cfg
-from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
-from core.goal_manager import GoalManager
+from core.models import TaskStatus
+from utils.helpers import format_date
+from utils.subscription import is_subscribed
+from datetime import datetime, timezone
 
-from texts import (
-    EVENING_REMINDER_TEXT,  # Add new scheduler texts
-    NO_TASKS_FOR_TODAY_SCHEDULER_TEXT,
-    TODAY_TASK_DETAILS_TEMPLATE,  # Reuse from task_management
+logger = structlog.get_logger(__name__)
+
+# Text constants
+EVENING_REMINDER_TEXT = (
+    "🌙 Доброй ночи! Не забудьте отметить прогресс по сегодняшним задачам!\n"
+    "Используйте /check для обновления статуса."
 )
 
-logger = logging.getLogger(__name__)
+NO_TASKS_FOR_TODAY_SCHEDULER_TEXT = (
+    "📅 На сегодня у вас нет запланированных задач.\n"
+    "Отличный день для отдыха или планирования новых целей! 😊"
+)
 
-# Temporary reminder texts, to be moved to texts.py later # This section can be removed
-# TEMP_MORNING_REMINDER_TEXT = (
-# "☀️ Доброе утро! Время взяться за сегодняшнюю задачу для вашей цели!"
-# )
-# TEMP_EVENING_REMINDER_TEXT = (
-# "🌙 Не забудьте отметить прогресс по сегодняшней задаче! /check"
-# )
+MORNING_TASK_TEMPLATE = (
+    "☀️ Доброе утро! Ваши задачи на сегодня:\n\n"
+    "{tasks_text}\n\n"
+    "Желаю продуктивного дня! 💪"
+)
+
+SINGLE_TASK_TEMPLATE = (
+    "📋 *{goal_name}*\n"
+    "📝 {task_text}\n"
+    "📅 {date} ({day_of_week})\n"
+    "⏰ Статус: {status}"
+)
+
+MULTIPLE_TASKS_ITEM = "• *{goal_name}*: {task_text}"
 
 
 class Scheduler:
-    """Manages scheduled tasks for users, like daily reminders and motivational messages.
+    """Manages scheduled tasks for users with multi-goal support.
 
     Uses APScheduler with an AsyncIOScheduler to run jobs asynchronously.
-    Relies on GoalManager to fetch user-specific information for tasks.
+    Works directly with storage and llm instances for multi-goal functionality.
     """
 
     def __init__(
         self,
-        goal_manager: GoalManager,
+        storage,
+        llm,
         event_loop: asyncio.AbstractEventLoop | None = None,
     ):
-        """Initializes the Scheduler with a GoalManager instance and sets up APScheduler.
+        """Initializes the Scheduler with storage and llm instances.
 
         Args:
-            goal_manager: GoalManager instance for accessing user data
+            storage: AsyncStorageInterface implementation
+            llm: AsyncLLMInterface implementation
             event_loop: Optional event loop to use. If None, will get the current running loop when needed.
         """
-        self.goal_manager = goal_manager
+        self.storage = storage
+        self.llm = llm
         self._event_loop = event_loop
         self.scheduler = None  # Will be initialized in start()
 
@@ -75,7 +93,7 @@ class Scheduler:
         """Adds all standard periodic jobs for a given user.
 
         This includes:
-        - Morning task reminder (_send_today_task).
+        - Morning task reminder (_send_today_tasks).
         - Evening check-in reminder (_send_evening_reminder).
         - Periodic motivational message (_send_motivation).
 
@@ -87,7 +105,7 @@ class Scheduler:
 
         hour, minute = map(int, scheduler_cfg.morning_time.split(":"))
         self.scheduler.add_job(
-            self._send_today_task,
+            self._send_today_tasks,
             "cron",
             args=[bot, user_id],
             hour=hour,
@@ -119,36 +137,98 @@ class Scheduler:
             coalesce=True,
         )
 
-    async def _send_today_task(self, bot: Bot, user_id: int):
-        """(Job) Sends the daily task to the user if it's not completed."""
+    async def _send_today_tasks(self, bot: Bot, user_id: int):
+        """(Job) Sends today's tasks to the user."""
         sentry_sdk.set_tag("user_id", user_id)
-        sentry_sdk.set_tag("job_name", "_send_today_task")
+        sentry_sdk.set_tag("job_name", "_send_today_tasks")
+
         try:
-            task = await self.goal_manager.get_today_task(user_id)
-            if task:
-                text = TODAY_TASK_DETAILS_TEMPLATE.format(
-                    date=task[COL_DATE],
-                    day_of_week=task[COL_DAYOFWEEK],
-                    task=task[COL_TASK],
-                    status=task[COL_STATUS],
+            # Check if user is subscribed
+            if not await is_subscribed(user_id):
+                return
+
+            today = format_date(datetime.now(timezone.utc))
+            tasks = await self.storage.get_all_tasks_for_date(user_id, today)
+
+            if not tasks:
+                await bot.send_message(
+                    chat_id=user_id, text=NO_TASKS_FOR_TODAY_SCHEDULER_TEXT
+                )
+                return
+
+            # Filter incomplete tasks for morning reminder
+            incomplete_tasks = [t for t in tasks if t.status != TaskStatus.DONE]
+
+            if not incomplete_tasks:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text="✅ Все задачи на сегодня уже выполнены! Отличная работа! 🎉",
+                )
+                return
+
+            if len(incomplete_tasks) == 1:
+                # Single task - detailed view
+                task = incomplete_tasks[0]
+                goal_name = task.goal_name or f"Цель {task.goal_id}"
+                status_text = {
+                    TaskStatus.DONE: "✅ Выполнено",
+                    TaskStatus.PARTIALLY_DONE: "🟡 Частично выполнено",
+                    TaskStatus.NOT_DONE: "⬜ Не выполнено",
+                }.get(task.status, "⬜ Не выполнено")
+
+                text = SINGLE_TASK_TEMPLATE.format(
+                    goal_name=goal_name,
+                    task_text=task.task,
+                    date=task.date,
+                    day_of_week=task.day_of_week,
+                    status=status_text,
                 )
             else:
-                text = NO_TASKS_FOR_TODAY_SCHEDULER_TEXT
-            await bot.send_message(chat_id=user_id, text=text)
+                # Multiple tasks - list view
+                tasks_list = []
+                for task in incomplete_tasks:
+                    goal_name = task.goal_name or f"Цель {task.goal_id}"
+                    tasks_list.append(
+                        MULTIPLE_TASKS_ITEM.format(
+                            goal_name=goal_name, task_text=task.task
+                        )
+                    )
+
+                text = MORNING_TASK_TEMPLATE.format(tasks_text="\n".join(tasks_list))
+
+            await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+
         except Exception as e:
             logger.error(
-                f"Error sending morning task for user {user_id}: {e}", exc_info=True
+                f"Error sending morning tasks for user {user_id}: {e}", exc_info=True
             )
 
     async def _send_evening_reminder(self, bot: Bot, user_id: int):
-        """(Job) Sends an evening reminder to check off the daily task."""
+        """(Job) Sends an evening reminder to check off the daily tasks."""
         sentry_sdk.set_tag("user_id", user_id)
         sentry_sdk.set_tag("job_name", "_send_evening_reminder")
+
         try:
-            await bot.send_message(
-                chat_id=user_id,
-                text=EVENING_REMINDER_TEXT,  # Use new constant
-            )
+            # Check if user is subscribed
+            if not await is_subscribed(user_id):
+                return
+
+            # Check if there are any incomplete tasks
+            today = format_date(datetime.now(timezone.utc))
+            tasks = await self.storage.get_all_tasks_for_date(user_id, today)
+            incomplete_tasks = [t for t in tasks if t.status != TaskStatus.DONE]
+
+            if not incomplete_tasks:
+                # All tasks completed, send congratulations
+                await bot.send_message(
+                    chat_id=user_id,
+                    text="🌟 Поздравляем! Вы выполнили все задачи на сегодня!\n"
+                    "Отличная работа! 🎉",
+                )
+            else:
+                # Send reminder
+                await bot.send_message(chat_id=user_id, text=EVENING_REMINDER_TEXT)
+
         except Exception as e:
             logger.error(
                 f"Error sending evening reminder for user {user_id}: {e}", exc_info=True
@@ -158,17 +238,37 @@ class Scheduler:
         """(Job) Sends a motivational message to the user."""
         sentry_sdk.set_tag("user_id", user_id)
         sentry_sdk.set_tag("job_name", "_send_motivation")
+
         try:
-            msg = await self.goal_manager.generate_motivation_message(user_id)
-            await bot.send_message(chat_id=user_id, text=msg)
+            # Check if user is subscribed
+            if not await is_subscribed(user_id):
+                return
+
+            # Get active goals and their progress
+            goals = await self.storage.get_active_goals(user_id)
+            if not goals:
+                return  # No active goals, skip motivation
+
+            # Build context about goals and progress
+            goal_info = "Мои цели:\n"
+            progress_summary = "Прогресс:\n"
+
+            for goal in goals:
+                stats = await self.storage.get_goal_statistics(user_id, goal.goal_id)
+                goal_info += f"- {goal.name}: {goal.description}\n"
+                progress_summary += f"- {goal.name}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)\n"
+
+            # Generate motivation
+            motivation = await self.llm.generate_motivation(goal_info, progress_summary)
+
+            await bot.send_message(
+                chat_id=user_id,
+                text=f"💪 *Мотивация для вас:*\n\n{motivation}",
+                parse_mode="Markdown",
+            )
+
         except Exception as e:
             logger.error(
                 f"Error sending motivation message for user {user_id}: {e}",
                 exc_info=True,
             )
-
-    # Method _send_daily_task_job and related TODOs for JobQueue have been removed
-    # as the project uses APScheduler for scheduled tasks.
-
-    # Removed TODOs related to JobQueue based evening/motivation reminders
-    # Current APScheduler implementation already covers these functionalities.

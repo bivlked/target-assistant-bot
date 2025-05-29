@@ -5,105 +5,284 @@ These allow GoalManager to depend on abstractions rather than concrete
 Google-Sheets or OpenAI implementations.
 """
 
-from typing import Protocol, Any, Dict, List
+from typing import Protocol, Any, Dict, List, Optional, Tuple
+
+from core.models import Goal, GoalPriority, GoalStatistics, GoalStatus, Task
 
 
 class StorageInterface(Protocol):
-    """Abstract synchronous storage interface for user goals and daily tasks.
+    """Storage interface for goals and tasks with multi-goal support."""
 
-    Defines the contract for operations related to spreadsheet creation, deletion,
-    goal data management, daily task retrieval, status updates, and statistics.
-    All methods are expected to be synchronous.
-    """
+    # Spreadsheet management
+    def create_spreadsheet(self, user_id: int) -> None:
+        """Create a new spreadsheet for user."""
+        ...
 
-    # Spreadsheet lifecycle
-    def create_spreadsheet(self, user_id: int) -> None: ...
+    def delete_spreadsheet(self, user_id: int) -> None:
+        """Delete user's spreadsheet."""
+        ...
 
-    def delete_spreadsheet(self, user_id: int) -> None: ...
+    # Goal management
+    def get_all_goals(self, user_id: int) -> List[Goal]:
+        """Get all goals for a user."""
+        ...
 
-    # Goal lifecycle
-    def clear_user_data(self, user_id: int) -> None: ...
+    def get_goal_by_id(self, user_id: int, goal_id: int) -> Optional[Goal]:
+        """Get a specific goal by ID."""
+        ...
 
-    def save_goal_info(self, user_id: int, info: Dict[str, Any]) -> str: ...
+    def get_active_goals(self, user_id: int) -> List[Goal]:
+        """Get only active goals."""
+        ...
 
-    def save_plan(self, user_id: int, plan: List[Dict[str, Any]]) -> None: ...
+    def get_active_goals_count(self, user_id: int) -> int:
+        """Count active goals."""
+        ...
 
-    # Daily workflow
-    def get_task_for_date(self, user_id: int, date: str) -> Dict[str, Any] | None: ...
+    def get_next_goal_id(self, user_id: int) -> int:
+        """Get next available goal ID."""
+        ...
 
-    def update_task_status(self, user_id: int, date: str, status: str) -> None: ...
+    def save_goal_info(self, user_id: int, goal: Goal) -> str:
+        """Save or update goal information."""
+        ...
+
+    def update_goal_status(
+        self, user_id: int, goal_id: int, status: GoalStatus
+    ) -> None:
+        """Update goal status."""
+        ...
+
+    def update_goal_progress(self, user_id: int, goal_id: int, progress: int) -> None:
+        """Update goal progress percentage."""
+        ...
+
+    def update_goal_priority(
+        self, user_id: int, goal_id: int, priority: GoalPriority
+    ) -> None:
+        """Update goal priority."""
+        ...
+
+    def archive_goal(self, user_id: int, goal_id: int) -> None:
+        """Archive a goal."""
+        ...
+
+    def delete_goal(self, user_id: int, goal_id: int) -> None:
+        """Delete a goal completely."""
+        ...
+
+    # Plan management
+    def save_plan(self, user_id: int, goal_id: int, plan: List[Dict[str, Any]]) -> None:
+        """Save plan for a goal."""
+        ...
+
+    def get_plan_for_goal(self, user_id: int, goal_id: int) -> List[Task]:
+        """Get plan for a specific goal."""
+        ...
+
+    # Task management
+    def get_task_for_date(
+        self, user_id: int, goal_id: int, date: str
+    ) -> Optional[Task]:
+        """Get task for specific goal and date."""
+        ...
+
+    def get_all_tasks_for_date(self, user_id: int, date: str) -> List[Task]:
+        """Get all tasks for a specific date."""
+        ...
+
+    def update_task_status(
+        self, user_id: int, goal_id: int, date: str, status: str
+    ) -> None:
+        """Update task status."""
+        ...
 
     def batch_update_task_statuses(
-        self, user_id: int, updates: Dict[str, str]
-    ) -> None: ...
+        self, user_id: int, updates: Dict[Tuple[int, str], str]
+    ) -> None:
+        """Batch update multiple task statuses."""
+        ...
 
     # Statistics
-    def get_statistics(self, user_id: int) -> str: ...
+    def get_goal_statistics(self, user_id: int, goal_id: int) -> GoalStatistics:
+        """Get statistics for a specific goal."""
+        ...
 
-    def get_extended_statistics(self, user_id: int) -> Dict[str, Any]: ...
+    def get_overall_statistics(self, user_id: int) -> Dict[str, Any]:
+        """Get overall statistics for all goals."""
+        ...
 
-    def get_goal_info(self, user_id: int) -> Dict[str, Any]: ...
+    # Legacy methods (to be deprecated)
+    def get_goal_info(self, user_id: int) -> Dict[str, str]:
+        """Get goal info (legacy, single goal)."""
+        ...
 
+    def save_goal_and_plan(
+        self, user_id: int, goal_data: Dict[str, str], plan: List[Dict[str, Any]]
+    ) -> str:
+        """Save goal and plan (legacy, single goal)."""
+        ...
 
-class LLMInterface(Protocol):
-    """Abstract synchronous language-model client interface.
-
-    Defines the contract for generating task plans and motivational messages.
-    All methods are expected to be synchronous.
-    """
-
-    def generate_plan(
-        self, goal_text: str, deadline: str, time: str
-    ) -> List[Dict[str, Any]]: ...
-
-    def generate_motivation(self, goal_text: str, progress_summary: str) -> str: ...
+    def get_status_message(self, user_id: int) -> str:
+        """Get status message (legacy, single goal)."""
+        ...
 
 
 class AsyncStorageInterface(Protocol):
-    """Abstract asynchronous storage interface for user goals and daily tasks.
+    """Async storage interface for goals and tasks with multi-goal support."""
 
-    Defines the contract for asynchronous operations related to spreadsheet creation,
-    deletion, goal data management, daily task retrieval, status updates, and statistics.
-    All methods are expected to be awaitable (async def).
-    """
+    # Spreadsheet management
+    async def create_spreadsheet(self, user_id: int) -> None:
+        """Create a new spreadsheet for user."""
+        ...
 
-    # Spreadsheet lifecycle
-    async def create_spreadsheet(self, user_id: int) -> None: ...
-    async def delete_spreadsheet(self, user_id: int) -> None: ...
+    async def delete_spreadsheet(self, user_id: int) -> None:
+        """Delete user's spreadsheet."""
+        ...
 
-    # Goal lifecycle
-    async def clear_user_data(self, user_id: int) -> None: ...
-    async def save_goal_info(self, user_id: int, info: Dict[str, Any]) -> str: ...
-    async def save_plan(self, user_id: int, plan: List[Dict[str, Any]]) -> None: ...
+    # Goal management
+    async def get_all_goals(self, user_id: int) -> List[Goal]:
+        """Get all goals for a user."""
+        ...
 
-    # Daily workflow
+    async def get_goal_by_id(self, user_id: int, goal_id: int) -> Optional[Goal]:
+        """Get a specific goal by ID."""
+        ...
+
+    async def get_active_goals(self, user_id: int) -> List[Goal]:
+        """Get only active goals."""
+        ...
+
+    async def get_active_goals_count(self, user_id: int) -> int:
+        """Count active goals."""
+        ...
+
+    async def get_next_goal_id(self, user_id: int) -> int:
+        """Get next available goal ID."""
+        ...
+
+    async def save_goal_info(self, user_id: int, goal: Goal) -> str:
+        """Save or update goal information."""
+        ...
+
+    async def update_goal_status(
+        self, user_id: int, goal_id: int, status: GoalStatus
+    ) -> None:
+        """Update goal status."""
+        ...
+
+    async def update_goal_progress(
+        self, user_id: int, goal_id: int, progress: int
+    ) -> None:
+        """Update goal progress percentage."""
+        ...
+
+    async def update_goal_priority(
+        self, user_id: int, goal_id: int, priority: GoalPriority
+    ) -> None:
+        """Update goal priority."""
+        ...
+
+    async def archive_goal(self, user_id: int, goal_id: int) -> None:
+        """Archive a goal."""
+        ...
+
+    async def delete_goal(self, user_id: int, goal_id: int) -> None:
+        """Delete a goal completely."""
+        ...
+
+    # Plan management
+    async def save_plan(
+        self, user_id: int, goal_id: int, plan: List[Dict[str, Any]]
+    ) -> None:
+        """Save plan for a goal."""
+        ...
+
+    async def get_plan_for_goal(self, user_id: int, goal_id: int) -> List[Task]:
+        """Get plan for a specific goal."""
+        ...
+
+    # Task management
     async def get_task_for_date(
-        self, user_id: int, date: str
-    ) -> Dict[str, Any] | None: ...
+        self, user_id: int, goal_id: int, date: str
+    ) -> Optional[Task]:
+        """Get task for specific goal and date."""
+        ...
+
+    async def get_all_tasks_for_date(self, user_id: int, date: str) -> List[Task]:
+        """Get all tasks for a specific date."""
+        ...
+
     async def update_task_status(
-        self, user_id: int, date: str, status: str
-    ) -> None: ...
+        self, user_id: int, goal_id: int, date: str, status: str
+    ) -> None:
+        """Update task status."""
+        ...
+
     async def batch_update_task_statuses(
-        self, user_id: int, updates: Dict[str, str]
-    ) -> None: ...
+        self, user_id: int, updates: Dict[Tuple[int, str], str]
+    ) -> None:
+        """Batch update multiple task statuses."""
+        ...
 
     # Statistics
-    async def get_statistics(self, user_id: int) -> str: ...
-    async def get_extended_statistics(self, user_id: int) -> Dict[str, Any]: ...
-    async def get_goal_info(self, user_id: int) -> Dict[str, Any]: ...
+    async def get_goal_statistics(self, user_id: int, goal_id: int) -> GoalStatistics:
+        """Get statistics for a specific goal."""
+        ...
+
+    async def get_overall_statistics(self, user_id: int) -> Dict[str, Any]:
+        """Get overall statistics for all goals."""
+        ...
+
+    # Legacy methods (to be deprecated)
+    async def get_goal_info(self, user_id: int) -> Dict[str, str]:
+        """Get goal info (legacy, single goal)."""
+        ...
+
+    async def save_goal_and_plan(
+        self, user_id: int, goal_data: Dict[str, str], plan: List[Dict[str, Any]]
+    ) -> str:
+        """Save goal and plan (legacy, single goal)."""
+        ...
+
+    async def get_status_message(self, user_id: int) -> str:
+        """Get status message (legacy, single goal)."""
+        ...
+
+    async def get_task_for_today(self, user_id: int) -> Dict[str, Any] | None:
+        """Get today's task (legacy, single goal)."""
+        ...
+
+    async def update_task_status_old(
+        self, user_id: int, date: str, status: str
+    ) -> None:
+        """Update task status (legacy, single goal)."""
+        ...
+
+
+class LLMInterface(Protocol):
+    """Interface for LLM interactions."""
+
+    def generate_plan(
+        self, goal_text: str, deadline_str: str, available_time_str: str
+    ) -> List[Dict[str, Any]]:
+        """Generate a plan for achieving a goal."""
+        ...
+
+    def generate_motivation(self, goal_info: str, progress_summary: str) -> str:
+        """Generate motivational message based on goal and progress."""
+        ...
 
 
 class AsyncLLMInterface(Protocol):
-    """Abstract asynchronous language-model client interface.
-
-    Defines the contract for asynchronously generating task plans and motivational messages.
-    All methods are expected to be awaitable (async def).
-    """
+    """Async interface for LLM interactions."""
 
     async def generate_plan(
-        self, goal_text: str, deadline: str, time: str
-    ) -> List[Dict[str, Any]]: ...
+        self, goal_text: str, deadline_str: str, available_time_str: str
+    ) -> List[Dict[str, Any]]:
+        """Generate a plan for achieving a goal."""
+        ...
 
-    async def generate_motivation(
-        self, goal_text: str, progress_summary: str
-    ) -> str: ...
+    async def generate_motivation(self, goal_info: str, progress_summary: str) -> str:
+        """Generate motivational message based on goal and progress."""
+        ...
