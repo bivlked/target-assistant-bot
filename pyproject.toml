@@ -1,6 +1,6 @@
 [project]
 name = "target-assistant-bot"
-version = "0.2.1"
+version = "0.2.2"
 description = "Telegram bot that helps set goals, generate daily tasks and track progress via Google Sheets."
 authors = [
     { name = "bivlked" }
