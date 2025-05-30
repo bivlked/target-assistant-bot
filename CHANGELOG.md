@@ -8,7 +8,6 @@
 ## [Unreleased]
 
 ### 🚀 Добавлено
-
 - Система категорий целей (по умолчанию: "Без категории").
 - Отметки о важности целей.
 - Отчеты по дням недели и месяцам.
@@ -16,41 +15,116 @@
 - Архивирование выполненных целей.
 
 ### 🛠️ Изменено
-
 - Улучшена производительность обработки больших объемов данных.
 - Переработан интерфейс настроек уведомлений.
 
 ### 🐛 Исправлено
-
 - Исправлена проблема с дублированием записей при синхронизации.
 - Устранены ошибки отображения emoji в некоторых версиях Telegram.
 
-## [0.2.2] - 2025-05-29
+## [0.2.2] - 2025-05-30
 
-### 🔧 Изменено
+### 🔧 Рефакторинг кода (Code Audit v0.2.2)
 
-- **Структурированное логирование**: Заменены все f-строки в логировании (18 экземпляров) на структурированное логирование с `structlog`
-- **Очистка кода**: Удалены отладочные print-выражения, устаревшие комментарии и неиспользуемые импорты
-- **Английские комментарии**: Переведены все комментарии в коде на английский язык (UI строки остались на русском)
-- **Согласованная обработка ошибок**: Улучшена консистентность сообщений об ошибках во всем приложении
+#### Структурированное логирование
+- **Исправлено 18 f-строк в логировании**: Заменены все f-string в логировании на структурированное логирование с `structlog`
+- **Затронутые файлы**:
+  - `sheets/client.py`
+  - `main.py` 
+  - `handlers/goal_setting.py`
+  - `handlers/task_management.py`
+  - `handlers/goals.py`
+  - `core/goal_manager.py`
+  - `llm/async_client.py`
+  - `utils/subscription.py`
+- **Миграция на structlog.get_logger**: Переход от `logging.getLogger` к `structlog.get_logger` где необходимо
 
-### 🐛 Исправлено
+#### Очистка кода
+- **Удалены отладочные print-выражения**: Удалены 2 debug print из `core/goal_manager.py`
+- **Очищены комментарии**: Удалены старые комментарии tenacity imports и неиспользуемые RETRY decorator комментарии
+- **Исправлены устаревшие комментарии**: Обновлены или удалены 5+ устаревших комментариев
+- **Переведены комментарии**: Все комментарии в коде переведены на английский язык (UI строки остались на русском)
 
-- Исправлен формат пакетного обновления для совместимости с новыми интерфейсами
-- Исправлены вызовы методов `AsyncStorageInterface` в `core/goal_manager.py`
-- Исправлена обработка резервной версии приложения
+#### Исправления интерфейсов
+- **Обновлен AsyncStorageInterface**: Исправлено использование в `core/goal_manager.py`:
+  - `clear_user_data` → `archive_goal` для всех активных целей
+  - `save_goal_info` + `save_plan` → `save_goal_and_plan`
+  - `get_task_for_date` → `get_task_for_today`
+  - `update_task_status` → `update_task_status_old`
+  - `get_statistics` → `get_status_message`
+  - `get_extended_statistics` → оставлен как есть (legacy метод)
+- **Исправлен формат пакетного обновления**: Конвертирован dict формат для совместимости с новым интерфейсом
 
-### 📝 Добавлено
+#### Улучшения обработки ошибок
+- **Консистентные сообщения об ошибках**: Улучшена согласованность сообщений об ошибках
+- **Добавлен суффикс "Try later"**: Добавлен к сообщениям об ошибках где необходимо
 
-- Добавлен `CODE_AUDIT_REPORT.md` с детальными результатами аудита кода
-- Обновлен шаблон PR с более полными опциями
-- Применен форматтер Black ко всем файлам для единообразия стиля
+#### Управление версиями
+- **Исправлена резервная версия**: Изменена на "0.2.2" вместо generic "unknown"
 
-### 📊 Метрики
+#### Форматирование кода
+- **Применен Black formatter**: Обеспечено прохождение всех файлов через Black formatting checks
+- **Исправлен порядок импортов**: Убеждены что `from __future__ import annotations` первый где необходимо
 
-- **Покрытие тестами**: 99.13% (превышает требование в 90%)
-- **Исправленные проблемы**: 18 f-строк в логировании, 2 debug print, 5+ устаревших комментариев
-- **Изменено файлов**: 17 файлов улучшено
+### 🚨 Совместимость Python (Критическое изменение)
+- **BREAKING CHANGE**: Исключена поддержка Python 3.10
+- **Причина**: Sphinx 8.2+ требует Python ≥3.11 для сборки документации
+- **Поддерживаемые версии**: Python 3.11, 3.12
+- **Обновлены конфигурации**: pyproject.toml, CI/CD workflows, инструменты разработки
+
+### 🚨 Оставшиеся задачи
+
+#### GitHub Actions Deploy Error
+- **Проблема**: Deploy workflow завершается с ошибкой "Error: missing server host"
+- **Причина**: Отсутствующие GitHub secrets (PROD_HOST, PROD_USER, PROD_SSH_KEY, PROD_PORT)
+- **Воздействие**: Низкое - ручной деплой все еще возможен
+- **Рекомендация**: Добавить необходимые secrets в настройки GitHub репозитория
+
+#### TODO комментарии
+- **Найдено 6 TODO комментариев** в тестовых файлах (не критично):
+  - `tests/test_sheets_manager.py`: 1 TODO
+  - `tests/test_retry_decorators.py`: 3 TODOs
+  - `tests/test_async_sheets_manager.py`: 2 TODOs
+  - `tests/test_async_llm_client.py`: 2 TODOs
+
+#### MyPy предупреждения
+- Некоторые предупреждения MyPy type checking остались из-за эволюции интерфейсов
+- Не критичны и могут быть исправлены в будущем рефакторинге
+
+### 📊 Проверенные версии библиотек
+
+#### Верифицированные библиотеки
+- **python-telegram-bot**: v22.0+ (текущая, поддерживает async)
+- **APScheduler**: v3.11.0 (текущая, < 4.0.0 как требуется)
+- **OpenAI**: v1.82+ (текущая)
+- **gspread**: v6.1.4+ (текущая)
+
+#### Рекомендации
+- Все основные библиотеки актуальны
+- Срочные обновления не требуются
+
+### 📈 Метрики качества кода
+
+#### До аудита
+- F-string logging экземпляры: 18
+- Debug print выражения: 2
+- Русские комментарии: 3
+- Устаревшие комментарии: 5+
+
+#### После аудита
+- F-string logging экземпляры: 0 ✅
+- Debug print выражения: 0 ✅
+- Русские комментарии: 0 (кроме UI строк) ✅
+- Устаревшие комментарии: 0 ✅
+
+### 📋 Следующие шаги
+1. **Merge branch**: Push и создание PR для `refactor/pre-release-0.2.2-audit`
+2. **Обновление тестов**: Проверка и обновление тестов для новых интерфейсов
+3. **Обновление документации**: Убеждение что вся документация отражает текущий код
+4. **Release v0.2.2**: Создание и публикация релиза
+
+### 🎯 Готовность к релизу
+Кодовая база теперь более чистая, консистентная и следует лучшим практикам. Все критические вопросы были решены. Бот готов к релизу v0.2.2.
 
 ## [0.2.0] - 2025-01-17
 
@@ -109,7 +183,6 @@
 ## [0.1.0] - 2025-01-16
 
 ### 🎉 Первый релиз
-
 - Первый стабильный релиз с полной асинхронной архитектурой
 - Docker образы публикуются в GitHub Container Registry
 - Высокое покрытие тестами (~99%)
@@ -120,25 +193,25 @@
 ### Major Refactoring & Enhancements
 - **Full Asynchronous Architecture**: Migrated core components (`GoalManager`, `LLMClient`, `SheetsManager`) to fully asynchronous operations using `async/await`, `AsyncLLMClient`, and `AsyncSheetsManager`.
 - **Dependency Injection**: Introduced `AsyncStorageInterface` and `AsyncLLMInterface` for improved flexibility and testability of `GoalManager`.
-- **Test Suite Overhaul (Task #30)**: 
-    - Significantly increased test coverage across the project to ~99%.
-    - Conducted a thorough review and refactoring of all existing test files.
-    - Created new test suites for `handlers/common.py`, `utils/sentry_integration.py`, `utils/retry_decorators.py`, and `sheets/async_client.py`.
-    - Improved mocking strategies, including the adoption of `freezegun` for time-sensitive tests and `pytest-asyncio` for async fixtures.
-    - Addressed and resolved numerous issues identified by `mypy` and improved type hinting.
-- **API Documentation**: 
-    - Integrated Sphinx for automatic API documentation generation from docstrings.
-    - Set up GitHub Actions workflow to build and publish Sphinx documentation to GitHub Pages.
-    - Updated `README.md` with instructions for local documentation generation.
-- **CI/CD and Release Process**: 
-    - Enhanced `deploy/update-bot.sh` script to support deployments based on Git tags for releases.
-    - Configured Docker CI workflow (`docker.yml`) to build and publish Docker images to GitHub Container Registry (GHCR) upon new tag/release creation.
+- **Test Suite Overhaul (Task #30)**:
+  - Significantly increased test coverage across the project to ~99%.
+  - Conducted a thorough review and refactoring of all existing test files.
+  - Created new test suites for `handlers/common.py`, `utils/sentry_integration.py`, `utils/retry_decorators.py`, and `sheets/async_client.py`.
+  - Improved mocking strategies, including the adoption of `freezegun` for time-sensitive tests and `pytest-asyncio` for async fixtures.
+  - Addressed and resolved numerous issues identified by `mypy` and improved type hinting.
+- **API Documentation**:
+  - Integrated Sphinx for automatic API documentation generation from docstrings.
+  - Set up GitHub Actions workflow to build and publish Sphinx documentation to GitHub Pages.
+  - Updated `README.md` with instructions for local documentation generation.
+- **CI/CD and Release Process**:
+  - Enhanced `deploy/update-bot.sh` script to support deployments based on Git tags for releases.
+  - Configured Docker CI workflow (`docker.yml`) to build and publish Docker images to GitHub Container Registry (GHCR) upon new tag/release creation.
 
 ### Changed
-- **Code Quality**: 
-    - Systematically translated a significant portion of comments and docstrings to English.
-    - Resolved various pre-commit hook issues, particularly with `detect-secrets` and `mypy`.
-    - Standardized error handling for LLM and Sheets API calls using custom retry decorators.
+- **Code Quality**:
+  - Systematically translated a significant portion of comments and docstrings to English.
+  - Resolved various pre-commit hook issues, particularly with `detect-secrets` and `mypy`.
+  - Standardized error handling for LLM and Sheets API calls using custom retry decorators.
 - **LLM Interaction**: Improved robustness of `_extract_plan` in `AsyncLLMClient` for parsing LLM responses.
 - **Dependencies**: Added `freezegun` and `types-requests` to development/test dependencies.
 
@@ -176,53 +249,53 @@
 ## 1.2 — 2025-05-05
 
 ### Added
-* Миграция планировщика на `AsyncIOScheduler` (асинхронный режим по умолчанию).
-* Матрица тестов GitHub-Actions для Python 3.10–3.12 (`tests.yml`).
-* Отчёт о покрытии кода публикуется в Codecov.
-* Заглушки `google_credentials.json` и fallback-файл для стабильного CI.
-* Бейджи `Tests` и актуальные версии Python в README.
+- Миграция планировщика на `AsyncIOScheduler` (асинхронный режим по умолчанию).
+- Матрица тестов GitHub-Actions для Python 3.10–3.12 (`tests.yml`).
+- Отчёт о покрытии кода публикуется в Codecov.
+- Заглушки `google_credentials.json` и fallback-файл для стабильного CI.
+- Бейджи `Tests` и актуальные версии Python в README.
 
 ### Changed
-* `GoogleConfig` больше не `frozen=True` — позволяет monkeypatch в тестах.
-* README: уточнены названия листов, пути запуска, обновлены ссылки.
-* Тесты `SheetsManager` расширены, фиктивные файлы создаются через `conftest.py`.
-* Удалена зависимость `six`; APScheduler зафиксирован на 3.11.
+- `GoogleConfig` больше не `frozen=True` — позволяет monkeypatch в тестах.
+- README: уточнены названия листов, пути запуска, обновлены ссылки.
+- Тесты `SheetsManager` расширены, фиктивные файлы создаются через `conftest.py`.
+- Удалена зависимость `six`; APScheduler зафиксирован на 3.11.
 
 ### Removed
-* Удалена устаревшая ветка `chore/update-changelog-1.1` из origin.
+- Удалена устаревшая ветка `chore/update-changelog-1.1` из origin.
 
 ## 1.1 — 2025-05-02
 
 ### Added
-* Интеграция структурированного логгирования `structlog` и отправка ошибок в Sentry.
-* CI-workflow GitHub Actions с прогоном тестов и линтера.
-* Асинхронные клиенты Google Sheets и GoalManager (`set_new_goal_async`).
-* Заглушка пути `google_credentials.json` в тестах для независимости окружения.
+- Интеграция структурированного логгирования `structlog` и отправка ошибок в Sentry.
+- CI-workflow GitHub Actions с прогоном тестов и линтера.
+- Асинхронные клиенты Google Sheets и GoalManager (`set_new_goal_async`).
+- Заглушка пути `google_credentials.json` в тестах для независимости окружения.
 
 ### Changed
-* Расширены мок-классы `DummySpreadsheet` и `DummyWorksheet` для полного покрытия API.
-* Исправлены smoke-тесты, обновлена проверка `auto_resize`.
+- Расширены мок-классы `DummySpreadsheet` и `DummyWorksheet` для полного покрытия API.
+- Исправлены smoke-тесты, обновлена проверка `auto_resize`.
 
 ### Docs
-* README дополнен разделами Docker Compose и systemd.
-* Обновлена архитектурная документация.
+- README дополнен разделами Docker Compose и systemd.
+- Обновлена архитектурная документация.
 
 ## 1.0 — initial release
 
 ### Added
-* Базовый бот Telegram на python-telegram-bot 20.
-* Диалог /setgoal с интеграцией OpenAI.
-* Google Sheets хранение цели и плана.
-* Планировщик напоминаний `apscheduler`.
-* Команды: /start, /help, /today, /check, /status, /motivation, /reset.
-* Автоматический setup_commands.py для BotFather.
+- Базовый бот Telegram на python-telegram-bot 20.
+- Диалог /setgoal с интеграцией OpenAI.
+- Google Sheets хранение цели и плана.
+- Планировщик напоминаний `apscheduler`.
+- Команды: /start, /help, /today, /check, /status, /motivation, /reset.
+- Автоматический setup_commands.py для BotFather.
 
 ### Changed
-* Русифицированы подписи листа «Цель».
-* Формат даты – dd.mm.yyyy.
+- Русифицированы подписи листа «Цель».
+- Формат даты – dd.mm.yyyy.
 
 ### Removed
-* Удалены старые каталоги OLD/ и AnotherCrewCode/.
+- Удалены старые каталоги OLD/ и AnotherCrewCode/.
 
 ### Docs
-* README, install_ubuntu, architecture, user_guide. 
+- README, install_ubuntu, architecture, user_guide.
