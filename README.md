@@ -26,7 +26,7 @@
     <img src="https://codecov.io/gh/bivlked/target-assistant-bot/branch/main/graph/badge.svg" alt="Coverage Status">
   </a>
   <a href="https://www.python.org/downloads/">
-    <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python Version">
+    <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python Version">
   </a>
 </p>
 
