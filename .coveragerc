@@ -1,12 +1,32 @@
 [run]
+source = .
 omit =
-    handlers/*
-    sheets/*
-    deploy/*
+    */tests/*
+    */test_*
     setup_commands.py
     main.py
-    core/*
-    scheduler/*
-    llm/*
-    utils/period_parser.py
-    tests/* 
+    deploy/*
+    .venv/*
+    venv/*
+    */site-packages/*
+    scripts/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+precision = 2
+show_missing = True
+skip_covered = False
+
+[html]
+directory = htmlcov
