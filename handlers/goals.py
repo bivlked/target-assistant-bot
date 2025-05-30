@@ -370,7 +370,7 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
     except Exception as e:
-        logger.error(f"Error creating goal: {e}")
+        logger.error("Error creating goal", exc_info=e)
         await query.edit_message_text(
             "❌ Произошла ошибка при создании цели.\n" "Попробуйте еще раз позже."
         )

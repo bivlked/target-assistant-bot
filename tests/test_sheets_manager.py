@@ -68,7 +68,7 @@ def test_get_statistics_sync(manager_instance: tuple[SheetsManager, MagicMock]):
 
 
 def test_save_goal_info_formats_and_autowidth(
-    manager_instance: tuple[SheetsManager, MagicMock]
+    manager_instance: tuple[SheetsManager, MagicMock],
 ):
     """Tests formatting and auto-width calls during save_goal_info."""
     manager, mock_spreadsheet = manager_instance

@@ -46,7 +46,7 @@ async def async_manager_with_mock_sync() -> (
 
 @pytest.mark.asyncio
 async def test_async_create_spreadsheet(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     """Tests that AsyncSheetsManager.create_spreadsheet calls the sync version correctly."""
     async_mgr, mock_sync = async_manager_with_mock_sync
@@ -62,7 +62,7 @@ async def test_async_create_spreadsheet(
 
 @pytest.mark.asyncio
 async def test_async_save_goal_info(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -79,7 +79,7 @@ async def test_async_save_goal_info(
 
 @pytest.mark.asyncio
 async def test_async_save_plan(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -94,7 +94,7 @@ async def test_async_save_plan(
 
 @pytest.mark.asyncio
 async def test_async_get_statistics(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -110,7 +110,7 @@ async def test_async_get_statistics(
 
 @pytest.mark.asyncio
 async def test_async_clear_user_data(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -121,7 +121,7 @@ async def test_async_clear_user_data(
 
 @pytest.mark.asyncio
 async def test_async_get_goal_info(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -134,7 +134,7 @@ async def test_async_get_goal_info(
 
 @pytest.mark.asyncio
 async def test_async_get_task_for_date(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -148,7 +148,7 @@ async def test_async_get_task_for_date(
 
 @pytest.mark.asyncio
 async def test_async_update_task_status(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -161,7 +161,7 @@ async def test_async_update_task_status(
 
 @pytest.mark.asyncio
 async def test_async_batch_update_task_statuses(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -173,7 +173,7 @@ async def test_async_batch_update_task_statuses(
 
 @pytest.mark.asyncio
 async def test_async_get_spreadsheet_url(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -186,7 +186,7 @@ async def test_async_get_spreadsheet_url(
 
 @pytest.mark.asyncio
 async def test_async_get_extended_statistics(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
@@ -200,7 +200,7 @@ async def test_async_get_extended_statistics(
 
 @pytest.mark.asyncio
 async def test_async_delete_spreadsheet(
-    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock]
+    async_manager_with_mock_sync: tuple[AsyncSheetsManager, MagicMock],
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123

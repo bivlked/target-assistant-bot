@@ -62,7 +62,7 @@ async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
         context: The PTB context, containing the error in `context.error`.
     """
     error = context.error
-    logger.error("Error processing update=%s", update, exc_info=error)  # Translated log
+    logger.error("Error processing update=%s", update, exc_info=error)
 
     # Friendly message to the user
     if isinstance(error, BotError):
@@ -107,7 +107,7 @@ async def main_async():
     # /start depends on scheduler
     application.add_handler(CommandHandler("start", start_handler(scheduler)))
 
-    # Reset confirmation handlers (должны быть раньше goals handlers)
+    # Reset confirmation handlers (must be before goals handlers)
     application.add_handler(
         CallbackQueryHandler(confirm_reset, pattern="^confirm_reset$")
     )
@@ -139,7 +139,9 @@ async def main_async():
 
     # Start Prometheus metrics server
     start_http_server(prometheus_cfg.port)
-    logger.info(f"Prometheus metrics available on port {prometheus_cfg.port} /metrics")
+    logger.info(
+        "Prometheus metrics available", port=prometheus_cfg.port, path="/metrics"
+    )
 
     # Start scheduler AFTER application is initialized
     scheduler.start()
@@ -154,9 +156,9 @@ async def main_async():
             pyproject = tomllib.load(f)
             version = pyproject.get("project", {}).get("version", "unknown")
     except Exception:
-        version = "1.0.0"  # Fallback version
+        version = "0.2.2"  # Fallback version
 
-    logger.info(f"Bot started v{version} with multi-goal support")
+    logger.info("Bot started with multi-goal support", version=version)
     APP_INFO.labels(version=version).set(1)  # Set version metric
 
     # Start the bot

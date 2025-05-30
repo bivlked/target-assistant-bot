@@ -133,7 +133,7 @@ def test_get_extended_statistics_sync(mock_sheets_manager_for_stats: SheetsManag
 
 @pytest.mark.asyncio
 async def test_get_extended_statistics_async(
-    mock_async_sheets_manager_for_stats: Tuple[AsyncSheetsManager, MagicMock]
+    mock_async_sheets_manager_for_stats: Tuple[AsyncSheetsManager, MagicMock],
 ):
     """Tests asynchronous get_extended_statistics."""
     async_manager, sync_mock = mock_async_sheets_manager_for_stats
