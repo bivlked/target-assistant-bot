@@ -19,13 +19,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black ruff mypy
       - name: Ruff check
         run: ruff check .
       - name: Mypy type check
-        run: |
-          pip install mypy
-          mypy . --pretty
+        run: mypy . --pretty
 
   test:
     runs-on: ubuntu-latest
@@ -40,6 +37,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov pytest-mock
       - name: Run tests
-        run: pytest -q 
+        run: pytest -q --cov=. --cov-report=term --cov-fail-under=85
+      - name: Check placeholders (CI)
+        run: python scripts/forbid_placeholders.py
