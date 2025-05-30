@@ -61,7 +61,7 @@
     </tr>
     <tr>
       <td align="center"><strong>📊 Статус</strong></td>
-      <td>v0.2.1 - Production Ready с мульти-целями</td>
+      <td>v0.2.3 - Production Ready с мульти-целями</td>
     </tr>
     <tr>
       <td align="center"><strong>📄 Презентация</strong></td>
@@ -182,7 +182,7 @@
 
 | Компонент | Версия | Примечание |
 |-----------|--------|-----------|
-| 🐍 Python | 3.10+ | Рекомендуется 3.11-3.12 |
+| 🐍 Python | 3.11+ | Рекомендуется 3.11-3.12 |
 | 🤖 Telegram Bot Token | - | [Получить у @BotFather](https://t.me/BotFather) |
 | 🔑 OpenAI API Key | - | [Получить на OpenAI](https://platform.openai.com/api-keys) |
 | 📊 Google Service Account | - | [Инструкция в документации](docs/install_ubuntu.md#создание-google-service-account) |
