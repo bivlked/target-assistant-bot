@@ -6,7 +6,7 @@ authors = [
     { name = "bivlked" }
 ]
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 keywords = ["telegram", "bot", "goals", "openai", "google-sheets"]
 dependencies = [
@@ -31,14 +31,14 @@ dependencies = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 extend-select = ["E", "F"]
 ignore = ["F401", "F841", "E402", "F821", "E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
