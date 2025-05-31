@@ -1,89 +1,214 @@
-"""Tests for the asynchronous core.goal_manager.GoalManager."""
+"""Tests for the async GoalManager using AsyncStorageInterface and AsyncLLMInterface."""
 
 import pytest
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta, timezone  # Используем прямые импорты
-from freezegun import freeze_time  # Импорт freeze_time
+from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from freezegun import freeze_time  # Добавлен импорт freeze_time
 
 from core.goal_manager import (
     GoalManager,
     USER_FACING_STATUS_NOT_DONE,
     USER_FACING_STATUS_DONE,
     USER_FACING_STATUS_PARTIAL,
-    RateLimitException,
-)  # Import status constants and RateLimitException
-from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
+)
 from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
+from core.models import Goal, Task, GoalPriority, GoalStatus, GoalStatistics, TaskStatus
+from sheets.client import COL_DATE, COL_DAYOFWEEK, COL_TASK, COL_STATUS
 from utils.helpers import format_date as original_format_date_helper
 from utils.helpers import get_day_of_week as original_get_day_of_week_helper
+from utils.ratelimiter import RateLimitException
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 class DummyAsyncStorage(AsyncStorageInterface):
-    """Mock implementation of AsyncStorageInterface for testing GoalManager."""
+    """Dummy implementation of AsyncStorageInterface for testing."""
 
     def __init__(self):
-        """Initializes the mock storage, tracking method calls."""
+        """Initializes the dummy storage."""
         self.calls: Dict[str, Any] = {}
-        self._mock_task_for_date: Dict[str, Optional[Dict[str, Any]]] = {}
-        self._mock_extended_stats: Optional[Dict[str, Any]] = None
-        self._mock_goal_info: Optional[Dict[str, Any]] = None
-        self._mock_stats_str: Optional[str] = None
-        self.spreadsheet_url_to_return = "http://dummy_spreadsheet_url"
+        self.spreadsheet_url_to_return = "http://fake_url"
+        self._mock_task_for_date = {}
+        self._mock_stats_str = None
+        self._mock_goal_info = None
+        self._mock_extended_stats = None
+        self._mock_active_goals = []
 
     async def create_spreadsheet(self, user_id: int) -> None:
-        """(Mock) Simulates creating a spreadsheet."""
+        """Creates a spreadsheet for the user."""
+        logger.debug("DummyAsyncStorage: create_spreadsheet called", user_id=user_id)
         self.calls["create_spreadsheet"] = user_id
-        # pass # Or raise NotImplementedError if not expected to be called
 
     async def delete_spreadsheet(self, user_id: int) -> None:
-        """(Mock) Simulates deleting a spreadsheet."""
+        """Deletes the spreadsheet for the user."""
+        logger.debug("DummyAsyncStorage: delete_spreadsheet called", user_id=user_id)
         self.calls["delete_spreadsheet"] = user_id
-        # pass
 
     async def clear_user_data(self, user_id: int) -> None:
-        """(Mock) Simulates clearing user data."""
+        """Clears all user data."""
+        logger.debug("DummyAsyncStorage: clear_user_data called", user_id=user_id)
         self.calls["clear_user_data"] = user_id
 
-    async def save_goal_info(self, user_id: int, info: Dict[str, Any]) -> str:
-        """(Mock) Simulates saving goal information."""
-        self.calls["save_goal_info"] = (user_id, info)
+    async def get_active_goals(self, user_id: int) -> list:
+        """Gets active goals for the user."""
+        logger.debug("DummyAsyncStorage: get_active_goals called", user_id=user_id)
+        self.calls["get_active_goals"] = user_id
+        return self._mock_active_goals
+
+    async def archive_goal(self, user_id: int, goal_id: int) -> None:
+        """Archives a goal."""
+        logger.debug(
+            "DummyAsyncStorage: archive_goal called", user_id=user_id, goal_id=goal_id
+        )
+        self.calls[f"archive_goal_{user_id}_{goal_id}"] = True
+
+    async def save_goal_info(self, user_id: int, goal: Goal) -> str:
+        """Saves goal info and returns URL."""
+        logger.debug("DummyAsyncStorage: save_goal_info called", user_id=user_id)
+        # Convert Goal to dict for test compatibility
+        info = {
+            "Глобальная цель": goal.description,
+            "Срок выполнения": goal.deadline,
+            "Затраты в день": goal.daily_time,
+            "Начало выполнения": goal.start_date,
+        }
+        self.calls["save_goal_info"] = user_id, info
         return self.spreadsheet_url_to_return
 
-    async def save_plan(self, user_id: int, plan: List[Dict[str, Any]]) -> None:
-        """(Mock) Simulates saving a goal plan."""
-        self.calls["save_plan"] = (user_id, plan)
+    async def save_plan(
+        self, user_id: int, goal_id: int, plan: List[Dict[str, Any]]
+    ) -> None:
+        """Saves the plan."""
+        logger.debug(
+            "DummyAsyncStorage: save_plan called", user_id=user_id, goal_id=goal_id
+        )
+        self.calls["save_plan"] = user_id, plan
+
+    async def save_goal_and_plan(
+        self, user_id: int, goal_info: Dict[str, str], plan: List[Dict[str, Any]]
+    ) -> str:
+        """Saves goal info and plan together."""
+        logger.debug("DummyAsyncStorage: save_goal_and_plan called", user_id=user_id)
+        # Create a Goal object for save_goal_info
+        goal = Goal(
+            goal_id=1,
+            name="Test Goal",
+            description=goal_info.get("Глобальная цель", ""),
+            deadline=goal_info.get("Срок выполнения", ""),
+            daily_time=goal_info.get("Затраты в день", ""),
+            start_date=goal_info.get("Начало выполнения", ""),
+            status=GoalStatus.ACTIVE,
+            priority=GoalPriority.MEDIUM,
+            tags=[],
+        )
+        await self.save_goal_info(user_id, goal)
+        await self.save_plan(user_id, 1, plan)  # Use goal_id=1 for legacy compatibility
+        return self.spreadsheet_url_to_return
 
     async def get_task_for_date(
-        self, user_id: int, date: str
-    ) -> Optional[Dict[str, Any]]:
-        """(Mock) Simulates retrieving a task for a specific date."""
-        self.calls[f"get_task_for_date_{user_id}_{date}"] = True
-        return self._mock_task_for_date.get(date)
+        self, user_id: int, goal_id: int, date: str
+    ) -> Optional[Task]:
+        """Gets task for a specific date."""
+        logger.debug(
+            "DummyAsyncStorage: get_task_for_date called",
+            user_id=user_id,
+            goal_id=goal_id,
+            date=date,
+        )
+        self.calls[f"get_task_for_date_{user_id}_{goal_id}_{date}"] = True
+        task_dict = self._mock_task_for_date.get(date)
+        if task_dict:
+            # Convert dict to Task object
+            status_str = task_dict.get(COL_STATUS, USER_FACING_STATUS_NOT_DONE)
+            task_status = TaskStatus.NOT_DONE  # Default
+            if status_str == USER_FACING_STATUS_DONE:
+                task_status = TaskStatus.DONE
+            elif status_str == USER_FACING_STATUS_PARTIAL:
+                task_status = TaskStatus.PARTIALLY_DONE
 
-    async def update_task_status(self, user_id: int, date: str, status: str) -> None:
-        """(Mock) Simulates updating a task status."""
+            return Task(
+                date=task_dict.get(COL_DATE, date),
+                day_of_week=task_dict.get(COL_DAYOFWEEK, ""),
+                task=task_dict.get(COL_TASK, ""),
+                status=task_status,
+                goal_id=goal_id,
+                goal_name="",
+            )
+        return None
+
+    async def get_task_for_today(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Gets task for today."""
+        from utils.helpers import format_date
+        from datetime import datetime
+
+        today = format_date(datetime.now())
+        logger.debug(
+            "DummyAsyncStorage: get_task_for_today called", user_id=user_id, today=today
+        )
+        self.calls[f"get_task_for_date_{user_id}_{today}"] = True
+        return self._mock_task_for_date.get(today)
+
+    async def update_task_status(
+        self, user_id: int, goal_id: int, date: str, status: str
+    ) -> None:
+        """Updates task status."""
+        logger.debug(
+            "DummyAsyncStorage: update_task_status called",
+            user_id=user_id,
+            goal_id=goal_id,
+            date=date,
+            status=status,
+        )
+        self.calls[f"update_task_status_{user_id}_{goal_id}_{date}_{status}"] = True
+
+    async def update_task_status_old(
+        self, user_id: int, date: str, status: str
+    ) -> None:
+        """Updates task status (legacy method)."""
+        logger.debug(
+            "DummyAsyncStorage: update_task_status_old called",
+            user_id=user_id,
+            date=date,
+            status=status,
+        )
         self.calls[f"update_task_status_{user_id}_{date}_{status}"] = True
-        # pass
 
     async def batch_update_task_statuses(
-        self, user_id: int, updates: Dict[str, str]
+        self, user_id: int, updates: Dict[tuple[int, str], str]
     ) -> None:
-        """(Mock) Simulates batch updating task statuses."""
+        """Batch updates task statuses."""
+        logger.debug(
+            "DummyAsyncStorage: batch_update_task_statuses called", user_id=user_id
+        )
+        # Convert back to legacy format for test compatibility
+        legacy_updates = {date: status for (goal_id, date), status in updates.items()}
         self.calls["batch_update_task_statuses"] = {
             "user_id": user_id,
-            "updates": updates,
+            "updates": legacy_updates,
         }
-        # pass
 
     async def get_statistics(self, user_id: int) -> str:
-        """(Mock) Simulates retrieving goal statistics (simple string)."""
+        """Gets statistics."""
+        logger.debug("DummyAsyncStorage: get_statistics called", user_id=user_id)
         self.calls[f"get_statistics_{user_id}"] = True
         if self._mock_stats_str is not None:
             return self._mock_stats_str
-        return "Default dummy statistics string"
+        return "Default stats"
 
-    async def get_extended_statistics(self, user_id: int) -> Dict[str, Any]:
-        """(Mock) Simulates retrieving extended goal statistics."""
+    async def get_status_message(self, user_id: int) -> str:
+        """Gets status message (alias for get_statistics)."""
+        return await self.get_statistics(user_id)
+
+    async def get_extended_statistics(
+        self, user_id: int, count: int = 7
+    ) -> Dict[str, Any]:
+        """Gets extended statistics."""
+        logger.debug(
+            "DummyAsyncStorage: get_extended_statistics called",
+            user_id=user_id,
+            count=count,
+        )
         self.calls[f"get_extended_statistics_{user_id}"] = True
         if self._mock_extended_stats is not None:
             return self._mock_extended_stats
@@ -97,12 +222,132 @@ class DummyAsyncStorage(AsyncStorageInterface):
             "sheet_url": "",
         }
 
-    async def get_goal_info(self, user_id: int) -> Dict[str, Any]:
-        """(Mock) Simulates retrieving goal information."""
+    async def get_goal_info(self, user_id: int) -> Dict[str, str]:
+        """Gets goal info."""
+        logger.debug("DummyAsyncStorage: get_goal_info called", user_id=user_id)
         self.calls[f"get_goal_info_{user_id}"] = True
         if self._mock_goal_info is not None:
             return self._mock_goal_info
-        return {"Глобальная цель": "Default Dummy Goal"}
+        return {}
+
+    async def get_all_goals(self, user_id: int) -> List[Goal]:
+        """Get all goals for a user."""
+        logger.debug("DummyAsyncStorage: get_all_goals called", user_id=user_id)
+        self.calls["get_all_goals"] = user_id
+        return self._mock_active_goals
+
+    async def get_goal_by_id(self, user_id: int, goal_id: int) -> Optional[Goal]:
+        """Get a specific goal by ID."""
+        logger.debug(
+            "DummyAsyncStorage: get_goal_by_id called", user_id=user_id, goal_id=goal_id
+        )
+        self.calls[f"get_goal_by_id_{user_id}_{goal_id}"] = True
+        for goal in self._mock_active_goals:
+            if goal.goal_id == goal_id:
+                return goal
+        return None
+
+    async def get_active_goals_count(self, user_id: int) -> int:
+        """Count active goals."""
+        logger.debug(
+            "DummyAsyncStorage: get_active_goals_count called", user_id=user_id
+        )
+        self.calls["get_active_goals_count"] = user_id
+        return len(self._mock_active_goals)
+
+    async def get_next_goal_id(self, user_id: int) -> int:
+        """Get next available goal ID."""
+        logger.debug("DummyAsyncStorage: get_next_goal_id called", user_id=user_id)
+        self.calls["get_next_goal_id"] = user_id
+        return len(self._mock_active_goals) + 1
+
+    async def update_goal_status(
+        self, user_id: int, goal_id: int, status: GoalStatus
+    ) -> None:
+        """Update goal status."""
+        logger.debug(
+            "DummyAsyncStorage: update_goal_status called",
+            user_id=user_id,
+            goal_id=goal_id,
+            status=status,
+        )
+        self.calls[f"update_goal_status_{user_id}_{goal_id}_{status}"] = True
+
+    async def update_goal_progress(
+        self, user_id: int, goal_id: int, progress: int
+    ) -> None:
+        """Update goal progress percentage."""
+        logger.debug(
+            "DummyAsyncStorage: update_goal_progress called",
+            user_id=user_id,
+            goal_id=goal_id,
+            progress=progress,
+        )
+        self.calls[f"update_goal_progress_{user_id}_{goal_id}_{progress}"] = True
+
+    async def update_goal_priority(
+        self, user_id: int, goal_id: int, priority: GoalPriority
+    ) -> None:
+        """Update goal priority."""
+        logger.debug(
+            "DummyAsyncStorage: update_goal_priority called",
+            user_id=user_id,
+            goal_id=goal_id,
+            priority=priority,
+        )
+        self.calls[f"update_goal_priority_{user_id}_{goal_id}_{priority}"] = True
+
+    async def delete_goal(self, user_id: int, goal_id: int) -> None:
+        """Delete a goal completely."""
+        logger.debug(
+            "DummyAsyncStorage: delete_goal called", user_id=user_id, goal_id=goal_id
+        )
+        self.calls[f"delete_goal_{user_id}_{goal_id}"] = True
+
+    async def get_plan_for_goal(self, user_id: int, goal_id: int) -> List[Task]:
+        """Get plan for a specific goal."""
+        logger.debug(
+            "DummyAsyncStorage: get_plan_for_goal called",
+            user_id=user_id,
+            goal_id=goal_id,
+        )
+        self.calls[f"get_plan_for_goal_{user_id}_{goal_id}"] = True
+        return []
+
+    async def get_all_tasks_for_date(self, user_id: int, date: str) -> List[Task]:
+        """Get all tasks for a specific date."""
+        logger.debug(
+            "DummyAsyncStorage: get_all_tasks_for_date called",
+            user_id=user_id,
+            date=date,
+        )
+        self.calls[f"get_all_tasks_for_date_{user_id}_{date}"] = True
+        return []
+
+    async def get_goal_statistics(self, user_id: int, goal_id: int) -> GoalStatistics:
+        """Get statistics for a specific goal."""
+        logger.debug(
+            "DummyAsyncStorage: get_goal_statistics called",
+            user_id=user_id,
+            goal_id=goal_id,
+        )
+        self.calls[f"get_goal_statistics_{user_id}_{goal_id}"] = True
+        return GoalStatistics(
+            total_tasks=0,
+            completed_tasks=0,
+            progress_percent=0,
+            days_elapsed=0,
+            days_remaining=0,
+            completion_rate=0.0,
+        )
+
+    async def get_overall_statistics(self, user_id: int) -> Dict[str, Any]:
+        """Get overall statistics for all goals."""
+        logger.debug(
+            "DummyAsyncStorage: get_overall_statistics called", user_id=user_id
+        )
+        self.calls[f"get_overall_statistics_{user_id}"] = True
+        return {}
 
 
 class DummyAsyncLLM(AsyncLLMInterface):
@@ -262,7 +507,7 @@ async def test_get_today_task_found(monkeypatch: pytest.MonkeyPatch):
     task = await gm.get_today_task(user_id)
 
     assert task == expected_task
-    assert storage_mock.calls[f"get_task_for_date_{user_id}_{today_date_str}"]
+    assert f"get_task_for_date_{user_id}_{today_date_str}" in storage_mock.calls
 
 
 @pytest.mark.asyncio
@@ -281,7 +526,7 @@ async def test_get_today_task_not_found(monkeypatch: pytest.MonkeyPatch):
     task = await gm.get_today_task(user_id)
 
     assert task is None
-    assert storage_mock.calls[f"get_task_for_date_{user_id}_{today_date_str}"]
+    assert f"get_task_for_date_{user_id}_{today_date_str}" in storage_mock.calls
 
 
 @pytest.mark.asyncio
@@ -586,9 +831,10 @@ async def test_generate_motivation_rate_limit_not_exceeded(
     assert result == expected_motivation
     assert len(mock_limiter.check_limit_called_with) == 1
     assert mock_limiter.check_limit_called_with[0] == (user_id, 1)
-    assert llm_mock.calls[
-        (f"generate_motivation_{mock_goal_data['Глобальная цель']}_{mock_stats_str}")
-    ]
+    assert (
+        f"generate_motivation_{mock_goal_data['Глобальная цель']}_{mock_stats_str}"
+        in llm_mock.calls
+    )
 
 
 @pytest.mark.asyncio
