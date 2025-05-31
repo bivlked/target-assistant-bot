@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio  # Добавляем импорт
 from typing import List, Dict, Tuple
 from freezegun import freeze_time  # Import freezegun
-from unittest.mock import MagicMock  # For mocking managers if needed
+from unittest.mock import MagicMock, patch  # For mocking managers if needed
 
 from sheets.client import (
     SheetsManager,
@@ -129,9 +129,9 @@ def test_get_extended_statistics_sync(mock_sheets_manager_for_stats: SheetsManag
         progress_percent=33,
     )
 
-    # Патчим методы для multi-goal архитектуры
-    manager.get_active_goals = MagicMock(return_value=[mock_goal])
-    manager.get_goal_statistics = MagicMock(
+    # Создаем моки для методов
+    mock_get_active_goals = MagicMock(return_value=[mock_goal])
+    mock_get_goal_statistics = MagicMock(
         return_value=MagicMock(
             total_tasks=3,
             completed_tasks=1,
@@ -141,7 +141,7 @@ def test_get_extended_statistics_sync(mock_sheets_manager_for_stats: SheetsManag
             completion_rate=1.0,
         )
     )
-    manager.get_plan_for_goal = MagicMock(
+    mock_get_plan_for_goal = MagicMock(
         return_value=[
             MagicMock(
                 date="01.05.2025",
@@ -164,7 +164,15 @@ def test_get_extended_statistics_sync(mock_sheets_manager_for_stats: SheetsManag
         ]
     )
 
-    stats = manager.get_extended_statistics(user_id=11)
+    # Используем unittest.mock.patch.object для патчинга методов
+
+    with (
+        patch.object(manager, "get_active_goals", mock_get_active_goals),
+        patch.object(manager, "get_goal_statistics", mock_get_goal_statistics),
+        patch.object(manager, "get_plan_for_goal", mock_get_plan_for_goal),
+    ):
+
+        stats = manager.get_extended_statistics(user_id=11)
 
     assert stats["total_days"] == 3
     assert stats["completed_days"] == 1
