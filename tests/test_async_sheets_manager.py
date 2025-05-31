@@ -7,6 +7,7 @@ from typing import Tuple, AsyncGenerator  # Добавляем AsyncGenerator
 
 from sheets.async_client import AsyncSheetsManager
 from sheets.client import SheetsManager  # Нужен для spec в MagicMock
+from core.models import Goal, GoalStatus, GoalPriority  # Добавляем импорты моделей
 
 
 @pytest_asyncio.fixture
@@ -66,7 +67,17 @@ async def test_async_save_goal_info(
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
-    goal_data = {"goal": "test goal"}
+    goal_data = Goal(
+        goal_id=1,
+        name="test goal",
+        description="test description",
+        deadline="1 месяц",
+        daily_time="30 минут",
+        start_date="01.01.2025",
+        status=GoalStatus.ACTIVE,
+        priority=GoalPriority.MEDIUM,
+        tags=["test"],
+    )
     expected_url = "http://fake.url/sheet"
 
     mock_sync.save_goal_info = MagicMock(return_value=expected_url)
@@ -83,13 +94,14 @@ async def test_async_save_plan(
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
+    goal_id = 1
     plan_data = [{"task": "test task"}]
 
     mock_sync.save_plan = MagicMock()
 
-    await async_mgr.save_plan(user_id, plan_data)
+    await async_mgr.save_plan(user_id, goal_id, plan_data)
 
-    mock_sync.save_plan.assert_called_once_with(user_id, plan_data)
+    mock_sync.save_plan.assert_called_once_with(user_id, goal_id, plan_data)
 
 
 @pytest.mark.asyncio
@@ -100,12 +112,13 @@ async def test_async_get_statistics(
     user_id = 123
     expected_stats = "stats string"
 
-    mock_sync.get_statistics = MagicMock(return_value=expected_stats)
+    # get_statistics is an alias for get_status_message
+    mock_sync.get_status_message = MagicMock(return_value=expected_stats)
 
     stats = await async_mgr.get_statistics(user_id)
 
     assert stats == expected_stats
-    mock_sync.get_statistics.assert_called_once_with(user_id)
+    mock_sync.get_status_message.assert_called_once_with(user_id)
 
 
 @pytest.mark.asyncio
@@ -138,12 +151,13 @@ async def test_async_get_task_for_date(
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
+    goal_id = 1
     date_str = "01.01.2025"
     expected_task = {"task": "some_task"}
     mock_sync.get_task_for_date = MagicMock(return_value=expected_task)
-    task = await async_mgr.get_task_for_date(user_id, date_str)
+    task = await async_mgr.get_task_for_date(user_id, goal_id, date_str)
     assert task == expected_task
-    mock_sync.get_task_for_date.assert_called_once_with(user_id, date_str)
+    mock_sync.get_task_for_date.assert_called_once_with(user_id, goal_id, date_str)
 
 
 @pytest.mark.asyncio
@@ -152,11 +166,14 @@ async def test_async_update_task_status(
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
+    goal_id = 1
     date_str = "01.01.2025"
     status = "Выполнено"
     mock_sync.update_task_status = MagicMock()
-    await async_mgr.update_task_status(user_id, date_str, status)
-    mock_sync.update_task_status.assert_called_once_with(user_id, date_str, status)
+    await async_mgr.update_task_status(user_id, goal_id, date_str, status)
+    mock_sync.update_task_status.assert_called_once_with(
+        user_id, goal_id, date_str, status
+    )
 
 
 @pytest.mark.asyncio
@@ -165,7 +182,7 @@ async def test_async_batch_update_task_statuses(
 ):
     async_mgr, mock_sync = async_manager_with_mock_sync
     user_id = 123
-    updates = {"01.01.2025": "Выполнено"}
+    updates = {(1, "01.01.2025"): "Выполнено", (2, "02.01.2025"): "Не выполнено"}
     mock_sync.batch_update_task_statuses = MagicMock()
     await async_mgr.batch_update_task_statuses(user_id, updates)
     mock_sync.batch_update_task_statuses.assert_called_once_with(user_id, updates)
