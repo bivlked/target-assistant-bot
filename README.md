@@ -1,333 +1,434 @@
-<h1 align="center">
-  <img src=".github/assets/logo.svg" alt="Target Assistant Bot" width="200" height="200">
-  <br>
-  🎯 Target Assistant Bot
-</h1>
+<div align="center">
+  <img src="https://raw.githubusercontent.com/bivlked/target-assistant-bot/main/.github/assets/logo.svg" alt="Target Assistant Bot Logo" width="250" height="250">
+  
+  <h1>🎯 Target Assistant Bot</h1>
+  
+  <p>
+    <strong>Ваш персональный AI-ассистент для достижения любых целей</strong><br>
+    <sub>Умный помощник, который разбивает большие цели на ежедневные задачи и следит за прогрессом</sub>
+  </p>
 
-<p align="center">
-  <strong>Ваш персональный ассистент для достижения целей</strong>
-</p>
+  <p>
+    <a href="README_EN.md">🌐 English Version</a> •
+    <a href="#-ключевые-возможности">✨ Возможности</a> •
+    <a href="#-быстрый-старт">🚀 Быстрый старт</a> •
+    <a href="#-документация">📚 Документация</a> •
+    <a href="#-демо">🎬 Демо</a>
+  </p>
 
-<p align="center">
-  <a href="README_EN.md">🌐 English</a> •
-  <a href="#-возможности">✨ Возможности</a> •
-  <a href="#-быстрый-старт">🚀 Быстрый старт</a> •
-  <a href="#-документация-и-ресурсы">📚 Документация</a>
-</p>
+  <!-- Основные бейджи -->
+  <p>
+    <a href="https://github.com/bivlked/target-assistant-bot/releases/latest">
+      <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot?style=for-the-badge&logo=github&label=Версия&color=blue" alt="Latest Release">
+    </a>
+    <a href="https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/bivlked/target-assistant-bot/tests.yml?branch=main&style=for-the-badge&logo=github-actions&label=Тесты" alt="Tests Status">
+    </a>
+    <a href="https://codecov.io/gh/bivlked/target-assistant-bot">
+      <img src="https://img.shields.io/codecov/c/github/bivlked/target-assistant-bot?style=for-the-badge&logo=codecov&label=Покрытие" alt="Code Coverage">
+    </a>
+    <a href="https://github.com/bivlked/target-assistant-bot/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=for-the-badge&label=Лицензия" alt="License">
+    </a>
+  </p>
 
-<p align="center">
-  <a href="https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml">
-    <img src="https://github.com/bivlked/target-assistant-bot/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
-  </a>
-  <a href="https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml">
-    <img src="https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml/badge.svg" alt="Tests & Coverage">
-  </a>
-  <a href="https://codecov.io/gh/bivlked/target-assistant-bot">
-    <img src="https://codecov.io/gh/bivlked/target-assistant-bot/branch/main/graph/badge.svg" alt="Coverage Status">
-  </a>
-  <a href="https://www.python.org/downloads/">
-    <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python Version">
-  </a>
-</p>
+  <!-- Технологии -->
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Bot API">
+    <img src="https://img.shields.io/badge/OpenAI-GPT--4-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI">
+    <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=for-the-badge&logo=google-sheets&logoColor=white" alt="Google Sheets">
+    <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  </p>
 
-<p align="center">
-  <a href="https://github.com/psf/black">
-    <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
-  </a>
-  <a href="https://conventionalcommits.org">
-    <img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white" alt="Conventional Commits">
-  </a>
-  <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT">
-  </a>
-  <a href="https://github.com/bivlked/target-assistant-bot/releases/latest">
-    <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot.svg" alt="GitHub Release">
-  </a>
-</p>
+  <!-- Дополнительные бейджи -->
+  <p>
+    <a href="https://github.com/psf/black">
+      <img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square" alt="Code style: black">
+    </a>
+    <a href="https://github.com/charliermarsh/ruff">
+      <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json&style=flat-square" alt="Ruff">
+    </a>
+    <a href="https://mypy-lang.org/">
+      <img src="https://img.shields.io/badge/type_checker-mypy-blue?style=flat-square" alt="Checked with mypy">
+    </a>
+    <a href="https://github.com/bivlked/target-assistant-bot/commits/main">
+      <img src="https://img.shields.io/github/last-commit/bivlked/target-assistant-bot?style=flat-square&logo=github" alt="Last Commit">
+    </a>
+    <a href="https://github.com/bivlked/target-assistant-bot/issues">
+      <img src="https://img.shields.io/github/issues/bivlked/target-assistant-bot?style=flat-square&logo=github" alt="Issues">
+    </a>
+  </p>
+</div>
 
 ---
-
-Персональный Telegram-бот-ассистент, который помогает формулировать цели, разбивать их на ежедневные задачи и отслеживать прогресс с сохранением в Google Sheets. **Теперь с поддержкой до 10 одновременных целей!**
 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><strong>🚀 Цель проекта</strong></td>
-      <td>Создать умного и отзывчивого помощника для эффективного движения к долгосрочным целям</td>
-    </tr>
-    <tr>
-      <td align="center"><strong>🎯 Ключевые технологии</strong></td>
-      <td>Python • python-telegram-bot • OpenAI API • Google Sheets API</td>
-    </tr>
-    <tr>
-      <td align="center"><strong>📊 Статус</strong></td>
-      <td>v0.2.3 - Production Ready с мульти-целями</td>
-    </tr>
-    <tr>
-      <td align="center"><strong>📄 Презентация</strong></td>
-      <td><a href="Персональный%20ассистент%20для%20помощи%20в%20достижении%20поставленных%20целей.pdf">Полная презентация проекта (PDF, RU)</a></td>
+      <td align="center" width="33%">
+        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Rocket.png" width="100px">
+        <br>
+        <strong>Мгновенный старт</strong>
+        <br>
+        <sub>Начните достигать целей через 5 минут</sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Brain.png" width="100px">
+        <br>
+        <strong>Умный AI-планировщик</strong>
+        <br>
+        <sub>GPT-4 создает оптимальные планы</sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Chart%20Increasing.png" width="100px">
+        <br>
+        <strong>Отслеживание прогресса</strong>
+        <br>
+        <sub>Визуализация в Google Sheets</sub>
+      </td>
     </tr>
   </table>
 </div>
 
----
-
-## ✨ Новые возможности в v0.2.0
-
-### 🎯 Множественные цели
-- **До 10 активных целей одновременно** - больше никаких ограничений одной целью
-- **Приоритеты** - высокий 🔴, средний 🟡, низкий 🟢 для лучшей организации
-- **Теги** - группируйте цели по категориям (работа, здоровье, саморазвитие)
-- **Статусы** - активные, завершенные, архивированные цели
-
-### 📊 Улучшенная аналитика
-- **Общая статистика** по всем целям с прогрессом
-- **Детальная аналитика** для каждой цели отдельно
-- **Отслеживание** дней до завершения и темпа выполнения
-
-### 🎮 Интерактивный интерфейс
-- **Inline-кнопки** для быстрых действий
-- **Wizard создания целей** с пошаговым руководством
-- **Управление целями** через удобные меню
-
-## 💡 Примеры использования
-
-### 🌟 Новый сценарий: Управление множественными целями
-
-Представьте, что у вас есть несколько целей:
-1. "Изучить Python за 3 месяца" (🔴 высокий приоритет)
-2. "Пробежать полумарафон" (🟡 средний приоритет) 
-3. "Прочитать 20 книг за год" (🟢 низкий приоритет)
-
-**Создание первой цели:**
-1. **Вы**: `/start`
-   **Бот**: 🎯 Добро пожаловать в Target Assistant Bot! Я помогу вам управлять до 10 целями одновременно...
-2. **Вы**: `/my_goals`
-   **Бот**: 📝 У вас пока нет целей. Используйте /add_goal для создания новой цели.
-3. **Вы**: Нажимаете кнопку "➕ Добавить цель"
-   **Бот**: 🎯 Создание новой цели. Шаг 1/6: Введите короткое название цели...
-
-**Управление несколькими целями:**
-4. **Вы**: `/today`
-   **Бот**: 📅 Задачи на сегодня:
-   🔴 **Изучение Python**: Освоить основы ООП в Python
-   🟡 **Полумарафон**: Пробежать 5 км в медленном темпе
-   🟢 **Чтение книг**: Прочитать 30 страниц "Чистый код"
-
-5. **Вы**: `/status`
-   **Бот**: 📊 Общий статус целей:
-   • Всего целей: 3
-   • Активных: 3
-   • Общий прогресс: 35%
-   
-   🎯 Активные цели:
-   🔴 **Изучение Python** - 45% • 📅 15.04.2025
-   🟡 **Полумарафон** - 30% • 📅 01.05.2025
-   🟢 **Чтение книг** - 25% • 📅 31.12.2025
-
-### ☀️ Новое ежедневное взаимодействие
-
-**Утреннее напоминание (автоматическое):**
-**Бот**: ☀️ Доброе утро! Ваши задачи на сегодня:
-• **Изучение Python**: Создать первый класс в Python
-• **Полумарафон**: Легкая пробежка 3 км
-
-[📝 Отметить выполнение] [📊 Общий статус]
-
-**Быстрая отметка выполнения:**
-**Вы**: Нажимаете "📝 Отметить выполнение"
-**Бот**: 📝 Выберите задачу для обновления статуса:
-- Изучение Python: Создать первый класс...
-- Полумарафон: Легкая пробежка 3 км
-
----
-
-## 🛠️ Возможности
-
-### Основные команды
-
-| Команда | Описание |
-|---------|----------|
-| `/start` | 🚀 Начать работу с ботом |
-| `/help`  | ℹ️ Справка по доступным командам |
-| `/my_goals` | 🎯 **[НОВОЕ]** Управление всеми целями - главная команда |
-| `/add_goal` | ➕ **[НОВОЕ]** Создать новую цель через интерактивный интерфейс |
-| `/setgoal` | 🎯 Создать цель через текстовый диалог (legacy) |
-| `/today` | 📅 **[ОБНОВЛЕНО]** Все задачи на сегодня из всех активных целей |
-| `/check` | ✍️ **[ОБНОВЛЕНО]** Отметить выполнение с выбором конкретной цели |
-| `/status` | 📊 **[ОБНОВЛЕНО]** Общий прогресс по всем целям |
-| `/motivation` | 💡 **[ОБНОВЛЕНО]** Мотивация на основе всех ваших целей |
-| `/cancel` | ⛔ Отменить текущую операцию |
-| `/reset` | 🗑️ Сбросить все цели (удалить данные полностью) |
-
-### Новые возможности
-
-- **🎯 До 10 одновременных целей** - работайте над несколькими направлениями
-- **📊 Приоритеты** - высокий (🔴), средний (🟡), низкий (🟢)
-- **🏷️ Теги** - организуйте цели по категориям
-- **📋 Интерактивное управление** - кнопки для всех действий
-- **📈 Расширенная статистика** - детальная аналитика по каждой цели
-- **🔄 Автомиграция** - существующие цели автоматически переносятся в новый формат
-
-### Структура хранения данных
-
-Бот создает индивидуальную Google-таблицу с улучшенной структурой:
-* **"Список целей"** — главный лист со всеми вашими целями, их статусами и прогрессом
-* **"Цель 1", "Цель 2", ..., "Цель 10"** — отдельные листы с планами для каждой цели
-* **Автоматическая миграция** — существующие данные переносятся в новый формат
-
-## 📋 Требования
+## 🎬 Демо
 
 <div align="center">
-
-| Компонент | Версия | Примечание |
-|-----------|--------|-----------|
-| 🐍 Python | 3.11+ | Рекомендуется 3.11-3.12 |
-| 🤖 Telegram Bot Token | - | [Получить у @BotFather](https://t.me/BotFather) |
-| 🔑 OpenAI API Key | - | [Получить на OpenAI](https://platform.openai.com/api-keys) |
-| 📊 Google Service Account | - | [Инструкция в документации](docs/install_ubuntu.md#создание-google-service-account) |
-
+  <img src="https://user-images.githubusercontent.com/placeholder/demo.gif" alt="Demo" width="600">
+  <br>
+  <sub>🎥 Посмотрите, как Target Assistant Bot помогает достигать целей</sub>
 </div>
 
-## 🚀 Быстрый старт (локально с `venv`)
+## 🌟 Ключевые возможности
+
+### 🎯 Управление множественными целями
+- **До 10 активных целей** одновременно
+- **Приоритеты**: 🔴 Высокий • 🟡 Средний • 🟢 Низкий
+- **Теги** для группировки: #работа #здоровье #саморазвитие
+- **Статусы**: ✅ Активная • 🏆 Завершенная • 📦 В архиве
+
+### 🤖 AI-планирование с GPT-4
+- Автоматическое создание **SMART-планов**
+- Разбивка на **ежедневные задачи**
+- Учет вашего **расписания и возможностей**
+- **Адаптивная корректировка** планов
+
+### 📊 Аналитика и отчеты
+- **Реальный прогресс** по каждой цели
+- **Статистика выполнения** задач
+- **Прогнозы** достижения целей
+- **Экспорт в Google Sheets**
+
+### 💬 Удобный интерфейс
+- **Inline-кнопки** для быстрых действий
+- **Пошаговый wizard** создания целей
+- **Умные напоминания** в нужное время
+- **Мотивационные сообщения** от AI
+
+## 📊 Архитектура системы
+
+```mermaid
+graph TB
+    subgraph "👤 Пользователь"
+        A[Telegram App]
+    end
+    
+    subgraph "🤖 Target Assistant Bot"
+        B[Bot Interface]
+        C[Goal Manager]
+        D[Task Scheduler]
+        E[Analytics Engine]
+    end
+    
+    subgraph "🧠 AI Services"
+        F[OpenAI GPT-4]
+        G[Plan Generator]
+        H[Motivation Engine]
+    end
+    
+    subgraph "💾 Data Storage"
+        I[Google Sheets API]
+        J[User Goals]
+        K[Daily Tasks]
+        L[Progress Tracking]
+    end
+    
+    A <--> B
+    B --> C
+    C --> D
+    C --> E
+    C <--> G
+    G <--> F
+    H <--> F
+    D --> H
+    C <--> I
+    I --> J
+    I --> K
+    I --> L
+    
+    style A fill:#2CA5E0,stroke:#fff,color:#fff
+    style F fill:#412991,stroke:#fff,color:#fff
+    style I fill:#34A853,stroke:#fff,color:#fff
+```
+
+## 🚀 Быстрый старт
+
+### 🐳 Запуск через Docker (рекомендуется)
 
 ```bash
+# 1. Клонируйте репозиторий
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+
+# 2. Создайте файл с настройками
+cp .env.example .env
+
+# 3. Заполните обязательные параметры в .env:
+# - TELEGRAM_BOT_TOKEN (получите у @BotFather)
+# - OPENAI_API_KEY (получите на platform.openai.com)
+# - Добавьте google_credentials.json
+
+# 4. Запустите бота
+docker compose up -d
+```
+
+### 🐍 Локальная установка
+
+<details>
+<summary>Развернуть инструкцию</summary>
+
+```bash
+# 1. Создайте виртуальное окружение
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
+source .venv/bin/activate  # Linux/Mac
+# или
+.venv\Scripts\activate  # Windows
+
+# 2. Установите зависимости
 pip install -r requirements.txt
 
-# переменные окружения
+# 3. Настройте переменные окружения
 cp .env.example .env
-$EDITOR .env  # поставить TELEGRAM_BOT_TOKEN и GOOGLE_CREDENTIALS_PATH
+# Отредактируйте .env файл
 
+# 4. Запустите бота
 python main.py
 ```
 
-## 🐳 Быстрый старт (Docker Compose)
+</details>
+
+### ☁️ Деплой на сервер
+
+<details>
+<summary>Развернуть инструкцию для Ubuntu/Debian</summary>
 
 ```bash
+# 1. Установите зависимости
+sudo apt update && sudo apt install -y python3.11 python3.11-venv git
+
+# 2. Создайте пользователя для бота
+sudo useradd -m -s /bin/bash targetbot
+sudo -u targetbot -i
+
+# 3. Клонируйте и настройте
 git clone https://github.com/bivlked/target-assistant-bot.git
 cd target-assistant-bot
-cp .env.example .env
-# Отредактируйте .env, затем:
-docker compose up -d --build
-```
-
-## ☁️ Деплой на сервер (systemd)
-
-1. Клонируйте репозиторий и установите окружение:
-
-```bash
-sudo apt update && sudo apt install -y python3 python3-venv git
-sudo useradd -m targetbot
-sudo -iu targetbot
-
-# клонируем бот
-git clone https://github.com/bivlked/target-assistant-bot.git
-cd target-assistant-bot
-python -m venv .venv && source .venv/bin/activate
+python3.11 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-2. Скопируйте ваши `google_credentials.json` и заполните `.env` (можно взять шаблон `env.example`).
-
-3. Скопируйте unit-файл и перезапустите службу:
-
-```bash
+# 4. Настройте systemd сервис
 sudo cp deploy/targetbot.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now targetbot.service
+sudo systemctl enable --now targetbot
 ```
 
-4. (Опционально) Установите автo-обновление:
+Подробная инструкция: [📖 Установка на Ubuntu](docs/install_ubuntu_detailed.md)
 
-```bash
-sudo cp deploy/update-bot.sh /usr/local/bin/update-bot.sh
-# This script will now pull the latest release tag by default.
-# Check for updates e.g., every 15 minutes
-echo "*/15 * * * * root /usr/local/bin/update-bot.sh >> /var/log/targetbot_update.log 2>&1" | sudo tee /etc/cron.d/targetbot-update
+</details>
+
+## 📖 Примеры использования
+
+### 🎯 Создание первой цели
+
+```
+👤: /start
+🤖: Добро пожаловать в Target Assistant Bot! 🎯
+    
+    Я помогу вам достигать любых целей, разбивая их на 
+    конкретные ежедневные задачи.
+    
+    [🎯 Мои цели] [➕ Создать цель] [📊 Открыть таблицу]
+
+👤: [Нажимает ➕ Создать цель]
+🤖: Шаг 1/6: Введите название цели
+    Например: "Изучить Python", "Похудеть на 10 кг"
+
+👤: Выучить английский до уровня B2
+🤖: Шаг 2/6: Опишите подробнее, чего хотите достичь?
+
+... [пошаговый процесс создания] ...
+
+🤖: ✅ Цель создана! Я составил план на 90 дней.
+    Первая задача на завтра:
+    📝 Пройти тест на определение текущего уровня
 ```
 
-## 📚 Документация и ресурсы
+### 📅 Ежедневная работа
 
-* [Руководство пользователя](docs/user_guide.md)
-* [Установка на Ubuntu (краткая)](docs/install_ubuntu.md)
-* [Установка на Ubuntu (подробная)](docs/install_ubuntu_detailed.md)
-* [Архитектура проекта](docs/architecture.md)
-* [Список изменений](CHANGELOG.md)
+```
+🤖: ☀️ Доброе утро! Ваши задачи на сегодня:
 
-Для разработчиков:
-* [Руководство по участию (CONTRIBUTING.md)](CONTRIBUTING.md)
-* [Чек-лист разработки (актуальные задачи)](DEVELOPMENT_CHECKLIST.md)
+📚 Английский язык (🔴 высокий приоритет)
+└─ Выучить 20 новых слов по теме "Бизнес"
 
----
+🏃 Здоровье (🟡 средний приоритет)  
+└─ Пробежка 3 км в парке
 
-## 📖 Сборка API Документации (Sphinx)
+💻 Программирование (🟢 низкий приоритет)
+└─ Прочитать главу про ООП в Python
 
-API документация проекта генерируется из docstrings с помощью [Sphinx](https://www.sphinx-doc.org/).
+[✅ Отметить выполнение] [📊 Статистика]
+```
 
-**Для локальной сборки документации:**
+## 📋 Полный список команд
 
-1.  Убедитесь, что вы находитесь в активированном виртуальном окружении с установленными зависимостями (включая те, что в секции `# --- Documentation ---` файла `requirements.txt`).
-2.  Перейдите в директорию `docs/`:
-    ```bash
-    cd docs
-    ```
-3.  Выполните команду сборки:
-    *   Для Linux/macOS/Git Bash:
-        ```bash
-        make html
-        ```
-    *   Для Windows (CMD/PowerShell):
-        ```bash
-        .\make.bat html
-        ```
-4.  Сгенерированная документация будет доступна в директории `docs/build/html/`. Откройте файл `index.html` в вашем браузере.
+| Команда | Описание | Пример |
+|---------|----------|--------|
+| `/start` | 🚀 Начало работы с ботом | `/start` |
+| `/my_goals` | 🎯 Управление всеми целями | `/my_goals` |
+| `/add_goal` | ➕ Создать новую цель | `/add_goal` |
+| `/today` | 📅 Задачи на сегодня | `/today` |
+| `/check` | ✅ Отметить выполнение | `/check` |
+| `/status` | 📊 Общая статистика | `/status` |
+| `/motivation` | 💪 Получить мотивацию | `/motivation` |
+| `/help` | ❓ Справка по командам | `/help` |
+| `/reset` | 🗑️ Удалить все данные | `/reset` |
 
----
+## 🛠️ Технологический стек
+
+<div align="center">
+  <table>
+    <tr>
+      <th>Категория</th>
+      <th>Технологии</th>
+    </tr>
+    <tr>
+      <td><strong>🐍 Язык</strong></td>
+      <td>Python 3.11+ с полной типизацией</td>
+    </tr>
+    <tr>
+      <td><strong>🤖 Telegram</strong></td>
+      <td>python-telegram-bot 22.0 (async)</td>
+    </tr>
+    <tr>
+      <td><strong>🧠 AI</strong></td>
+      <td>OpenAI GPT-4 API</td>
+    </tr>
+    <tr>
+      <td><strong>💾 Хранение</strong></td>
+      <td>Google Sheets API v4</td>
+    </tr>
+    <tr>
+      <td><strong>🔄 Асинхронность</strong></td>
+      <td>asyncio, aiohttp</td>
+    </tr>
+    <tr>
+      <td><strong>⏰ Планировщик</strong></td>
+      <td>APScheduler</td>
+    </tr>
+    <tr>
+      <td><strong>🧪 Тестирование</strong></td>
+      <td>pytest, pytest-asyncio, coverage</td>
+    </tr>
+    <tr>
+      <td><strong>📊 Мониторинг</strong></td>
+      <td>Prometheus, Sentry</td>
+    </tr>
+    <tr>
+      <td><strong>🐳 Контейнеризация</strong></td>
+      <td>Docker, Docker Compose</td>
+    </tr>
+    <tr>
+      <td><strong>🔧 CI/CD</strong></td>
+      <td>GitHub Actions</td>
+    </tr>
+  </table>
+</div>
+
+## 📚 Документация
+
+### 📖 Для пользователей
+- [**Руководство пользователя**](docs/user_guide.md) - подробная инструкция по использованию
+- [**FAQ**](docs/faq.md) - ответы на частые вопросы
+- [**Примеры целей**](docs/examples.md) - идеи и шаблоны целей
+
+### 🛠️ Для разработчиков
+- [**Архитектура проекта**](docs/architecture.md) - техническое описание
+- [**API документация**](https://bivlked.github.io/target-assistant-bot/) - автогенерируемая документация
+- [**Руководство контрибьютора**](CONTRIBUTING.md) - как внести свой вклад
+- [**Чек-лист разработки**](DEVELOPMENT_CHECKLIST.md) - roadmap и задачи
+
+### 🚀 Установка и настройка
+- [**Быстрая установка**](docs/install_ubuntu.md) - краткая инструкция
+- [**Подробная установка**](docs/install_ubuntu_detailed.md) - пошаговое руководство
+- [**Настройка Google Sheets**](docs/google_sheets_setup.md) - создание service account
+- [**Переменные окружения**](.env.example) - описание всех параметров
+
+## 🤝 Как внести свой вклад
+
+Мы рады любому вкладу в развитие проекта! 
+
+```mermaid
+graph LR
+    A[🐛 Нашли баг?] --> B[Создайте Issue]
+    C[💡 Есть идея?] --> D[Обсудите в Discussions]
+    E[💻 Хотите помочь?] --> F[Сделайте Pull Request]
+    
+    B --> G[Мы исправим!]
+    D --> H[Обсудим вместе!]
+    F --> I[Review и merge!]
+    
+    style A fill:#ff6b6b,stroke:#fff,color:#fff
+    style C fill:#4ecdc4,stroke:#fff,color:#fff
+    style E fill:#45b7d1,stroke:#fff,color:#fff
+```
+
+Прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) для подробной информации.
+
+## 📈 Статистика проекта
+
+<div align="center">
+  <img src="https://repobeats.axiom.co/api/embed/YOUR_EMBED_KEY.svg" alt="Repobeats analytics" />
+</div>
+
+## 🏆 Контрибьюторы
+
+<a href="https://github.com/bivlked/target-assistant-bot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bivlked/target-assistant-bot" />
+</a>
 
 ## 📜 Лицензия
 
-Проект распространяется по лицензии MIT. Подробности в файле [LICENSE](LICENSE).
+Этот проект распространяется под лицензией MIT. Подробности в файле [LICENSE](LICENSE).
 
 ---
 
 <div align="center">
+  
+### ⭐ Поддержите проект
 
-### 🌟 Поддержать проект
+Если Target Assistant Bot помог вам в достижении целей, поставьте звезду!
 
-Если проект оказался полезным, вы можете:
-
-[![Star on GitHub](https://img.shields.io/github/stars/bivlked/target-assistant-bot.svg?style=social)](https://github.com/bivlked/target-assistant-bot/stargazers)
-[![Fork on GitHub](https://img.shields.io/github/forks/bivlked/target-assistant-bot.svg?style=social)](https://github.com/bivlked/target-assistant-bot/network/members)
-[![Watch on GitHub](https://img.shields.io/github/watchers/bivlked/target-assistant-bot.svg?style=social)](https://github.com/bivlked/target-assistant-bot/watchers)
+[![Star History Chart](https://api.star-history.com/svg?repos=bivlked/target-assistant-bot&type=Date)](https://star-history.com/#bivlked/target-assistant-bot&Date)
 
 <br>
 
-**Made with ❤️ by [bivlked](https://github.com/bivlked)**
+**Сделано с ❤️ by [bivlked](https://github.com/bivlked)**
 
-<sub>Есть вопросы? Создайте [Issue](https://github.com/bivlked/target-assistant-bot/issues/new/choose) или напишите в [Discussions](https://github.com/bivlked/target-assistant-bot/discussions)</sub>
+<sub>
+  Есть вопросы? Создайте <a href="https://github.com/bivlked/target-assistant-bot/issues/new">Issue</a> • 
+  Хотите обсудить? Заходите в <a href="https://github.com/bivlked/target-assistant-bot/discussions">Discussions</a> •
+  Нужна помощь? Пишите в <a href="https://t.me/targetassistant_support">Telegram</a>
+</sub>
 
 </div>
-
-## 🎯 Roadmap
-
-### ✅ v0.2.0 - Multi-Goals (Текущий релиз)
-- ✅ Поддержка до 10 одновременных целей
-- ✅ Приоритеты и теги для целей
-- ✅ Интерактивный UI с inline-кнопками
-- ✅ Расширенная статистика и аналитика
-- ✅ Полная обратная совместимость
-
-### 🔮 v0.3.0 - Advanced Analytics (Планируется)
-- 📊 Графики прогресса и визуализация
-- 📈 Экспорт статистики в PDF
-- 🔍 Сравнение целей между собой
-- 🎨 Улучшенный UI с прогресс-барами
-
-### 🚀 v1.0.0 - Integration & Gamification
-- 📅 Интеграция с Google Calendar
-- 🏆 Система достижений и наград
-- 🌐 REST API для внешних интеграций
-- 📱 Мобильное веб-приложение
