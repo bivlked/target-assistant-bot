@@ -18,6 +18,9 @@ from sheets.client import (
     GOAL_SHEET_PREFIX,
 )  # Добавлены COL_DATE, COL_TASK, GOALS_LIST_SHEET, GOAL_SHEET_PREFIX
 
+# Импортируем модели данных
+from core.models import Goal, Task, TaskStatus, GoalPriority, GoalStatus, GoalStatistics
+
 # Моки _DummyWorksheet, _DummySpreadsheet, _DummyGSpreadClient теперь приходят из conftest.py (неявно)
 # и используются через фикстуру patch_gspread, которая применяется автоматически.
 
@@ -49,30 +52,43 @@ def test_get_statistics_sync(manager_instance: tuple[SheetsManager, MagicMock]):
     """Tests SheetsManager.get_statistics."""
     manager, mock_spreadsheet = manager_instance
 
-    records = [
-        {COL_STATUS: "Выполнено"},
-        {COL_STATUS: "Не выполнено"},
-        {COL_STATUS: "Выполнено"},
-        {COL_STATUS: "Частично выполнено"},
-        {COL_STATUS: "Выполнено"},
-    ]
+    # Mock active goal
+    test_goal = Goal(
+        goal_id=1,
+        name="Test Goal",
+        description="Test",
+        deadline="1 месяц",
+        daily_time="30 мин",
+        start_date="01.01.2025",
+        status=GoalStatus.ACTIVE,
+        priority=GoalPriority.HIGH,
+        tags=[],
+    )
 
-    mock_worksheet = MagicMock()
-    mock_worksheet.get_all_records.return_value = records
-    mock_spreadsheet.worksheet.return_value = mock_worksheet
+    # Mock goal statistics
+    test_stats = GoalStatistics(
+        total_tasks=5,
+        completed_tasks=3,
+        progress_percent=60,
+        days_elapsed=5,
+        days_remaining=25,
+        completion_rate=0.6,
+    )
 
-    stats = manager.get_statistics(user_id=123)
+    with patch.object(manager, "get_active_goals", return_value=[test_goal]):
+        with patch.object(manager, "get_goal_statistics", return_value=test_stats):
+            stats = manager.get_statistics(user_id=123)
 
-    assert "Выполнено 3" in stats
-    assert "из 5" in stats
-    assert "(60%)" in stats
-    mock_spreadsheet.worksheet.assert_called_once_with(PLAN_SHEET)
-    mock_worksheet.get_all_records.assert_called_once()
+            assert "Выполнено 3" in stats
+            assert "из 5" in stats
+            assert "(60%)" in stats
 
 
-def test_save_goal_info_formats_and_autowidth(gspread_mock):
+def test_save_goal_info_formats_and_autowidth(
+    manager_instance: tuple[SheetsManager, MagicMock]
+):
     """Test that save_goal_info formats and auto-resizes the sheet correctly."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
 
     # Create test goal
     test_goal = Goal(
@@ -87,18 +103,28 @@ def test_save_goal_info_formats_and_autowidth(gspread_mock):
         tags=["test"],
     )
 
-    url = manager.save_goal_info(1, test_goal)
+    # Mock worksheet
+    mock_goals_ws = MagicMock()
+    mock_goals_ws.get_all_values.return_value = [
+        ["ID цели", "Название цели", "..."],  # header
+    ]
 
-    # Verify spreadsheet operations
-    gspread_mock.open.assert_called_with("TargetAssistant_1")
-    mock_spreadsheet.worksheet.assert_called()
-    mock_worksheet.update.assert_called()
-    assert url == mock_spreadsheet.url
+    mock_spreadsheet.worksheet.return_value = mock_goals_ws
+    mock_spreadsheet.url = "https://test.url"
+
+    # Mock _ensure_goal_sheet
+    with patch.object(manager, "_ensure_goal_sheet"):
+        url = manager.save_goal_info(1, test_goal)
+
+        # Verify spreadsheet operations
+        mock_spreadsheet.worksheet.assert_called_with(GOALS_LIST_SHEET)
+        mock_goals_ws.append_row.assert_called_once()
+        assert url == mock_spreadsheet.url
 
 
-def test_save_plan_freeze_and_format(gspread_mock):
+def test_save_plan_freeze_and_format(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test that save_plan freezes the header and formats the plan sheet."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
     plan = [
         {
             "Дата": "01.01.2025",
@@ -114,17 +140,24 @@ def test_save_plan_freeze_and_format(gspread_mock):
         },
     ]
 
-    manager.save_plan(2, 1, plan)  # user_id=2, goal_id=1
+    # Mock worksheet
+    mock_plan_ws = MagicMock()
+    mock_spreadsheet.worksheet.return_value = mock_plan_ws
 
-    # Verify sheet operations
-    mock_plan_worksheet.freeze.assert_called_once_with(rows=1)
-    mock_plan_worksheet.format.assert_called()
-    mock_plan_worksheet.columns_auto_resize.assert_called_with(1, 4)
+    # Mock _format_plan_sheet
+    with patch.object(manager, "_ensure_goal_sheet"):
+        with patch.object(manager, "_format_plan_sheet") as mock_format:
+            manager.save_plan(2, 1, plan)  # user_id=2, goal_id=1
+
+            # Verify sheet operations
+            mock_plan_ws.clear.assert_called_once()
+            mock_plan_ws.update.assert_called_once()
+            mock_format.assert_called_once_with(mock_plan_ws)
 
 
-def test_clear_user_data(gspread_mock):
+def test_clear_user_data(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test that clear_user_data archives all active goals."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
 
     # Mock active goals
     test_goal = Goal(
@@ -148,9 +181,9 @@ def test_clear_user_data(gspread_mock):
             mock_archive.assert_called_once_with(123, 1)
 
 
-def test_get_goal_info_sync(gspread_mock):
+def test_get_goal_info_sync(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test synchronous goal info retrieval from legacy method."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
 
     # Mock active goal
     test_goal = Goal(
@@ -177,9 +210,9 @@ def test_get_goal_info_sync(gspread_mock):
         assert result == expected_parsed_info
 
 
-def test_get_task_for_date_found(gspread_mock):
+def test_get_task_for_date_found(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test get_task_for_date when task exists."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
     user_id = 1
     goal_id = 1
     target_date_str = "02.01.2025"
@@ -202,9 +235,9 @@ def test_get_task_for_date_found(gspread_mock):
         assert task.task == "Found task"
 
 
-def test_get_task_for_date_not_found(gspread_mock):
+def test_get_task_for_date_not_found(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test get_task_for_date when task doesn't exist."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
     user_id = 1
     goal_id = 1
     target_date_str = "15.01.2025"
@@ -216,9 +249,9 @@ def test_get_task_for_date_not_found(gspread_mock):
         assert task is None
 
 
-def test_update_task_status(gspread_mock):
+def test_update_task_status(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test updating task status for a specific goal."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
     user_id = 1
     goal_id = 1
     target_date_str = "03.01.2025"
@@ -245,16 +278,18 @@ def test_update_task_status(gspread_mock):
             "Статус": "Не выполнено",
         },
     ]
-    mock_plan_worksheet.get_all_records.return_value = mock_worksheet_data
+
+    mock_plan_ws = MagicMock()
+    mock_plan_ws.get_all_records.return_value = mock_worksheet_data
 
     # Mock worksheet method
-    mock_spreadsheet.worksheet.return_value = mock_plan_worksheet
+    mock_spreadsheet.worksheet.return_value = mock_plan_ws
 
     with patch.object(manager, "update_goal_progress"):
         manager.update_task_status(user_id, goal_id, target_date_str, new_status)
 
         # Verify the correct cell was updated
-        mock_plan_worksheet.update_cell.assert_called_once_with(4, 4, new_status)
+        mock_plan_ws.update_cell.assert_called_once_with(4, 4, new_status)
 
 
 def test_delete_spreadsheet(
@@ -306,9 +341,9 @@ def test_delete_spreadsheet_not_found(
     mock_del_spreadsheet.assert_not_called()
 
 
-def test_batch_update_task_statuses(gspread_mock):
+def test_batch_update_task_statuses(manager_instance: tuple[SheetsManager, MagicMock]):
     """Test batch updating task statuses for multiple goals."""
-    manager = SheetsManager()
+    manager, mock_spreadsheet = manager_instance
     user_id = 1
 
     # Updates with tuple keys (goal_id, date)
@@ -369,15 +404,20 @@ def test_batch_update_task_statuses(gspread_mock):
         assert mock_ws_goal2.batch_update.called
 
 
-def test_create_spreadsheet_scenario_new_sheet(gspread_mock):
+def test_create_spreadsheet_scenario_new_sheet(monkeypatch: pytest.MonkeyPatch):
     """Test creating a new spreadsheet when it doesn't exist."""
+    manager = SheetsManager()
+
     # Setup the mock to raise SpreadsheetNotFound
-    gspread_mock.open.side_effect = gspread.exceptions.SpreadsheetNotFound
+    mock_gc_open = MagicMock(side_effect=gspread.SpreadsheetNotFound)
+    monkeypatch.setattr(manager.gc, "open", mock_gc_open)
 
     # Create new spreadsheet
     mock_new_spreadsheet = MagicMock()
     mock_new_spreadsheet.url = "https://sheets.google.com/new"
-    gspread_mock.create.return_value = mock_new_spreadsheet
+    monkeypatch.setattr(
+        manager.gc, "create", MagicMock(return_value=mock_new_spreadsheet)
+    )
 
     # Mock worksheet operations
     mock_goals_ws = MagicMock()
@@ -391,11 +431,10 @@ def test_create_spreadsheet_scenario_new_sheet(gspread_mock):
     mock_new_spreadsheet.add_worksheet.side_effect = add_worksheet_side_effect
     mock_new_spreadsheet.sheet1 = MagicMock()
 
-    manager = SheetsManager()
     manager.create_spreadsheet(user_id=1)
 
     # Verify spreadsheet was created
-    gspread_mock.create.assert_called_once_with("TargetAssistant_1")
+    manager.gc.create.assert_called_once_with("TargetAssistant_1")
 
     # Verify Goals List sheet was created
     mock_new_spreadsheet.add_worksheet.assert_called_with(
