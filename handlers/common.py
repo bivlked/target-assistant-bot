@@ -5,7 +5,7 @@ from __future__ import annotations
 import sentry_sdk
 import structlog
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CommandHandler
 
 from core.dependency_injection import get_async_storage
 from scheduler.tasks import Scheduler
@@ -61,34 +61,26 @@ RESET_SUCCESS_TEXT = (
 )
 
 
-def start_handler(scheduler: Scheduler):
-    """Factory to create the /start command handler with multi-goal support.
+def start_handler(scheduler: Scheduler) -> CommandHandler:
+    """Create start command handler with scheduler dependency."""
 
-    The /start command subscribes the user and sets up their environment.
+    async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /start command - welcome user and setup."""
+        if not update.effective_user or not update.message:
+            return
 
-    Args:
-        scheduler: Instance of Scheduler to add user-specific jobs.
-
-    Returns:
-        An asynchronous handler function for `CommandHandler`.
-    """
-
-    async def _handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        USER_COMMANDS_TOTAL.labels(command_name="/start").inc()
         user_id = update.effective_user.id
-        sentry_sdk.set_tag("user_id", user_id)
+        logger.info("User started bot", user_id=user_id)
 
-        # Subscribe user
+        # Subscribe user and create spreadsheet
         subscribe_user(user_id)
-
-        # Setup user spreadsheet
         storage = get_async_storage()
         await storage.create_spreadsheet(user_id)
 
-        # Add scheduler jobs
+        # Add scheduled jobs for this user
         scheduler.add_user_jobs(context.bot, user_id)
 
-        # Welcome message with inline buttons
+        # Send welcome message with inline keyboard
         keyboard = [
             [InlineKeyboardButton("🎯 Мои цели", callback_data="back_to_goals")],
             [InlineKeyboardButton("➕ Создать цель", callback_data="add_goal")],
@@ -102,35 +94,41 @@ def start_handler(scheduler: Scheduler):
 
         await update.message.reply_text(
             WELCOME_TEXT,
+            parse_mode="Markdown",
             reply_markup=reply_markup,
         )
 
-    return _handler
+    return CommandHandler("start", start_command)
 
 
-async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles the /help command, sending a help message."""
-    USER_COMMANDS_TOTAL.labels(command_name="/help").inc()
+async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /help command."""
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
-    sentry_sdk.set_tag("user_id", user_id)
+    logger.info("User requested help", user_id=user_id)
 
     await update.message.reply_text(HELP_TEXT, disable_web_page_preview=True)
 
 
-async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles the /cancel command, typically used to exit conversations."""
-    USER_COMMANDS_TOTAL.labels(command_name="/cancel").inc()
+async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /cancel command."""
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
-    sentry_sdk.set_tag("user_id", user_id)
+    logger.info("User cancelled operation", user_id=user_id)
 
     await update.message.reply_text(CANCEL_TEXT)
 
 
-async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles the /reset command - deletes all user data."""
-    USER_COMMANDS_TOTAL.labels(command_name="/reset").inc()
+async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /reset command - show confirmation dialog."""
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
-    sentry_sdk.set_tag("user_id", user_id)
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
@@ -138,7 +136,7 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Confirm deletion
+    # Create inline keyboard for confirmation
     keyboard = [
         [
             InlineKeyboardButton("⚠️ Да, удалить все", callback_data="confirm_reset"),
@@ -148,54 +146,58 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⚠️ ВНИМАНИЕ!\n\n"
-        "Это действие удалит:\n"
-        "• Все ваши цели\n"
-        "• Все планы и задачи\n"
-        "• Google Sheets таблицу\n"
-        "• Весь прогресс\n\n"
-        "Это действие нельзя отменить!\n\n"
-        "Вы действительно хотите продолжить?",
+        "⚠️ *ВНИМАНИЕ!*\n\n"
+        "Вы собираетесь удалить *все* ваши цели и данные.\n"
+        "Это действие *нельзя отменить*!\n\n"
+        "Вы уверены?",
+        parse_mode="Markdown",
         reply_markup=reply_markup,
     )
 
 
-async def confirm_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Confirm and execute reset."""
+async def confirm_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle reset confirmation."""
     query = update.callback_query
+    if not query or not query.from_user:
+        return
+
     await query.answer()
 
     user_id = query.from_user.id
-    storage = get_async_storage()
+    logger.info("User confirmed reset", user_id=user_id)
 
     try:
-        # Delete spreadsheet
+        storage = get_async_storage()
         await storage.delete_spreadsheet(user_id)
 
         await query.edit_message_text(
-            RESET_SUCCESS_TEXT + "\n\n" "Используйте /start для повторной настройки."
+            RESET_SUCCESS_TEXT,
+            parse_mode="Markdown",
         )
-
     except Exception as e:
-        logger.error("Error resetting user data", exc_info=e)
+        logger.error("Error during reset", user_id=user_id, error=str(e))
         await query.edit_message_text(
-            "❌ Произошла ошибка при удалении данных.\n"
-            "Попробуйте позже или обратитесь в поддержку."
+            "❌ Произошла ошибка при сбросе данных. Попробуйте позже."
         )
 
 
-async def cancel_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel reset operation."""
+async def cancel_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle reset cancellation."""
     query = update.callback_query
+    if not query:
+        return
+
     await query.answer()
 
     await query.edit_message_text("❌ Сброс данных отменен.")
 
 
-async def unknown_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handles unknown commands."""
-    USER_COMMANDS_TOTAL.labels(command_name="unknown").inc()
+async def unknown_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle unknown commands."""
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
-    sentry_sdk.set_tag("user_id", user_id)
+    logger.info("User sent unknown command", user_id=user_id)
 
     await update.message.reply_text(UNKNOWN_TEXT)

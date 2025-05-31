@@ -1,15 +1,8 @@
-"""Tests for handlers in handlers/common.py."""
+"""Tests for the common handlers (start, help, cancel, reset, unknown)."""
 
 import pytest
-import pytest_asyncio  # Импортируем pytest_asyncio
-from unittest.mock import (
-    AsyncMock,
-    MagicMock,
-)  # Убираем patch, он не используется здесь
-from datetime import datetime, timezone
-
-from telegram import Update, User, Message, Chat, Bot
-from telegram.ext import ContextTypes
+from unittest.mock import AsyncMock, MagicMock, patch
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from handlers.common import (
     start_handler,
@@ -17,143 +10,212 @@ from handlers.common import (
     cancel_handler,
     reset_handler,
     unknown_handler,
+    confirm_reset,
+    cancel_reset,
+    WELCOME_TEXT,
+    HELP_TEXT,
+    CANCEL_TEXT,
+    UNKNOWN_TEXT,
+    RESET_SUCCESS_TEXT,
 )
-from core.goal_manager import GoalManager
-from scheduler.tasks import Scheduler
-from texts import WELCOME_TEXT, HELP_TEXT, CANCEL_TEXT, RESET_SUCCESS_TEXT, UNKNOWN_TEXT
-
-# --- Mocks ---
 
 
 @pytest.fixture
-def mock_goal_manager():
-    """Fixture for a mock GoalManager."""
-    mock = MagicMock(spec=GoalManager)
-    mock.setup_user = AsyncMock()  # setup_user is async
-    mock.reset_user = AsyncMock()  # reset_user is async
-    return mock
-
-
-@pytest.fixture
-def mock_scheduler():
-    """Fixture for a mock Scheduler."""
-    mock = MagicMock(spec=Scheduler)
-    # add_user_jobs is synchronous but takes a bot object
-    mock.add_user_jobs = MagicMock()
-    return mock
-
-
-@pytest_asyncio.fixture
-async def mock_bot_instance():
-    """Fixture for a mock Bot object instance."""
-    bot_mock = AsyncMock(spec=Bot)
-    # bot_mock.send_message = AsyncMock() # Уже AsyncMock из-за spec=Bot, если Bot.send_message async
-    # Если Bot.send_message не async в spec, то нужно мокать его как AsyncMock:
-    # setattr(bot_mock, 'send_message', AsyncMock())
-    return bot_mock
-
-
-class MockMessage:  # Наш мок-класс
-    def __init__(self, user_id: int, chat_id: int, text: str = "/test"):
-        self.from_user = User(id=user_id, first_name="TestUser", is_bot=False)
-        self.chat = Chat(id=chat_id, type="private")
-        self.text = text
-        self.reply_text = AsyncMock()
-        self.message_id = 1
-        self.date = datetime.now(timezone.utc)
-        # Добавим атрибут bot, чтобы он был похож на настоящий Message, если кто-то его проверит
-        # Хотя reply_text у нас уже мокнут и не будет использовать self.bot
-        self.bot = None
-
-
-@pytest_asyncio.fixture
-async def mock_update_message(
-    monkeypatch: pytest.MonkeyPatch,
-):  # monkeypatch снова нужен
-    """Fixture for a mock Update object with a Message mock that has a mocked reply_text."""
-    user = User(id=123, first_name="TestUser", is_bot=False)
-    chat = Chat(id=123, type="private")
-
-    # Создаем MagicMock, который имитирует Message
-    # Атрибуты from_user и chat будут установлены как MagicMock, если к ним будет обращение,
-    # но мы их установим явно для наших тестов.
-    # Важно: настоящий Message создается с bot, но мы его не используем, так как reply_text мокаем.
-    message_mock = MagicMock(spec=Message)
-    message_mock.from_user = user
-    message_mock.chat = chat
-    message_mock.text = "/test_command"
-    message_mock.message_id = 1
-    message_mock.date = datetime.now(timezone.utc)
-
-    # Мокаем метод reply_text у этого экземпляра message_mock
-    # setattr(message_mock, "reply_text", AsyncMock()) # Так тоже можно
-    message_mock.reply_text = AsyncMock()
-
-    update = Update(update_id=1, message=message_mock)
+def mock_update():
+    """Create a mock Update object."""
+    update = MagicMock()
+    update.effective_user.id = 12345
+    update.message = MagicMock()
+    update.message.reply_text = AsyncMock()
     return update
 
 
 @pytest.fixture
-def mock_context(mock_bot_instance: AsyncMock):
-    """Fixture for a mock ContextTypes.DEFAULT_TYPE."""
-    context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
-    context.bot = mock_bot_instance
+def mock_context():
+    """Create a mock Context object."""
+    context = MagicMock()
+    context.bot = MagicMock()
     return context
 
 
-# --- Tests for start_handler ---
+@pytest.fixture
+def mock_scheduler():
+    """Create a mock Scheduler object."""
+    scheduler = MagicMock()
+    scheduler.add_user_jobs = MagicMock()
+    return scheduler
+
+
+@pytest.fixture
+def mock_storage():
+    """Create a mock AsyncStorageInterface."""
+    storage = MagicMock()
+    storage.create_spreadsheet = AsyncMock()
+    storage.delete_spreadsheet = AsyncMock()
+    return storage
 
 
 @pytest.mark.asyncio
 async def test_start_handler_flow(
-    mock_goal_manager, mock_scheduler, mock_update_message, mock_context
+    mock_update, mock_context, mock_scheduler, mock_storage
 ):
-    """Test the complete flow of the /start command handler."""
-    user_id = mock_update_message.message.from_user.id
-    handler_fn = start_handler(mock_goal_manager, mock_scheduler)
-    await handler_fn(mock_update_message, mock_context)
+    """Test the /start command handler flow."""
+    user_id = mock_update.effective_user.id
 
-    mock_goal_manager.setup_user.assert_awaited_once_with(user_id)
-    mock_scheduler.add_user_jobs.assert_called_once_with(
-        mock_context.bot, user_id
-    )  # context.bot используется здесь
-    mock_update_message.message.reply_text.assert_awaited_once_with(WELCOME_TEXT)
+    # Mock dependencies
+    with (
+        patch("handlers.common.subscribe_user") as mock_subscribe,
+        patch("handlers.common.get_async_storage") as mock_get_storage,
+    ):
+        mock_get_storage.return_value = mock_storage
+
+        # Create handler and get the callback function
+        handler = start_handler(mock_scheduler)
+        callback = handler.callback
+
+        # Call the callback directly
+        await callback(mock_update, mock_context)
+
+        # Verify user was subscribed
+        mock_subscribe.assert_called_once_with(user_id)
+
+        # Verify spreadsheet was created
+        mock_storage.create_spreadsheet.assert_awaited_once_with(user_id)
+
+        # Verify scheduler jobs were added
+        mock_scheduler.add_user_jobs.assert_called_once_with(mock_context.bot, user_id)
+
+        # Verify welcome message was sent with proper keyboard
+        mock_update.message.reply_text.assert_awaited_once()
+        call_args = mock_update.message.reply_text.call_args
+        assert call_args[0][0] == WELCOME_TEXT
+
+        # Check inline keyboard
+        reply_markup = call_args[1]["reply_markup"]
+        assert isinstance(reply_markup, InlineKeyboardMarkup)
+        assert len(reply_markup.inline_keyboard) == 3
+        assert reply_markup.inline_keyboard[0][0].text == "🎯 Мои цели"
+        assert reply_markup.inline_keyboard[1][0].text == "➕ Создать цель"
+        assert reply_markup.inline_keyboard[2][0].text == "📊 Открыть таблицу"
 
 
-# --- Tests for help_handler ---
 @pytest.mark.asyncio
-async def test_help_handler(mock_update_message, mock_context):
+async def test_help_handler(mock_update, mock_context):
     """Test the /help command handler."""
-    await help_handler(mock_update_message, mock_context)
-    mock_update_message.message.reply_text.assert_awaited_once_with(
-        HELP_TEXT, parse_mode="Markdown", disable_web_page_preview=True
+    await help_handler(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(
+        HELP_TEXT, disable_web_page_preview=True
     )
 
 
-# --- Tests for cancel_handler ---
 @pytest.mark.asyncio
-async def test_cancel_handler(mock_update_message, mock_context):
+async def test_cancel_handler(mock_update, mock_context):
     """Test the /cancel command handler."""
-    await cancel_handler(mock_update_message, mock_context)
-    mock_update_message.message.reply_text.assert_awaited_once_with(CANCEL_TEXT)
+    await cancel_handler(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(CANCEL_TEXT)
 
 
-# --- Tests for unknown_handler ---
 @pytest.mark.asyncio
-async def test_unknown_handler(mock_update_message, mock_context):
+async def test_unknown_handler(mock_update, mock_context):
     """Test the unknown command handler."""
-    handler_fn = unknown_handler()
-    await handler_fn(mock_update_message, mock_context)
-    mock_update_message.message.reply_text.assert_awaited_once_with(UNKNOWN_TEXT)
+    await unknown_handler(mock_update, mock_context)
+
+    mock_update.message.reply_text.assert_awaited_once_with(UNKNOWN_TEXT)
 
 
-# --- Tests for reset_handler ---
 @pytest.mark.asyncio
-async def test_reset_handler_flow(mock_goal_manager, mock_update_message, mock_context):
-    """Test the complete flow of the /reset command handler."""
-    user_id = mock_update_message.message.from_user.id
-    handler_fn = reset_handler(mock_goal_manager)
-    await handler_fn(mock_update_message, mock_context)
+async def test_reset_handler_flow(mock_update, mock_context):
+    """Test the /reset command handler flow."""
+    # Mock is_subscribed to return True
+    with patch(
+        "handlers.common.is_subscribed", new_callable=AsyncMock, return_value=True
+    ):
+        await reset_handler(mock_update, mock_context)
 
-    mock_goal_manager.reset_user.assert_awaited_once_with(user_id)
-    mock_update_message.message.reply_text.assert_awaited_once_with(RESET_SUCCESS_TEXT)
+        # Verify confirmation message was sent
+        mock_update.message.reply_text.assert_awaited_once()
+        call_args = mock_update.message.reply_text.call_args
+
+        # Check message content
+        message = call_args[0][0]
+        assert "⚠️ *ВНИМАНИЕ!*" in message
+        assert "все" in message
+        assert "нельзя отменить" in message
+
+        # Check inline keyboard
+        reply_markup = call_args[1]["reply_markup"]
+        assert isinstance(reply_markup, InlineKeyboardMarkup)
+        assert len(reply_markup.inline_keyboard) == 1
+        assert len(reply_markup.inline_keyboard[0]) == 2
+        assert reply_markup.inline_keyboard[0][0].text == "⚠️ Да, удалить все"
+        assert reply_markup.inline_keyboard[0][1].text == "❌ Отмена"
+
+
+@pytest.mark.asyncio
+async def test_reset_handler_not_subscribed(mock_update, mock_context):
+    """Test the /reset command when user is not subscribed."""
+    # Mock is_subscribed to return False
+    with patch(
+        "handlers.common.is_subscribed", new_callable=AsyncMock, return_value=False
+    ):
+        await reset_handler(mock_update, mock_context)
+
+        mock_update.message.reply_text.assert_awaited_once_with(
+            "❌ Вы не подписаны на бота. Используйте /start для начала."
+        )
+
+
+@pytest.mark.asyncio
+async def test_confirm_reset(mock_storage):
+    """Test the confirm reset callback."""
+    # Create mock callback query
+    query = MagicMock()
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    query.from_user.id = 12345
+
+    update = MagicMock()
+    update.callback_query = query
+
+    context = MagicMock()
+
+    with patch("handlers.common.get_async_storage") as mock_get_storage:
+        mock_get_storage.return_value = mock_storage
+
+        await confirm_reset(update, context)
+
+        # Verify answer was sent
+        query.answer.assert_awaited_once()
+
+        # Verify spreadsheet was deleted
+        mock_storage.delete_spreadsheet.assert_awaited_once_with(12345)
+
+        # Verify success message
+        query.edit_message_text.assert_awaited_once()
+        message = query.edit_message_text.call_args[0][0]
+        assert RESET_SUCCESS_TEXT in message
+        assert "/start" in message
+
+
+@pytest.mark.asyncio
+async def test_cancel_reset():
+    """Test the cancel reset callback."""
+    # Create mock callback query
+    query = MagicMock()
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+
+    update = MagicMock()
+    update.callback_query = query
+
+    context = MagicMock()
+
+    await cancel_reset(update, context)
+
+    # Verify answer was sent
+    query.answer.assert_awaited_once()
+
+    # Verify cancellation message
+    query.edit_message_text.assert_awaited_once_with("❌ Сброс данных отменен.")

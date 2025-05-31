@@ -34,89 +34,175 @@ logger = structlog.get_logger(__name__)
 
 
 async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /my_goals command - show all user goals."""
-    # Handle both message and callback query
+    """Show user's goals overview. Can be called from command or callback."""
     if update.callback_query:
         query = update.callback_query
+        if not query or not query.from_user:
+            return
         await query.answer()
         user_id = query.from_user.id
-        send_message = query.edit_message_text
-    else:
-        user_id = update.effective_user.id
-        send_message = update.message.reply_text
 
-    if not await is_subscribed(user_id):
-        await send_message("❌ Вы не подписаны на бота. Используйте /start для начала.")
-        return
-
-    storage = get_async_storage()
-    stats = await storage.get_overall_statistics(user_id)
-
-    if stats["total_goals"] == 0:
-        await send_message(
-            "📝 У вас пока нет целей.\n"
-            "Используйте /add_goal для создания новой цели."
-        )
-        return
-
-    # Build message
-    message = "🎯 *Ваши цели:*\n\n"
-
-    # Active goals
-    if stats["active_count"] > 0:
-        message += "✅ *Активные цели:*\n"
-        for goal in stats["active_goals"]:
-            status_emoji = (
-                "🔴"
-                if goal.priority == GoalPriority.HIGH
-                else "🟡" if goal.priority == GoalPriority.MEDIUM else "🟢"
+        # Callback query - edit message
+        if not await is_subscribed(user_id):
+            await query.edit_message_text(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
             )
-            message += f"{status_emoji} *{goal.name}* (ID: {goal.goal_id})\n"
-            message += f"   📊 Прогресс: {goal.progress_percent}%\n"
-            message += f"   📅 Дедлайн: {goal.deadline}\n"
-            if goal.tags:
-                message += f"   🏷️ Теги: {', '.join(goal.tags)}\n"
-            message += "\n"
+            return
 
-    # Summary
-    message += "\n📊 *Общая статистика:*\n"
-    message += f"• Всего целей: {stats['total_goals']}\n"
-    message += f"• Активных: {stats['active_count']}\n"
-    message += f"• Завершенных: {stats['completed_count']}\n"
-    message += f"• В архиве: {stats['archived_count']}\n"
+        storage = get_async_storage()
+        stats = await storage.get_overall_statistics(user_id)
 
-    if stats["active_count"] > 0:
-        message += f"• Общий прогресс: {stats['total_progress']}%\n"
+        if stats["total_goals"] == 0:
+            await query.edit_message_text(
+                "📝 У вас пока нет целей.\n"
+                "Используйте /add_goal для создания новой цели."
+            )
+            return
 
-    # Buttons
-    keyboard = []
+        # Build message
+        message = "🎯 *Ваши цели:*\n\n"
 
-    if stats["can_add_more"]:
+        # Active goals
+        if stats["active_count"] > 0:
+            message += "✅ *Активные цели:*\n"
+            for goal in stats["active_goals"]:
+                status_emoji = (
+                    "🔴"
+                    if goal.priority == GoalPriority.HIGH
+                    else "🟡" if goal.priority == GoalPriority.MEDIUM else "🟢"
+                )
+                message += f"{status_emoji} *{goal.name}* (ID: {goal.goal_id})\n"
+                message += f"   📊 Прогресс: {goal.progress_percent}%\n"
+                message += f"   📅 Дедлайн: {goal.deadline}\n"
+                if goal.tags:
+                    message += f"   🏷️ Теги: {', '.join(goal.tags)}\n"
+                message += "\n"
+
+        # Summary
+        message += "\n📊 *Общая статистика:*\n"
+        message += f"• Всего целей: {stats['total_goals']}\n"
+        message += f"• Активных: {stats['active_count']}\n"
+        message += f"• Завершенных: {stats['completed_count']}\n"
+        message += f"• В архиве: {stats['archived_count']}\n"
+
+        if stats["active_count"] > 0:
+            message += f"• Общий прогресс: {stats['total_progress']}%\n"
+
+        # Buttons
+        keyboard = []
+
+        if stats["can_add_more"]:
+            keyboard.append(
+                [InlineKeyboardButton("➕ Добавить цель", callback_data="add_goal")]
+            )
+
+        if stats["active_count"] > 0:
+            keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        "📋 Управление целями", callback_data="manage_goals"
+                    )
+                ]
+            )
+
         keyboard.append(
-            [InlineKeyboardButton("➕ Добавить цель", callback_data="add_goal")]
+            [InlineKeyboardButton("📊 Таблица целей", callback_data="show_spreadsheet")]
         )
 
-    if stats["active_count"] > 0:
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(
+            message,
+            parse_mode="Markdown",
+            reply_markup=reply_markup,
+        )
+    else:
+        # Regular message
+        if not update.effective_user or not update.message:
+            return
+        user_id = update.effective_user.id
+
+        if not await is_subscribed(user_id):
+            await update.message.reply_text(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            )
+            return
+
+        storage = get_async_storage()
+        stats = await storage.get_overall_statistics(user_id)
+
+        if stats["total_goals"] == 0:
+            await update.message.reply_text(
+                "📝 У вас пока нет целей.\n"
+                "Используйте /add_goal для создания новой цели."
+            )
+            return
+
+        # Build message
+        message = "🎯 *Ваши цели:*\n\n"
+
+        # Active goals
+        if stats["active_count"] > 0:
+            message += "✅ *Активные цели:*\n"
+            for goal in stats["active_goals"]:
+                status_emoji = (
+                    "🔴"
+                    if goal.priority == GoalPriority.HIGH
+                    else "🟡" if goal.priority == GoalPriority.MEDIUM else "🟢"
+                )
+                message += f"{status_emoji} *{goal.name}* (ID: {goal.goal_id})\n"
+                message += f"   📊 Прогресс: {goal.progress_percent}%\n"
+                message += f"   📅 Дедлайн: {goal.deadline}\n"
+                if goal.tags:
+                    message += f"   🏷️ Теги: {', '.join(goal.tags)}\n"
+                message += "\n"
+
+        # Summary
+        message += "\n📊 *Общая статистика:*\n"
+        message += f"• Всего целей: {stats['total_goals']}\n"
+        message += f"• Активных: {stats['active_count']}\n"
+        message += f"• Завершенных: {stats['completed_count']}\n"
+        message += f"• В архиве: {stats['archived_count']}\n"
+
+        if stats["active_count"] > 0:
+            message += f"• Общий прогресс: {stats['total_progress']}%\n"
+
+        # Buttons
+        keyboard = []
+
+        if stats["can_add_more"]:
+            keyboard.append(
+                [InlineKeyboardButton("➕ Добавить цель", callback_data="add_goal")]
+            )
+
+        if stats["active_count"] > 0:
+            keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        "📋 Управление целями", callback_data="manage_goals"
+                    )
+                ]
+            )
+
         keyboard.append(
-            [InlineKeyboardButton("📋 Управление целями", callback_data="manage_goals")]
+            [InlineKeyboardButton("📊 Таблица целей", callback_data="show_spreadsheet")]
         )
 
-    keyboard.append(
-        [InlineKeyboardButton("📊 Таблица целей", callback_data="show_spreadsheet")]
-    )
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await send_message(
-        message,
-        parse_mode="Markdown",
-        reply_markup=reply_markup,
-    )
+        await update.message.reply_text(
+            message,
+            parse_mode="Markdown",
+            reply_markup=reply_markup,
+        )
 
 
 async def add_goal_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start adding a new goal."""
     query = update.callback_query
+    if not query or not query.from_user:
+        return ConversationHandler.END
+
     await query.answer()
 
     user_id = query.from_user.id
@@ -154,6 +240,9 @@ async def goal_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return GOAL_NAME
 
+    if not context.user_data:
+        context.user_data = {}
+
     context.user_data["goal_name"] = goal_name
 
     await update.message.reply_text(
@@ -179,6 +268,9 @@ async def goal_description_received(
         )
         return GOAL_DESCRIPTION
 
+    if not context.user_data:
+        context.user_data = {}
+
     context.user_data["goal_description"] = goal_description
 
     await update.message.reply_text(
@@ -197,6 +289,9 @@ async def goal_deadline_received(
     if not update.message or not update.message.text:
         return GOAL_DEADLINE
 
+    if not context.user_data:
+        context.user_data = {}
+
     context.user_data["goal_deadline"] = update.message.text.strip()
 
     await update.message.reply_text(
@@ -214,6 +309,9 @@ async def goal_daily_time_received(
     # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_DAILY_TIME
+
+    if not context.user_data:
+        context.user_data = {}
 
     context.user_data["goal_daily_time"] = update.message.text.strip()
 
@@ -240,6 +338,9 @@ async def goal_priority_received(
 ) -> int:
     """Handle priority selection."""
     query = update.callback_query
+    if not query or not query.data:
+        return GOAL_PRIORITY
+
     await query.answer()
 
     priority_map = {
@@ -247,6 +348,9 @@ async def goal_priority_received(
         "priority_medium": GoalPriority.MEDIUM,
         "priority_low": GoalPriority.LOW,
     }
+
+    if not context.user_data:
+        context.user_data = {}
 
     context.user_data["goal_priority"] = priority_map[query.data]
 
@@ -271,6 +375,9 @@ async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
         tags = []
     else:
         tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+
+    if not context.user_data:
+        context.user_data = {}
 
     context.user_data["goal_tags"] = tags
 
@@ -311,6 +418,9 @@ async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Create the goal and generate plan."""
     query = update.callback_query
+    if not query or not query.data or not query.from_user:
+        return ConversationHandler.END
+
     await query.answer()
 
     if query.data == "cancel_goal":
@@ -332,6 +442,10 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # Create goal object
         from datetime import datetime, timezone
+
+        if not context.user_data:
+            await query.edit_message_text("❌ Ошибка: данные не найдены.")
+            return ConversationHandler.END
 
         goal = Goal(
             goal_id=goal_id,
@@ -381,6 +495,9 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def manage_goals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show goals management menu."""
     query = update.callback_query
+    if not query or not query.from_user:
+        return
+
     await query.answer()
 
     user_id = query.from_user.id
@@ -419,6 +536,9 @@ async def manage_goals_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def show_goal_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show detailed information about a specific goal."""
     query = update.callback_query
+    if not query or not query.data or not query.from_user:
+        return
+
     await query.answer()
 
     goal_id = int(query.data.split("_")[1])
@@ -510,6 +630,9 @@ async def show_goal_details(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def complete_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Mark goal as completed."""
     query = update.callback_query
+    if not query or not query.data or not query.from_user:
+        return
+
     await query.answer()
 
     goal_id = int(query.data.split("_")[2])
@@ -526,6 +649,9 @@ async def complete_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def archive_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Archive a goal."""
     query = update.callback_query
+    if not query or not query.data or not query.from_user:
+        return
+
     await query.answer()
 
     goal_id = int(query.data.split("_")[2])
@@ -540,8 +666,11 @@ async def archive_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def delete_goal_confirm(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    """Confirm goal deletion."""
+    """Show deletion confirmation."""
     query = update.callback_query
+    if not query or not query.data:
+        return
+
     await query.answer()
 
     goal_id = int(query.data.split("_")[2])
@@ -551,13 +680,16 @@ async def delete_goal_confirm(
             InlineKeyboardButton(
                 "⚠️ Да, удалить", callback_data=f"delete_goal_yes_{goal_id}"
             ),
-            InlineKeyboardButton("❌ Отмена", callback_data=f"goal_{goal_id}"),
+            InlineKeyboardButton("❌ Отмена", callback_data="manage_goals"),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(
-        "⚠️ Вы уверены, что хотите удалить эту цель?\n" "Это действие нельзя отменить!",
+        "⚠️ *Внимание!*\n\n"
+        "Вы уверены, что хотите удалить эту цель?\n"
+        "Все связанные задачи и прогресс будут удалены безвозвратно.",
+        parse_mode="Markdown",
         reply_markup=reply_markup,
     )
 
@@ -565,8 +697,11 @@ async def delete_goal_confirm(
 async def delete_goal_execute(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    """Execute goal deletion."""
+    """Delete goal after confirmation."""
     query = update.callback_query
+    if not query or not query.data or not query.from_user:
+        return
+
     await query.answer()
 
     goal_id = int(query.data.split("_")[3])
@@ -581,30 +716,36 @@ async def delete_goal_execute(
 async def show_spreadsheet_link(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    """Show link to Google Spreadsheet."""
+    """Show spreadsheet link."""
     query = update.callback_query
+    if not query or not query.from_user:
+        return
+
     await query.answer()
 
     user_id = query.from_user.id
     storage = get_async_storage()
 
-    url = await storage.get_spreadsheet_url(user_id)
+    # Используем новый метод для получения URL
+    spreadsheet_url = await storage.get_spreadsheet_url(user_id)
 
-    keyboard = [[InlineKeyboardButton("📊 Открыть таблицу", url=url)]]
+    keyboard = [[InlineKeyboardButton("⬅️ Назад", callback_data="back_to_goals")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(
-        "📊 Ваша таблица целей готова!\n\n"
-        "Нажмите кнопку ниже, чтобы открыть её в браузере.",
+        f"📊 *Ваша таблица целей:*\n\n{spreadsheet_url}",
+        parse_mode="Markdown",
         reply_markup=reply_markup,
+        disable_web_page_preview=True,
     )
 
 
 async def cancel_conversation(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    """Cancel any conversation."""
-    await update.message.reply_text("❌ Операция отменена.")
+    """Cancel goal creation conversation."""
+    if update.message:
+        await update.message.reply_text("❌ Операция отменена.")
     return ConversationHandler.END
 
 

@@ -259,6 +259,12 @@ class AsyncStorageInterface(Protocol):
         """Update task status (legacy, single goal)."""
         ...
 
+    async def get_extended_statistics(
+        self, user_id: int, count: int = 7
+    ) -> Dict[str, Any]:
+        """Get extended statistics (legacy method)."""
+        ...
+
 
 class LLMInterface(Protocol):
     """Interface for LLM interactions."""

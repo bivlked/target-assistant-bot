@@ -156,7 +156,7 @@ async def main_async():
             pyproject = tomllib.load(f)
             version = pyproject.get("project", {}).get("version", "unknown")
     except Exception:
-        version = "0.2.2"  # Fallback version
+        version = "0.2.3"  # Fallback version
 
     logger.info("Bot started with multi-goal support", version=version)
     APP_INFO.labels(version=version).set(1)  # Set version metric

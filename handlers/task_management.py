@@ -36,6 +36,10 @@ STATUS_MAPPING = {
 async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /today command - show all tasks for today."""
     USER_COMMANDS_TOTAL.labels(command_name="/today").inc()
+
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
@@ -116,6 +120,10 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /status command - show overall progress."""
     USER_COMMANDS_TOTAL.labels(command_name="/status").inc()
+
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
@@ -190,6 +198,10 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle /check command - start task status update process."""
     USER_COMMANDS_TOTAL.labels(command_name="/check").inc()
+
+    if not update.effective_user or not update.message:
+        return ConversationHandler.END
+
     user_id = update.effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
@@ -215,6 +227,10 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if len(incomplete_tasks) == 1:
         # Single task - show status buttons directly
         task = incomplete_tasks[0]
+
+        if not context.user_data:
+            context.user_data = {}
+
         context.user_data["check_goal_id"] = task.goal_id
         context.user_data["check_date"] = today
 
@@ -272,6 +288,9 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle goal selection for status update."""
     query = update.callback_query
+    if not query or not query.data:
+        return ConversationHandler.END
+
     await query.answer()
 
     if query.data == "cancel_check":
@@ -279,8 +298,14 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return ConversationHandler.END
 
     goal_id = int(query.data.split("_")[1])
-    user_id = query.from_user.id
+    user_id = query.from_user.id if query.from_user else 0
+    if not user_id:
+        return ConversationHandler.END
+
     today = format_date(datetime.now(timezone.utc))
+
+    if not context.user_data:
+        context.user_data = {}
 
     context.user_data["check_goal_id"] = goal_id
     context.user_data["check_date"] = today
@@ -318,6 +343,9 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Update task status and end conversation."""
     query = update.callback_query
+    if not query or not query.data:
+        return ConversationHandler.END
+
     await query.answer()
 
     status_map = {
@@ -331,11 +359,15 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.edit_message_text("❌ Неизвестный статус.")
         return ConversationHandler.END
 
+    if not context.user_data:
+        await query.edit_message_text("❌ Ошибка: данные не найдены.")
+        return ConversationHandler.END
+
     goal_id = context.user_data.get("check_goal_id")
     date = context.user_data.get("check_date")
-    user_id = query.from_user.id
+    user_id = query.from_user.id if query.from_user else 0
 
-    if not goal_id or not date:
+    if not goal_id or not date or not user_id:
         await query.edit_message_text("❌ Ошибка: данные не найдены.")
         return ConversationHandler.END
 
@@ -369,6 +401,9 @@ async def quick_status_update(
 ) -> None:
     """Handle quick status updates from /today command."""
     query = update.callback_query
+    if not query or not query.data:
+        return
+
     await query.answer()
 
     parts = query.data.split("_")
@@ -377,7 +412,10 @@ async def quick_status_update(
 
     action, status, goal_id_str = parts
     goal_id = int(goal_id_str)
-    user_id = query.from_user.id
+    user_id = query.from_user.id if query.from_user else 0
+    if not user_id:
+        return
+
     today = format_date(datetime.now(timezone.utc))
 
     status_map = {
@@ -416,6 +454,10 @@ async def motivation_command(
 ) -> None:
     """Handle /motivation command - generate motivational message."""
     USER_COMMANDS_TOTAL.labels(command_name="/motivation").inc()
+
+    if not update.effective_user or not update.message:
+        return
+
     user_id = update.effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
@@ -465,7 +507,8 @@ async def motivation_command(
 
 async def cancel_check(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel check conversation."""
-    await update.message.reply_text("❌ Операция отменена.")
+    if update.message:
+        await update.message.reply_text("❌ Операция отменена.")
     return ConversationHandler.END
 
 

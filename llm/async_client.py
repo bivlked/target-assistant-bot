@@ -140,11 +140,12 @@ class AsyncLLMClient:
             content = resp.choices[0].message.content
             LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
             return self._extract_plan(content)
-        except Exception as e:
-            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+        except (json.JSONDecodeError, ValueError) as e:
             logger.error(
-                "Error processing LLM response", method_name=method_name, exc_info=e
+                "Error processing LLM response",
+                exc_info=e,
             )
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
             raise
         finally:
             LLM_API_LATENCY.labels(method_name=method_name).observe(
@@ -196,11 +197,12 @@ class AsyncLLMClient:
 
             LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
             return content
-        except Exception as e:
-            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
+        except (json.JSONDecodeError, ValueError) as e:
             logger.error(
-                "Error processing LLM response", method_name=method_name, exc_info=e
+                "Error processing LLM response",
+                exc_info=e,
             )
+            LLM_API_CALLS.labels(method_name=method_name, status="error").inc()
             raise
         finally:
             LLM_API_LATENCY.labels(method_name=method_name).observe(

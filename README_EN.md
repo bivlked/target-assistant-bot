@@ -25,7 +25,7 @@
     </tr>
     <tr>
       <td align="center"><strong>📊 Status</strong></td>
-      <td>v0.2.1 - Production Ready with Multi-Goals Support</td>
+      <td>v0.2.3 - Production Ready with Multi-Goal Support</td>
     </tr>
     <tr>
       <td align="center"><strong>📄 Presentation</strong></td>
@@ -95,7 +95,7 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.11+
 - Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
 - OpenAI API Key
 - Google Cloud Project with Sheets API enabled

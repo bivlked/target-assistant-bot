@@ -87,6 +87,10 @@ def build_setgoal_conv() -> ConversationHandler:
 
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_COMMANDS_TOTAL.labels(command_name="/setgoal").inc()
+
+        if not update.effective_user or not update.message:
+            return ConversationHandler.END
+
         user_id = update.effective_user.id
         sentry_sdk.set_tag("user_id", user_id)
 
@@ -111,6 +115,9 @@ def build_setgoal_conv() -> ConversationHandler:
         return TEXT_GOAL
 
     async def input_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.effective_user or not update.message:
+            return ConversationHandler.END
+
         user_id = update.effective_user.id
         sentry_sdk.set_tag("user_id", user_id)
 
@@ -126,6 +133,9 @@ def build_setgoal_conv() -> ConversationHandler:
         return DEADLINE
 
     async def input_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.effective_user or not update.message:
+            return ConversationHandler.END
+
         user_id = update.effective_user.id
         sentry_sdk.set_tag("user_id", user_id)
 
@@ -147,6 +157,9 @@ def build_setgoal_conv() -> ConversationHandler:
         return AVAILABLE_TIME
 
     async def input_available_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.effective_user or not update.message:
+            return ConversationHandler.END
+
         user_id = update.effective_user.id
         sentry_sdk.set_tag("user_id", user_id)
 
@@ -215,7 +228,8 @@ def build_setgoal_conv() -> ConversationHandler:
         if update.effective_user:
             sentry_sdk.set_tag("user_id", update.effective_user.id)
 
-        await update.message.reply_text(CONVERSATION_CANCELLED_TEXT)
+        if update.message:
+            await update.message.reply_text(CONVERSATION_CANCELLED_TEXT)
         return ConversationHandler.END
 
     return ConversationHandler(
