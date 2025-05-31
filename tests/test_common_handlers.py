@@ -18,6 +18,7 @@ from handlers.common import (
     UNKNOWN_TEXT,
     RESET_SUCCESS_TEXT,
 )
+from utils.helpers import escape_markdown_v2
 
 
 @pytest.fixture
@@ -88,7 +89,8 @@ async def test_start_handler_flow(
         # Verify welcome message was sent with proper keyboard
         mock_update.message.reply_text.assert_awaited_once()
         call_args = mock_update.message.reply_text.call_args
-        assert call_args[0][0] == WELCOME_TEXT
+        assert call_args[0][0] == escape_markdown_v2(WELCOME_TEXT)
+        assert call_args[1].get("parse_mode") == "MarkdownV2"
 
         # Check inline keyboard
         reply_markup = call_args[1]["reply_markup"]
@@ -105,7 +107,9 @@ async def test_help_handler(mock_update, mock_context):
     await help_handler(mock_update, mock_context)
 
     mock_update.message.reply_text.assert_awaited_once_with(
-        HELP_TEXT, disable_web_page_preview=True
+        escape_markdown_v2(HELP_TEXT),
+        parse_mode="MarkdownV2",
+        disable_web_page_preview=True,
     )
 
 
@@ -114,7 +118,9 @@ async def test_cancel_handler(mock_update, mock_context):
     """Test the /cancel command handler."""
     await cancel_handler(mock_update, mock_context)
 
-    mock_update.message.reply_text.assert_awaited_once_with(CANCEL_TEXT)
+    mock_update.message.reply_text.assert_awaited_once_with(
+        escape_markdown_v2(CANCEL_TEXT), parse_mode="MarkdownV2"
+    )
 
 
 @pytest.mark.asyncio
@@ -122,7 +128,9 @@ async def test_unknown_handler(mock_update, mock_context):
     """Test the unknown command handler."""
     await unknown_handler(mock_update, mock_context)
 
-    mock_update.message.reply_text.assert_awaited_once_with(UNKNOWN_TEXT)
+    mock_update.message.reply_text.assert_awaited_once_with(
+        escape_markdown_v2(UNKNOWN_TEXT), parse_mode="MarkdownV2"
+    )
 
 
 @pytest.mark.asyncio
@@ -140,9 +148,10 @@ async def test_reset_handler_flow(mock_update, mock_context):
 
         # Check message content
         message = call_args[0][0]
-        assert "⚠️ *ВНИМАНИЕ!*" in message
-        assert "все" in message
-        assert "нельзя отменить" in message
+        assert escape_markdown_v2("⚠️ *ВНИМАНИЕ!*") in message
+        assert escape_markdown_v2("все") in message
+        assert escape_markdown_v2("нельзя отменить") in message
+        assert call_args[1].get("parse_mode") == "MarkdownV2"
 
         # Check inline keyboard
         reply_markup = call_args[1]["reply_markup"]
@@ -163,7 +172,10 @@ async def test_reset_handler_not_subscribed(mock_update, mock_context):
         await reset_handler(mock_update, mock_context)
 
         mock_update.message.reply_text.assert_awaited_once_with(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
 
 
@@ -194,9 +206,11 @@ async def test_confirm_reset(mock_storage):
 
         # Verify success message
         query.edit_message_text.assert_awaited_once()
-        message = query.edit_message_text.call_args[0][0]
-        assert RESET_SUCCESS_TEXT in message
-        assert "/start" in message
+        call_args_edit = query.edit_message_text.call_args
+        message = call_args_edit[0][0]
+        assert escape_markdown_v2(RESET_SUCCESS_TEXT) == message
+        assert escape_markdown_v2("/start") in message
+        assert call_args_edit[1].get("parse_mode") == "MarkdownV2"
 
 
 @pytest.mark.asyncio
@@ -218,4 +232,6 @@ async def test_cancel_reset():
     query.answer.assert_awaited_once()
 
     # Verify cancellation message
-    query.edit_message_text.assert_awaited_once_with("❌ Сброс данных отменен.")
+    query.edit_message_text.assert_awaited_once_with(
+        escape_markdown_v2("❌ Сброс данных отменен."), parse_mode="MarkdownV2"
+    )

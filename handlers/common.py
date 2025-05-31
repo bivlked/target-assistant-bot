@@ -11,6 +11,7 @@ from core.dependency_injection import get_async_storage
 from scheduler.tasks import Scheduler
 from utils.subscription import is_subscribed, subscribe_user
 from core.metrics import USER_COMMANDS_TOTAL
+from utils.helpers import escape_markdown_v2
 
 logger = structlog.get_logger(__name__)
 
@@ -93,8 +94,8 @@ def start_handler(scheduler: Scheduler) -> CommandHandler:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            WELCOME_TEXT,
-            parse_mode="Markdown",
+            escape_markdown_v2(WELCOME_TEXT),
+            parse_mode="MarkdownV2",
             reply_markup=reply_markup,
         )
 
@@ -109,7 +110,11 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = update.effective_user.id
     logger.info("User requested help", user_id=user_id)
 
-    await update.message.reply_text(HELP_TEXT, disable_web_page_preview=True)
+    await update.message.reply_text(
+        escape_markdown_v2(HELP_TEXT),
+        parse_mode="MarkdownV2",
+        disable_web_page_preview=True,
+    )
 
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -120,7 +125,9 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = update.effective_user.id
     logger.info("User cancelled operation", user_id=user_id)
 
-    await update.message.reply_text(CANCEL_TEXT)
+    await update.message.reply_text(
+        escape_markdown_v2(CANCEL_TEXT), parse_mode="MarkdownV2"
+    )
 
 
 async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -132,7 +139,10 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
@@ -146,11 +156,13 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "⚠️ *ВНИМАНИЕ!*\n\n"
-        "Вы собираетесь удалить *все* ваши цели и данные.\n"
-        "Это действие *нельзя отменить*!\n\n"
-        "Вы уверены?",
-        parse_mode="Markdown",
+        escape_markdown_v2(
+            "⚠️ *ВНИМАНИЕ!*\n\n"
+            "Вы собираетесь удалить *все* ваши цели и данные.\n"
+            "Это действие *нельзя отменить*!\n\n"
+            "Вы уверены?"
+        ),
+        parse_mode="MarkdownV2",
         reply_markup=reply_markup,
     )
 
@@ -171,13 +183,16 @@ async def confirm_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await storage.delete_spreadsheet(user_id)
 
         await query.edit_message_text(
-            RESET_SUCCESS_TEXT,
-            parse_mode="Markdown",
+            escape_markdown_v2(RESET_SUCCESS_TEXT),
+            parse_mode="MarkdownV2",
         )
     except Exception as e:
         logger.error("Error during reset", user_id=user_id, error=str(e))
         await query.edit_message_text(
-            "❌ Произошла ошибка при сбросе данных. Попробуйте позже."
+            escape_markdown_v2(
+                "❌ Произошла ошибка при сбросе данных. Попробуйте позже."
+            ),
+            parse_mode="MarkdownV2",
         )
 
 
@@ -189,7 +204,9 @@ async def cancel_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     await query.answer()
 
-    await query.edit_message_text("❌ Сброс данных отменен.")
+    await query.edit_message_text(
+        escape_markdown_v2("❌ Сброс данных отменен."), parse_mode="MarkdownV2"
+    )
 
 
 async def unknown_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -200,4 +217,6 @@ async def unknown_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_id = update.effective_user.id
     logger.info("User sent unknown command", user_id=user_id)
 
-    await update.message.reply_text(UNKNOWN_TEXT)
+    await update.message.reply_text(
+        escape_markdown_v2(UNKNOWN_TEXT), parse_mode="MarkdownV2"
+    )

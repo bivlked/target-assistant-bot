@@ -105,7 +105,7 @@ async def main_async():
     application.add_handler(CommandHandler("reset", reset_handler))
 
     # /start depends on scheduler
-    application.add_handler(CommandHandler("start", start_handler(scheduler)))
+    application.add_handler(start_handler(scheduler))
 
     # Reset confirmation handlers (must be before goals handlers)
     application.add_handler(
