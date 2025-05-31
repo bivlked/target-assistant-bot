@@ -1,3 +1,107 @@
+# 🚀 Быстрая установка на Ubuntu/Debian
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Rocket.png" width="100">
+  
+  <p>
+    <strong>Установка Target Assistant Bot за 5 минут</strong><br>
+    <sub>Краткая инструкция для опытных пользователей</sub>
+  </p>
+</div>
+
+## 📋 Требования
+
+- Ubuntu 20.04+ или Debian 11+
+- Python 3.11+
+- Git
+- Доступ к серверу по SSH
+
+## ⚡ Быстрая установка
+
+```bash
+# 1. Обновление системы
+sudo apt update && sudo apt upgrade -y
+
+# 2. Установка зависимостей
+sudo apt install -y python3.11 python3.11-venv python3-pip git
+
+# 3. Создание пользователя для бота
+sudo useradd -m -s /bin/bash targetbot
+sudo -u targetbot -i
+
+# 4. Клонирование репозитория
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+
+# 5. Создание виртуального окружения
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+# 6. Установка зависимостей
+pip install -r requirements.txt
+
+# 7. Настройка конфигурации
+cp .env.example .env
+nano .env  # Заполните необходимые параметры
+
+# 8. Добавление Google credentials
+# Скопируйте ваш google_credentials.json в папку проекта
+
+# 9. Настройка команд бота
+python setup_commands.py
+
+# 10. Запуск бота
+python main.py
+```
+
+## 🐳 Установка через Docker
+
+```bash
+# 1. Установка Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 2. Клонирование и настройка
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+cp .env.example .env
+nano .env
+
+# 3. Запуск
+docker compose up -d
+```
+
+## 🔧 Systemd сервис
+
+```bash
+# 1. Копирование файла сервиса
+sudo cp deploy/targetbot.service /etc/systemd/system/
+
+# 2. Редактирование пути в сервисе
+sudo nano /etc/systemd/system/targetbot.service
+
+# 3. Запуск и включение автозапуска
+sudo systemctl daemon-reload
+sudo systemctl enable targetbot
+sudo systemctl start targetbot
+
+# 4. Проверка статуса
+sudo systemctl status targetbot
+```
+
+## ❓ Проблемы?
+
+- 📖 [Подробная инструкция](install_ubuntu_detailed.md)
+- 💬 [FAQ](faq.md)
+- 🐛 [Создать Issue](https://github.com/bivlked/target-assistant-bot/issues/new)
+
+---
+
+<div align="center">
+  <a href="../README.md">← Вернуться к README</a> • 
+  <a href="install_ubuntu_detailed.md">Подробная инструкция →</a>
+</div>
+
 # Установка на Ubuntu 24.04 LTS (Minimal)
 
 Ниже приведены *два* рекомендованных способа развернуть **Target-Assistant-Bot** на чистой Ubuntu 24.04 LTS Minimal.

@@ -16,7 +16,7 @@ from telegram.ext import (
 
 from core.dependency_injection import get_async_storage, get_async_llm
 from core.models import Goal, GoalStatus, TaskStatus
-from utils.helpers import format_date, get_day_of_week
+from utils.helpers import format_date, get_day_of_week, escape_markdown_v2
 from utils.subscription import is_subscribed
 from core.metrics import USER_COMMANDS_TOTAL
 
@@ -45,27 +45,34 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
     storage = get_async_storage()
-    today = format_date(datetime.now(timezone.utc))
+    today_str = format_date(datetime.now(timezone.utc))
 
     # Get all tasks for today
-    tasks = await storage.get_all_tasks_for_date(user_id, today)
+    tasks = await storage.get_all_tasks_for_date(user_id, today_str)
 
     if not tasks:
         await update.message.reply_text(
-            f"📅 *Задачи на {today}*\n\n"
-            "У вас нет задач на сегодня.\n"
-            "Используйте /my_goals для просмотра ваших целей.",
-            parse_mode="Markdown",
+            escape_markdown_v2(
+                f"�� *Задачи на {escape_markdown_v2(today_str)}*\\n\\n"
+                "У вас нет задач на сегодня.\\n"
+                "Используйте /my\\_goals для просмотра ваших целей."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
     # Build message
-    message = f"📅 *Задачи на {today}*\n\n"
+    message = escape_markdown_v2(
+        f"📅 *Задачи на {escape_markdown_v2(today_str)}*\\n\\n"
+    )
 
     for task in tasks:
         status_emoji = {
@@ -74,9 +81,10 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             TaskStatus.NOT_DONE: "⬜",
         }.get(task.status, "⬜")
 
-        goal_name = task.goal_name or f"Цель {task.goal_id}"
-        message += f"{status_emoji} *{goal_name}*\n"
-        message += f"   📝 {task.task}\n\n"
+        goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
+        task_text = escape_markdown_v2(task.task)
+        message += f"{status_emoji} *{goal_name}*\\n"
+        message += f"   📝 {task_text}\\n\\n"
 
     # Add quick check buttons
     keyboard = []
@@ -112,7 +120,7 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     await update.message.reply_text(
         message,
-        parse_mode="Markdown",
+        parse_mode="MarkdownV2",
         reply_markup=reply_markup,
     )
 
@@ -129,7 +137,10 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
@@ -138,47 +149,61 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if stats["total_goals"] == 0:
         await update.message.reply_text(
-            "📊 У вас пока нет целей.\n"
-            "Используйте /add_goal для создания новой цели."
+            escape_markdown_v2(
+                "📊 У вас пока нет целей.\\n"
+                "Используйте /add\\_goal для создания новой цели."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
-    message = "📊 *Общий статус целей*\n\n"
+    message = escape_markdown_v2("📊 *Общий статус целей*\\n\\n")
 
     # Overall stats
-    message += "📈 *Статистика:*\n"
-    message += f"• Всего целей: {stats['total_goals']}\n"
-    message += f"• Активных: {stats['active_count']}\n"
-    message += f"• Завершенных: {stats['completed_count']}\n"
+    message += escape_markdown_v2("📈 *Статистика:*\\n")
+    message += escape_markdown_v2(f"• Всего целей: {stats['total_goals']}\\n")
+    message += escape_markdown_v2(f"• Активных: {stats['active_count']}\\n")
+    message += escape_markdown_v2(f"• Завершенных: {stats['completed_count']}\\n")
 
     if stats["active_count"] > 0:
-        message += f"• Общий прогресс: {stats['total_progress']}%\n"
-        message += "\n🎯 *Активные цели:*\n"
+        message += escape_markdown_v2(
+            f"• Общий прогресс: {stats['total_progress']}%\\n"
+        )
+        message += escape_markdown_v2("\\n🎯 *Активные цели:*\\n")
 
         for goal in stats["active_goals"]:
             priority_emoji = {"высокий": "🔴", "средний": "🟡", "низкий": "🟢"}.get(
                 goal.priority.value, "🟡"
             )
-
-            message += f"{priority_emoji} *{goal.name}*\n"
-            message += f"   📊 {goal.progress_percent}% • 📅 {goal.deadline}\n"
+            goal_name_escaped = escape_markdown_v2(goal.name)
+            goal_deadline_escaped = escape_markdown_v2(goal.deadline)
+            message += f"{priority_emoji} *{goal_name_escaped}*\\n"
+            message += escape_markdown_v2(
+                f"   📊 {goal.progress_percent}% • 📅 {goal_deadline_escaped}\\n"
+            )
 
     # Get upcoming tasks (next 3 days)
     upcoming_tasks = []
-    today = datetime.now(timezone.utc)
+    today_dt = datetime.now(timezone.utc)
 
     for i in range(3):
-        date = format_date(today.replace(day=today.day + i))
-        day_tasks = await storage.get_all_tasks_for_date(user_id, date)
+        date_str = format_date(today_dt.replace(day=today_dt.day + i))
+        day_tasks = await storage.get_all_tasks_for_date(user_id, date_str)
         for task in day_tasks:
             if task.status != TaskStatus.DONE:
-                upcoming_tasks.append((date, task))
+                upcoming_tasks.append((date_str, task))
 
     if upcoming_tasks:
-        message += "\n📝 *Ближайшие задачи:*\n"
-        for date, task in upcoming_tasks[:5]:  # Show max 5 tasks
-            goal_name = task.goal_name or f"Цель {task.goal_id}"
-            message += f"• {date}: {goal_name} - {task.task}\n"
+        message += escape_markdown_v2("\\n📝 *Ближайшие задачи:*\\n")
+        for date_str, task in upcoming_tasks[:5]:  # Show max 5 tasks
+            goal_name_escaped = escape_markdown_v2(
+                task.goal_name or f"Цель {task.goal_id}"
+            )
+            task_text_escaped = escape_markdown_v2(task.task)
+            date_str_escaped = escape_markdown_v2(date_str)
+            message += escape_markdown_v2(
+                f"• {date_str_escaped}: {goal_name_escaped} - {task_text_escaped}\\n"
+            )
 
     # Buttons
     keyboard = [
@@ -190,7 +215,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.message.reply_text(
         message,
-        parse_mode="Markdown",
+        parse_mode="MarkdownV2",
         reply_markup=reply_markup,
     )
 
@@ -207,20 +232,26 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
         return ConversationHandler.END
 
     storage = get_async_storage()
-    today = format_date(datetime.now(timezone.utc))
+    today_str = format_date(datetime.now(timezone.utc))
 
     # Get all tasks for today
-    tasks = await storage.get_all_tasks_for_date(user_id, today)
+    tasks = await storage.get_all_tasks_for_date(user_id, today_str)
     incomplete_tasks = [t for t in tasks if t.status != TaskStatus.DONE]
 
     if not incomplete_tasks:
         await update.message.reply_text(
-            "✅ У вас нет невыполненных задач на сегодня!\n" "Отличная работа! 🎉"
+            escape_markdown_v2(
+                "✅ У вас нет невыполненных задач на сегодня!\\n" "Отличная работа! 🎉"
+            ),
+            parse_mode="MarkdownV2",
         )
         return ConversationHandler.END
 
@@ -232,9 +263,11 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             context.user_data = {}
 
         context.user_data["check_goal_id"] = task.goal_id
-        context.user_data["check_date"] = today
+        context.user_data["check_date"] = today_str
 
-        goal_name = task.goal_name or f"Цель {task.goal_id}"
+        goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
+        task_text = escape_markdown_v2(task.task)
+        today_str_escaped = escape_markdown_v2(today_str)
 
         keyboard = [
             [
@@ -246,12 +279,14 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            f"📝 *Как дела с задачей?*\n\n"
-            f"🎯 *Цель:* {goal_name}\n"
-            f"📅 *Дата:* {today}\n"
-            f"📋 *Задача:* {task.task}\n\n"
-            f"Выберите статус выполнения:",
-            parse_mode="Markdown",
+            escape_markdown_v2(
+                f"📝 *Как дела с задачей?*\\n\\n"
+                f"🎯 *Цель:* {goal_name}\\n"
+                f"📅 *Дата:* {today_str_escaped}\\n"
+                f"📋 *Задача:* {task_text}\\n\\n"
+                f"Выберите статус выполнения:"
+            ),
+            parse_mode="MarkdownV2",
             reply_markup=reply_markup,
         )
 
@@ -260,7 +295,7 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         # Multiple tasks - let user choose which to update
         keyboard = []
         for task in incomplete_tasks:
-            goal_name = task.goal_name or f"Цель {task.goal_id}"
+            goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
             button_text = f"{goal_name}: {task.task[:30]}..."
             keyboard.append(
                 [
@@ -276,9 +311,11 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            f"📝 *Выберите задачу для обновления статуса:*\n\n"
-            f"У вас есть {len(incomplete_tasks)} невыполненных задач на сегодня.",
-            parse_mode="Markdown",
+            escape_markdown_v2(
+                f"📝 *Выберите задачу для обновления статуса:*\\n\\n"
+                f"У вас есть {len(incomplete_tasks)} невыполненных задач на сегодня."
+            ),
+            parse_mode="MarkdownV2",
             reply_markup=reply_markup,
         )
 
@@ -294,7 +331,9 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await query.answer()
 
     if query.data == "cancel_check":
-        await query.edit_message_text("❌ Отмена обновления статуса.")
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Отмена обновления статуса."), parse_mode="MarkdownV2"
+        )
         return ConversationHandler.END
 
     goal_id = int(query.data.split("_")[1])
@@ -302,20 +341,22 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if not user_id:
         return ConversationHandler.END
 
-    today = format_date(datetime.now(timezone.utc))
+    today_str = format_date(datetime.now(timezone.utc))
 
     if not context.user_data:
         context.user_data = {}
 
     context.user_data["check_goal_id"] = goal_id
-    context.user_data["check_date"] = today
+    context.user_data["check_date"] = today_str
 
     storage = get_async_storage()
-    task = await storage.get_task_for_date(user_id, goal_id, today)
+    task = await storage.get_task_for_date(user_id, goal_id, today_str)
     goal = await storage.get_goal_by_id(user_id, goal_id)
 
     if not task or not goal:
-        await query.edit_message_text("❌ Задача не найдена.")
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Задача не найдена."), parse_mode="MarkdownV2"
+        )
         return ConversationHandler.END
 
     keyboard = [
@@ -327,13 +368,19 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
+    goal_name_escaped = escape_markdown_v2(goal.name)
+    today_str_escaped = escape_markdown_v2(today_str)
+    task_text_escaped = escape_markdown_v2(task.task)
+
     await query.edit_message_text(
-        f"📝 *Как дела с задачей?*\n\n"
-        f"🎯 *Цель:* {goal.name}\n"
-        f"📅 *Дата:* {today}\n"
-        f"📋 *Задача:* {task.task}\n\n"
-        f"Выберите статус выполнения:",
-        parse_mode="Markdown",
+        escape_markdown_v2(
+            f"📝 *Как дела с задачей?*\\n\\n"
+            f"🎯 *Цель:* {goal_name_escaped}\\n"
+            f"📅 *Дата:* {today_str_escaped}\\n"
+            f"📋 *Задача:* {task_text_escaped}\\n\\n"
+            f"Выберите статус выполнения:"
+        ),
+        parse_mode="MarkdownV2",
         reply_markup=reply_markup,
     )
 
@@ -356,25 +403,31 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     new_status = status_map.get(query.data)
     if not new_status:
-        await query.edit_message_text("❌ Неизвестный статус.")
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Неизвестный статус."), parse_mode="MarkdownV2"
+        )
         return ConversationHandler.END
 
     if not context.user_data:
-        await query.edit_message_text("❌ Ошибка: данные не найдены.")
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Ошибка: данные не найдены."), parse_mode="MarkdownV2"
+        )
         return ConversationHandler.END
 
     goal_id = context.user_data.get("check_goal_id")
-    date = context.user_data.get("check_date")
+    date_str = context.user_data.get("check_date")
     user_id = query.from_user.id if query.from_user else 0
 
-    if not goal_id or not date or not user_id:
-        await query.edit_message_text("❌ Ошибка: данные не найдены.")
+    if not goal_id or not date_str or not user_id:
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Ошибка: данные не найдены."), parse_mode="MarkdownV2"
+        )
         return ConversationHandler.END
 
     storage = get_async_storage()
 
     try:
-        await storage.update_task_status(user_id, goal_id, date, new_status)
+        await storage.update_task_status(user_id, goal_id, date_str, new_status)
 
         status_text = {
             TaskStatus.DONE.value: "✅ Выполнено",
@@ -383,14 +436,20 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
         }
 
         await query.edit_message_text(
-            f"✅ Статус задачи обновлен: {status_text[new_status]}\n\n"
-            f"Продолжайте в том же духе! 💪"
+            escape_markdown_v2(
+                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text[new_status])}\\n\\n"
+                f"Продолжайте в том же духе! 💪"
+            ),
+            parse_mode="MarkdownV2",
         )
 
     except Exception as e:
         logger.error("Error updating task status", exc_info=e)
         await query.edit_message_text(
-            "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+            escape_markdown_v2(
+                "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+            ),
+            parse_mode="MarkdownV2",
         )
 
     return ConversationHandler.END
@@ -416,7 +475,7 @@ async def quick_status_update(
     if not user_id:
         return
 
-    today = format_date(datetime.now(timezone.utc))
+    today_str = format_date(datetime.now(timezone.utc))
 
     status_map = {
         "done": TaskStatus.DONE.value,
@@ -430,7 +489,7 @@ async def quick_status_update(
     storage = get_async_storage()
 
     try:
-        await storage.update_task_status(user_id, goal_id, today, new_status)
+        await storage.update_task_status(user_id, goal_id, today_str, new_status)
 
         status_text = {
             TaskStatus.DONE.value: "✅ Выполнено",
@@ -438,14 +497,20 @@ async def quick_status_update(
         }
 
         await query.edit_message_text(
-            f"✅ Статус задачи обновлен: {status_text[new_status]}\n\n"
-            f"Отличная работа! 🎉"
+            escape_markdown_v2(
+                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text[new_status])}\\n\\n"
+                f"Отличная работа! 🎉"
+            ),
+            parse_mode="MarkdownV2",
         )
 
     except Exception as e:
         logger.error("Error updating task status", exc_info=e)
         await query.edit_message_text(
-            "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+            escape_markdown_v2(
+                "❌ Произошла ошибка при обновлении статуса. Попробуйте позже."
+            ),
+            parse_mode="MarkdownV2",
         )
 
 
@@ -463,7 +528,10 @@ async def motivation_command(
 
     if not await is_subscribed(user_id):
         await update.message.reply_text(
-            "❌ Вы не подписаны на бота. Используйте /start для начала."
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
@@ -474,41 +542,54 @@ async def motivation_command(
     goals = await storage.get_active_goals(user_id)
     if not goals:
         await update.message.reply_text(
-            "🎯 У вас пока нет активных целей.\n"
-            "Создайте цель командой /add_goal для получения мотивации!"
+            escape_markdown_v2(
+                "🎯 У вас пока нет активных целей.\\n"
+                "Создайте цель командой /add\\_goal для получения мотивации!"
+            ),
+            parse_mode="MarkdownV2",
         )
         return
 
-    await update.message.reply_text("⏳ Генерирую мотивационное сообщение...")
+    await update.message.reply_text(
+        escape_markdown_v2("⏳ Генерирую мотивационное сообщение..."),
+        parse_mode="MarkdownV2",
+    )
 
     try:
         # Build context about goals and progress
-        goal_info = "Мои цели:\n"
-        progress_summary = "Прогресс:\n"
+        goal_info = "Мои цели:\\n"
+        progress_summary = "Прогресс:\\n"
 
         for goal in goals:
             stats = await storage.get_goal_statistics(user_id, goal.goal_id)
-            goal_info += f"- {goal.name}: {goal.description}\n"
-            progress_summary += f"- {goal.name}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)\n"
+            goal_name_escaped = escape_markdown_v2(goal.name)
+            goal_desc_escaped = escape_markdown_v2(goal.description)
+            goal_info += f"- {goal_name_escaped}: {goal_desc_escaped}\\n"
+            progress_summary += f"- {goal_name_escaped}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)\\n"
 
         # Generate motivation
         motivation = await llm.generate_motivation(goal_info, progress_summary)
+        motivation_escaped = escape_markdown_v2(motivation)
 
         await update.message.reply_text(
-            f"💪 *Мотивация для вас:*\n\n{motivation}", parse_mode="Markdown"
+            f"💪 *Мотивация для вас:*\\n\\n{motivation_escaped}",
+            parse_mode="MarkdownV2",
         )
 
     except Exception as e:
         logger.error("Error generating motivation", exc_info=e)
         await update.message.reply_text(
-            "❌ Не удалось получить мотивацию. Попробуйте позже."
+            escape_markdown_v2("❌ Не удалось получить мотивацию. Попробуйте позже."),
+            parse_mode="MarkdownV2",
         )
 
 
 async def cancel_check(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel check conversation."""
     if update.message:
-        await update.message.reply_text("❌ Операция отменена.")
+        await update.message.reply_text(
+            escape_markdown_v2("❌ Операция отменена."), parse_mode="MarkdownV2"
+        )
     return ConversationHandler.END
 
 

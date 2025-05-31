@@ -29,3 +29,20 @@ def get_day_of_week(date_obj: datetime, tz: str | None = None) -> str:
     return mapping.get(
         day, day
     )  # Fallback to English name if not in map (should not happen for %A)
+
+
+def escape_markdown_v2(text: str) -> str:
+    """Escapes special characters for MarkdownV2.
+
+    See: https://core.telegram.org/bots/api#markdownv2-style
+    """
+    if not text:
+        return ""
+    escape_chars = r"_[]()~`>#+-=|{}.!"
+    # Must escape the escape character itself if it's not part of an escape sequence
+    # For simplicity, we escape all backslashes first, then other characters.
+    # This order matters.
+    text = text.replace("\\", "\\\\")  # Escape backslashes
+    for char in escape_chars:
+        text = text.replace(char, f"\\{char}")
+    return text
