@@ -2,10 +2,10 @@
 
 import asyncio
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 
 from scheduler.tasks import Scheduler
-from core.goal_manager import GoalManager
+from core.interfaces import AsyncStorageInterface, AsyncLLMInterface
 from sheets.async_client import AsyncSheetsManager
 from llm.async_client import AsyncLLMClient
 
@@ -19,10 +19,9 @@ async def test_single_event_loop():
     # Initialize components
     sheets_client = AsyncSheetsManager()
     llm_client = AsyncLLMClient()
-    goal_manager = GoalManager(storage=sheets_client, llm=llm_client)
 
     # Create scheduler with explicit loop
-    scheduler = Scheduler(goal_manager, event_loop=main_loop)
+    scheduler = Scheduler(sheets_client, llm_client, event_loop=main_loop)
     scheduler.start()
 
     # Verify scheduler is using the same loop
@@ -41,10 +40,11 @@ async def test_single_event_loop():
 @pytest.mark.asyncio
 async def test_scheduler_initialization_with_loop():
     """Test that Scheduler correctly initializes with provided event loop."""
-    goal_manager = Mock(spec=GoalManager)
+    storage = Mock(spec=AsyncStorageInterface)
+    llm = Mock(spec=AsyncLLMInterface)
     loop = asyncio.get_running_loop()
 
-    scheduler = Scheduler(goal_manager, event_loop=loop)
+    scheduler = Scheduler(storage, llm, event_loop=loop)
     scheduler.start()
 
     assert scheduler._event_loop == loop
@@ -55,9 +55,10 @@ async def test_scheduler_initialization_with_loop():
 @pytest.mark.asyncio
 async def test_scheduler_initialization_without_loop():
     """Test that Scheduler can get current loop if none provided."""
-    goal_manager = Mock(spec=GoalManager)
+    storage = Mock(spec=AsyncStorageInterface)
+    llm = Mock(spec=AsyncLLMInterface)
 
-    scheduler = Scheduler(goal_manager)
+    scheduler = Scheduler(storage, llm)
     scheduler.start()
 
     # Should have obtained the current running loop
@@ -75,7 +76,7 @@ async def test_async_sheets_manager_uses_current_loop():
     with patch.object(sheets_manager, "_sync") as mock_sync:
         mock_sync.get_goal_info.return_value = {"goal": "Test Goal"}
 
-        # Call async method
+        # Call async method - get_goal_info only takes user_id
         result = await sheets_manager.get_goal_info(123)
 
         assert result == {"goal": "Test Goal"}
@@ -84,10 +85,11 @@ async def test_async_sheets_manager_uses_current_loop():
 
 def test_scheduler_no_loop_error():
     """Test that Scheduler handles missing event loop gracefully."""
-    goal_manager = Mock(spec=GoalManager)
+    storage = Mock(spec=AsyncStorageInterface)
+    llm = Mock(spec=AsyncLLMInterface)
 
     # This should not raise an error when there's no running loop
-    scheduler = Scheduler(goal_manager)
+    scheduler = Scheduler(storage, llm)
 
     # Manually set event_loop to None to simulate no loop scenario
     scheduler._event_loop = None
