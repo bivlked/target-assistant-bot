@@ -61,18 +61,16 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not tasks:
         await update.message.reply_text(
             escape_markdown_v2(
-                f"�� *Задачи на {escape_markdown_v2(today_str)}*\\n\\n"
-                "У вас нет задач на сегодня.\\n"
-                "Используйте /my\\_goals для просмотра ваших целей."
+                f"📅 *Задачи на {escape_markdown_v2(today_str)}*\n\n"
+                "У вас нет задач на сегодня.\n"
+                "Используйте /my_goals для просмотра ваших целей."
             ),
             parse_mode="MarkdownV2",
         )
         return
 
     # Build message
-    message = escape_markdown_v2(
-        f"📅 *Задачи на {escape_markdown_v2(today_str)}*\\n\\n"
-    )
+    message = escape_markdown_v2(f"📅 *Задачи на {escape_markdown_v2(today_str)}*\n\n")
 
     for task in tasks:
         status_emoji = {
@@ -83,8 +81,8 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
         task_text = escape_markdown_v2(task.task)
-        message += f"{status_emoji} *{goal_name}*\\n"
-        message += f"   📝 {task_text}\\n\\n"
+        message += f"{status_emoji} *{goal_name}*\n"
+        message += f"   📝 {task_text}\n\n"
 
     # Add quick check buttons
     keyboard = []
@@ -150,26 +148,24 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if stats["total_goals"] == 0:
         await update.message.reply_text(
             escape_markdown_v2(
-                "📊 У вас пока нет целей.\\n"
-                "Используйте /add\\_goal для создания новой цели."
+                "📊 У вас пока нет целей.\n"
+                "Используйте /add_goal для создания новой цели."
             ),
             parse_mode="MarkdownV2",
         )
         return
 
-    message = escape_markdown_v2("📊 *Общий статус целей*\\n\\n")
+    message = escape_markdown_v2("📊 *Общий статус целей*\n\n")
 
     # Overall stats
-    message += escape_markdown_v2("📈 *Статистика:*\\n")
-    message += escape_markdown_v2(f"• Всего целей: {stats['total_goals']}\\n")
-    message += escape_markdown_v2(f"• Активных: {stats['active_count']}\\n")
-    message += escape_markdown_v2(f"• Завершенных: {stats['completed_count']}\\n")
+    message += escape_markdown_v2("📈 *Статистика:*\n")
+    message += escape_markdown_v2(f"• Всего целей: {stats['total_goals']}\n")
+    message += escape_markdown_v2(f"• Активных: {stats['active_count']}\n")
+    message += escape_markdown_v2(f"• Завершенных: {stats['completed_count']}\n")
 
     if stats["active_count"] > 0:
-        message += escape_markdown_v2(
-            f"• Общий прогресс: {stats['total_progress']}%\\n"
-        )
-        message += escape_markdown_v2("\\n🎯 *Активные цели:*\\n")
+        message += escape_markdown_v2(f"• Общий прогресс: {stats['total_progress']}%\n")
+        message += escape_markdown_v2("\n🎯 *Активные цели:*\n")
 
         for goal in stats["active_goals"]:
             priority_emoji = {"высокий": "🔴", "средний": "🟡", "низкий": "🟢"}.get(
@@ -177,9 +173,9 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             goal_name_escaped = escape_markdown_v2(goal.name)
             goal_deadline_escaped = escape_markdown_v2(goal.deadline)
-            message += f"{priority_emoji} *{goal_name_escaped}*\\n"
+            message += f"{priority_emoji} *{goal_name_escaped}*\n"
             message += escape_markdown_v2(
-                f"   📊 {goal.progress_percent}% • 📅 {goal_deadline_escaped}\\n"
+                f"   📊 {goal.progress_percent}% • 📅 {goal_deadline_escaped}\n"
             )
 
     # Get upcoming tasks (next 3 days)
@@ -194,15 +190,15 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 upcoming_tasks.append((date_str, task))
 
     if upcoming_tasks:
-        message += escape_markdown_v2("\\n📝 *Ближайшие задачи:*\\n")
-        for date_str, task in upcoming_tasks[:5]:  # Show max 5 tasks
+        message += escape_markdown_v2("\n📝 *Ближайшие задачи:*\n")
+        for date_str_item, task_item in upcoming_tasks[:5]:
             goal_name_escaped = escape_markdown_v2(
-                task.goal_name or f"Цель {task.goal_id}"
+                task_item.goal_name or f"Цель {task_item.goal_id}"
             )
-            task_text_escaped = escape_markdown_v2(task.task)
-            date_str_escaped = escape_markdown_v2(date_str)
+            task_text_escaped = escape_markdown_v2(task_item.task)
+            date_str_escaped = escape_markdown_v2(date_str_item)
             message += escape_markdown_v2(
-                f"• {date_str_escaped}: {goal_name_escaped} - {task_text_escaped}\\n"
+                f"• {date_str_escaped}: {goal_name_escaped} - {task_text_escaped}\n"
             )
 
     # Buttons
@@ -249,7 +245,7 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if not incomplete_tasks:
         await update.message.reply_text(
             escape_markdown_v2(
-                "✅ У вас нет невыполненных задач на сегодня!\\n" "Отличная работа! 🎉"
+                "✅ У вас нет невыполненных задач на сегодня!\n" "Отличная работа! 🎉"
             ),
             parse_mode="MarkdownV2",
         )
@@ -257,16 +253,18 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
     if len(incomplete_tasks) == 1:
         # Single task - show status buttons directly
-        task = incomplete_tasks[0]
+        task_item_check = incomplete_tasks[0]
 
         if not context.user_data:
             context.user_data = {}
 
-        context.user_data["check_goal_id"] = task.goal_id
+        context.user_data["check_goal_id"] = task_item_check.goal_id
         context.user_data["check_date"] = today_str
 
-        goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
-        task_text = escape_markdown_v2(task.task)
+        goal_name = escape_markdown_v2(
+            task_item_check.goal_name or f"Цель {task_item_check.goal_id}"
+        )
+        task_text = escape_markdown_v2(task_item_check.task)
         today_str_escaped = escape_markdown_v2(today_str)
 
         keyboard = [
@@ -280,10 +278,10 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
         await update.message.reply_text(
             escape_markdown_v2(
-                f"📝 *Как дела с задачей?*\\n\\n"
-                f"🎯 *Цель:* {goal_name}\\n"
-                f"📅 *Дата:* {today_str_escaped}\\n"
-                f"📋 *Задача:* {task_text}\\n\\n"
+                f"📝 *Как дела с задачей?*\n\n"
+                f"🎯 *Цель:* {goal_name}\n"
+                f"📅 *Дата:* {today_str_escaped}\n"
+                f"📋 *Задача:* {task_text}\n\n"
                 f"Выберите статус выполнения:"
             ),
             parse_mode="MarkdownV2",
@@ -294,13 +292,17 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     else:
         # Multiple tasks - let user choose which to update
         keyboard = []
-        for task in incomplete_tasks:
-            goal_name = escape_markdown_v2(task.goal_name or f"Цель {task.goal_id}")
-            button_text = f"{goal_name}: {task.task[:30]}..."
+        for task_loop_item in incomplete_tasks:
+            goal_name = escape_markdown_v2(
+                task_loop_item.goal_name or f"Цель {task_loop_item.goal_id}"
+            )
+            button_text = (
+                f"{goal_name}: {escape_markdown_v2(task_loop_item.task[:30])}..."
+            )
             keyboard.append(
                 [
                     InlineKeyboardButton(
-                        button_text, callback_data=f"goal_{task.goal_id}"
+                        button_text, callback_data=f"goal_{task_loop_item.goal_id}"
                     )
                 ]
             )
@@ -312,7 +314,7 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
         await update.message.reply_text(
             escape_markdown_v2(
-                f"📝 *Выберите задачу для обновления статуса:*\\n\\n"
+                f"📝 *Выберите задачу для обновления статуса:*\n\n"
                 f"У вас есть {len(incomplete_tasks)} невыполненных задач на сегодня."
             ),
             parse_mode="MarkdownV2",
@@ -350,10 +352,10 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     context.user_data["check_date"] = today_str
 
     storage = get_async_storage()
-    task = await storage.get_task_for_date(user_id, goal_id, today_str)
-    goal = await storage.get_goal_by_id(user_id, goal_id)
+    task_item_choose = await storage.get_task_for_date(user_id, goal_id, today_str)
+    goal_item_choose = await storage.get_goal_by_id(user_id, goal_id)
 
-    if not task or not goal:
+    if not task_item_choose or not goal_item_choose:
         await query.edit_message_text(
             escape_markdown_v2("❌ Задача не найдена."), parse_mode="MarkdownV2"
         )
@@ -368,16 +370,16 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    goal_name_escaped = escape_markdown_v2(goal.name)
+    goal_name_escaped = escape_markdown_v2(goal_item_choose.name)
     today_str_escaped = escape_markdown_v2(today_str)
-    task_text_escaped = escape_markdown_v2(task.task)
+    task_text_escaped = escape_markdown_v2(task_item_choose.task)
 
     await query.edit_message_text(
         escape_markdown_v2(
-            f"📝 *Как дела с задачей?*\\n\\n"
-            f"🎯 *Цель:* {goal_name_escaped}\\n"
-            f"📅 *Дата:* {today_str_escaped}\\n"
-            f"📋 *Задача:* {task_text_escaped}\\n\\n"
+            f"📝 *Как дела с задачей?*\n\n"
+            f"🎯 *Цель:* {goal_name_escaped}\n"
+            f"📅 *Дата:* {today_str_escaped}\n"
+            f"📋 *Задача:* {task_text_escaped}\n\n"
             f"Выберите статус выполнения:"
         ),
         parse_mode="MarkdownV2",
@@ -429,7 +431,7 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         await storage.update_task_status(user_id, goal_id, date_str, new_status)
 
-        status_text = {
+        status_text_map = {
             TaskStatus.DONE.value: "✅ Выполнено",
             TaskStatus.PARTIALLY_DONE.value: "🟡 Частично выполнено",
             TaskStatus.NOT_DONE.value: "❌ Не выполнено",
@@ -437,8 +439,8 @@ async def update_task_status(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         await query.edit_message_text(
             escape_markdown_v2(
-                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text[new_status])}\\n\\n"
-                f"Продолжайте в том же духе! 💪"
+                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text_map[new_status])}\n\n"
+                f"Отличная работа! 🎉"
             ),
             parse_mode="MarkdownV2",
         )
@@ -477,12 +479,12 @@ async def quick_status_update(
 
     today_str = format_date(datetime.now(timezone.utc))
 
-    status_map = {
+    status_map_quick = {
         "done": TaskStatus.DONE.value,
         "partial": TaskStatus.PARTIALLY_DONE.value,
     }
 
-    new_status = status_map.get(status)
+    new_status = status_map_quick.get(status)
     if not new_status:
         return
 
@@ -491,14 +493,14 @@ async def quick_status_update(
     try:
         await storage.update_task_status(user_id, goal_id, today_str, new_status)
 
-        status_text = {
+        status_text_map_quick = {
             TaskStatus.DONE.value: "✅ Выполнено",
             TaskStatus.PARTIALLY_DONE.value: "🟡 Частично выполнено",
         }
 
         await query.edit_message_text(
             escape_markdown_v2(
-                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text[new_status])}\\n\\n"
+                f"✅ Статус задачи обновлен: {escape_markdown_v2(status_text_map_quick[new_status])}\n\n"
                 f"Отличная работа! 🎉"
             ),
             parse_mode="MarkdownV2",
@@ -543,8 +545,8 @@ async def motivation_command(
     if not goals:
         await update.message.reply_text(
             escape_markdown_v2(
-                "🎯 У вас пока нет активных целей.\\n"
-                "Создайте цель командой /add\\_goal для получения мотивации!"
+                "🎯 У вас пока нет активных целей.\n"
+                "Создайте цель командой /add_goal для получения мотивации!"
             ),
             parse_mode="MarkdownV2",
         )
@@ -557,23 +559,22 @@ async def motivation_command(
 
     try:
         # Build context about goals and progress
-        goal_info = "Мои цели:\\n"
-        progress_summary = "Прогресс:\\n"
+        goal_info = "Мои цели:\n"
+        progress_summary = "Прогресс:\n"
 
         for goal in goals:
             stats = await storage.get_goal_statistics(user_id, goal.goal_id)
             goal_name_escaped = escape_markdown_v2(goal.name)
             goal_desc_escaped = escape_markdown_v2(goal.description)
-            goal_info += f"- {goal_name_escaped}: {goal_desc_escaped}\\n"
-            progress_summary += f"- {goal_name_escaped}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)\\n"
+            goal_info += f"- {goal_name_escaped}: {goal_desc_escaped}\n"
+            progress_summary += f"- {goal_name_escaped}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)\n"
 
         # Generate motivation
         motivation = await llm.generate_motivation(goal_info, progress_summary)
         motivation_escaped = escape_markdown_v2(motivation)
 
         await update.message.reply_text(
-            f"💪 *Мотивация для вас:*\\n\\n{motivation_escaped}",
-            parse_mode="MarkdownV2",
+            f"�� *Мотивация для вас:*\n\n{motivation_escaped}", parse_mode="MarkdownV2"
         )
 
     except Exception as e:

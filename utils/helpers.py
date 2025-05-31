@@ -38,11 +38,21 @@ def escape_markdown_v2(text: str) -> str:
     """
     if not text:
         return ""
-    escape_chars = r"_[]()~`>#+-=|{}.!"
-    # Must escape the escape character itself if it's not part of an escape sequence
-    # For simplicity, we escape all backslashes first, then other characters.
-    # This order matters.
-    text = text.replace("\\", "\\\\")  # Escape backslashes
+    # Order matters: escape backslashes first, then other special chars.
+    # Special characters for MarkdownV2 from Telegram Bot API documentation.
+    # Chars: _ * [ ] ( ) ~ ` > # + - = | { } . !
+    # The `escape_chars` string contains all characters that need to be escaped.
+    # It's crucial to escape the backslash itself first if it's used as a literal.
+    # Then, iterate through other special characters.
+
+    # Step 1: Escape backslashes. Replace each literal backslash with two backslashes.
+    text = text.replace("\\", "\\\\")
+
+    # Step 2: Define other special characters that need escaping.
+    # Note: Backslash is handled above and not included here to avoid double escaping it.
+    escape_chars = "_*[]()~`>#+-=|{}.!"
+
+    # Step 3: Escape each special character.
     for char in escape_chars:
         text = text.replace(char, f"\\{char}")
     return text
