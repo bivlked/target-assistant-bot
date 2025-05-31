@@ -152,7 +152,7 @@ class SheetsManager:
         goals_ws = sh.add_worksheet(
             title=GOALS_LIST_SHEET, rows=15, cols=len(GOALS_LIST_HEADERS)
         )
-        goals_ws.update("A1", [GOALS_LIST_HEADERS])
+        goals_ws.update(values=[GOALS_LIST_HEADERS], range_name="A1")
         self._format_goals_list_sheet(goals_ws)
 
         # Delete default Sheet1
@@ -175,7 +175,7 @@ class SheetsManager:
             ws = sh.add_worksheet(
                 title=GOALS_LIST_SHEET, rows=15, cols=len(GOALS_LIST_HEADERS)
             )
-            ws.update("A1", [GOALS_LIST_HEADERS])
+            ws.update(values=[GOALS_LIST_HEADERS], range_name="A1")
             self._format_goals_list_sheet(ws)
 
     def _format_goals_list_sheet(self, ws: Worksheet) -> None:
@@ -203,7 +203,7 @@ class SheetsManager:
             ws = sh.worksheet(sheet_name)
         except gspread.WorksheetNotFound:
             ws = sh.add_worksheet(title=sheet_name, rows=400, cols=4)
-            ws.update("A1", [list(PLAN_HEADERS.values())])
+            ws.update(values=[list(PLAN_HEADERS.values())], range_name="A1")
             self._format_plan_sheet(ws)
 
     def _format_plan_sheet(self, ws: Worksheet) -> None:
@@ -365,7 +365,7 @@ class SheetsManager:
         # Update or add
         row_data = goal.to_sheet_row()
         if existing_row:
-            goals_ws.update(f"A{existing_row}", [row_data])
+            goals_ws.update(values=[row_data], range_name=f"A{existing_row}")
         else:
             goals_ws.append_row(row_data)
 
@@ -481,7 +481,7 @@ class SheetsManager:
         rows = [
             [p[COL_DATE], p[COL_DAYOFWEEK], p[COL_TASK], p[COL_STATUS]] for p in plan
         ]
-        ws.update("A1", header + rows)
+        ws.update(values=header + rows, range_name="A1")
 
         # Format
         self._format_plan_sheet(ws)
@@ -588,10 +588,10 @@ class SheetsManager:
 
                 batch_updates = []
                 for idx, row in enumerate(data, start=2):
-                    date = row.get(COL_DATE)
-                    if date in date_updates:
+                    row_date = str(row.get(COL_DATE, ""))
+                    if row_date and row_date in date_updates:
                         batch_updates.append(
-                            {"range": f"D{idx}", "values": [[date_updates[date]]]}
+                            {"range": f"D{idx}", "values": [[date_updates[row_date]]]}
                         )
 
                 if batch_updates:

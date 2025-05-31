@@ -10,6 +10,7 @@ from sheets.client import (
     SheetsManager,
 )  # Убедимся, что PLAN_SAMPLE здесь НЕ импортируется
 from sheets.async_client import AsyncSheetsManager  # Import AsyncSheetsManager
+from core.models import Goal, GoalStatus, GoalPriority
 
 # Константы для ключей, если они нужны, должны импортироваться отдельно или быть определены
 # from sheets.client import COL_DATE, COL_STATUS, etc. - если они нужны глобально в этом файле
@@ -113,6 +114,56 @@ def test_get_extended_statistics_sync(mock_sheets_manager_for_stats: SheetsManag
     """Tests synchronous get_extended_statistics with mocked data."""
     # freeze_today_for_stats (02.05.2025) должен быть активен
     manager = mock_sheets_manager_for_stats
+
+    # Мокаем get_active_goals чтобы вернуть одну активную цель
+    mock_goal = Goal(
+        goal_id=1,
+        name="Test Goal",
+        description="Test Description",
+        deadline="30 дней",
+        daily_time="1 час",
+        start_date="01.05.2025",
+        status=GoalStatus.ACTIVE,
+        priority=GoalPriority.MEDIUM,
+        tags=[],
+        progress_percent=33,
+    )
+
+    # Патчим методы для multi-goal архитектуры
+    manager.get_active_goals = MagicMock(return_value=[mock_goal])
+    manager.get_goal_statistics = MagicMock(
+        return_value=MagicMock(
+            total_tasks=3,
+            completed_tasks=1,
+            progress_percent=33,
+            days_elapsed=1,
+            days_remaining=2,
+            completion_rate=1.0,
+        )
+    )
+    manager.get_plan_for_goal = MagicMock(
+        return_value=[
+            MagicMock(
+                date="01.05.2025",
+                day_of_week="Четверг",
+                task="T1",
+                status=MagicMock(value="Выполнено"),
+            ),
+            MagicMock(
+                date="02.05.2025",
+                day_of_week="Пятница",
+                task="T2",
+                status=MagicMock(value="Не выполнено"),
+            ),
+            MagicMock(
+                date="03.05.2025",
+                day_of_week="Суббота",
+                task="T3",
+                status=MagicMock(value="Не выполнено"),
+            ),
+        ]
+    )
+
     stats = manager.get_extended_statistics(user_id=11)
 
     assert stats["total_days"] == 3

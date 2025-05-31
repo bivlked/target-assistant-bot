@@ -28,11 +28,14 @@ class DummyAsyncStorage(AsyncStorageInterface):
     def __init__(self):
         """Initializes the dummy storage."""
         self.calls: Dict[str, Any] = {}
-        self.spreadsheet_url_to_return = "http://fake_url"
-        self._mock_task_for_date = {}
-        self._mock_stats_str = None
-        self._mock_goal_info = None
-        self._mock_extended_stats = None
+        self._mock_task_for_date: Dict[str, Dict[str, Any]] = {}
+        self._mock_tasks_for_date: Dict[str, List[Task]] = (
+            {}
+        )  # Новый атрибут для multi-goal
+        self._mock_stats_str: Optional[str] = None
+        self._mock_goal_info: Optional[Dict[str, str]] = None
+        self._mock_extended_stats: Optional[Dict[str, Any]] = None
+        self.spreadsheet_url_to_return = "http://test_url"
         self._mock_active_goals = []
 
     async def create_spreadsheet(self, user_id: int) -> None:
@@ -138,16 +141,26 @@ class DummyAsyncStorage(AsyncStorageInterface):
         return None
 
     async def get_task_for_today(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """Gets task for today."""
+        """Legacy method - returns first task for today."""
         from utils.helpers import format_date
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        today = format_date(datetime.now())
-        logger.debug(
-            "DummyAsyncStorage: get_task_for_today called", user_id=user_id, today=today
-        )
-        self.calls[f"get_task_for_date_{user_id}_{today}"] = True
-        return self._mock_task_for_date.get(today)
+        today = format_date(datetime.now(timezone.utc))
+        self.calls[f"get_task_for_today_{user_id}"] = True
+
+        # Используем get_all_tasks_for_date для получения задач
+        tasks = await self.get_all_tasks_for_date(user_id, today)
+
+        if tasks:
+            # Возвращаем первую задачу в старом формате
+            task = tasks[0]
+            return {
+                COL_DATE: task.date,
+                COL_DAYOFWEEK: task.day_of_week,
+                COL_TASK: task.task,
+                COL_STATUS: task.status.value,
+            }
+        return None
 
     async def update_task_status(
         self, user_id: int, goal_id: int, date: str, status: str
@@ -322,7 +335,7 @@ class DummyAsyncStorage(AsyncStorageInterface):
             date=date,
         )
         self.calls[f"get_all_tasks_for_date_{user_id}_{date}"] = True
-        return []
+        return self._mock_tasks_for_date.get(date, [])
 
     async def get_goal_statistics(self, user_id: int, goal_id: int) -> GoalStatistics:
         """Get statistics for a specific goal."""
@@ -493,21 +506,33 @@ async def test_get_today_task_found(monkeypatch: pytest.MonkeyPatch):
 
     user_id = 123
     today_date_str = "02.01.2025"
-    expected_task = {
-        COL_DATE: today_date_str,
-        COL_DAYOFWEEK: "Четверг",
-        COL_TASK: "Today's test task",
-        COL_STATUS: USER_FACING_STATUS_NOT_DONE,
-    }
-    storage_mock._mock_task_for_date = {today_date_str: expected_task}
 
-    # Patch format_date to return a fixed string for today
+    # Создаем задачу с goal_id
+    task = Task(
+        goal_id=1,
+        date=today_date_str,
+        day_of_week="Четверг",
+        task="Today's test task",
+        status=TaskStatus.NOT_DONE,
+        goal_name="Test Goal",
+    )
+
+    # Настраиваем мок для возврата задачи
+    storage_mock._mock_tasks_for_date = {today_date_str: [task]}
+
+    # Patch format_date globally to return a fixed string for today
     monkeypatch.setattr("core.goal_manager.format_date", lambda dt: today_date_str)
+    monkeypatch.setattr("utils.helpers.format_date", lambda dt, tz=None: today_date_str)
 
-    task = await gm.get_today_task(user_id)
+    result = await gm.get_today_task(user_id)
 
-    assert task == expected_task
-    assert f"get_task_for_date_{user_id}_{today_date_str}" in storage_mock.calls
+    # Проверяем, что возвращается словарь в старом формате
+    assert result is not None
+    assert result[COL_DATE] == today_date_str
+    assert result[COL_DAYOFWEEK] == "Четверг"
+    assert result[COL_TASK] == "Today's test task"
+    assert result[COL_STATUS] == USER_FACING_STATUS_NOT_DONE
+    assert f"get_all_tasks_for_date_{user_id}_{today_date_str}" in storage_mock.calls
 
 
 @pytest.mark.asyncio
@@ -519,14 +544,15 @@ async def test_get_today_task_not_found(monkeypatch: pytest.MonkeyPatch):
 
     user_id = 456
     today_date_str = "03.01.2025"
-    storage_mock._mock_task_for_date = {}  # Ensure no task for this date
+    storage_mock._mock_tasks_for_date = {}  # Ensure no task for this date
 
     monkeypatch.setattr("core.goal_manager.format_date", lambda dt: today_date_str)
+    monkeypatch.setattr("utils.helpers.format_date", lambda dt, tz=None: today_date_str)
 
     task = await gm.get_today_task(user_id)
 
     assert task is None
-    assert f"get_task_for_date_{user_id}_{today_date_str}" in storage_mock.calls
+    assert f"get_all_tasks_for_date_{user_id}_{today_date_str}" in storage_mock.calls
 
 
 @pytest.mark.asyncio
@@ -743,8 +769,8 @@ async def test_set_new_goal_rate_limited(monkeypatch: pytest.MonkeyPatch):
         1,
     )  # По умолчанию 1 токен
 
-    # Убедимся, что clear_user_data был вызван до проверки лимита
-    assert storage_mock.calls.get("clear_user_data") == user_id
+    # Убедимся, что get_active_goals был вызван до проверки лимита
+    assert storage_mock.calls.get("get_active_goals") == user_id
     # Убедимся, что llm.generate_plan и последующие вызовы storage не были сделаны
     assert not any(call_key[0] == "generate_plan" for call_key in llm_mock.calls)
     assert "save_goal_info" not in storage_mock.calls

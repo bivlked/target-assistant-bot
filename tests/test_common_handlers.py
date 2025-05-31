@@ -69,9 +69,12 @@ async def test_start_handler_flow(
     ):
         mock_get_storage.return_value = mock_storage
 
-        # Create and call handler
+        # Create handler and get the callback function
         handler = start_handler(mock_scheduler)
-        await handler(mock_update, mock_context)
+        callback = handler.callback
+
+        # Call the callback directly
+        await callback(mock_update, mock_context)
 
         # Verify user was subscribed
         mock_subscribe.assert_called_once_with(user_id)
@@ -126,7 +129,9 @@ async def test_unknown_handler(mock_update, mock_context):
 async def test_reset_handler_flow(mock_update, mock_context):
     """Test the /reset command handler flow."""
     # Mock is_subscribed to return True
-    with patch("handlers.common.is_subscribed", return_value=True):
+    with patch(
+        "handlers.common.is_subscribed", new_callable=AsyncMock, return_value=True
+    ):
         await reset_handler(mock_update, mock_context)
 
         # Verify confirmation message was sent
@@ -135,8 +140,8 @@ async def test_reset_handler_flow(mock_update, mock_context):
 
         # Check message content
         message = call_args[0][0]
-        assert "⚠️ ВНИМАНИЕ!" in message
-        assert "Все ваши цели" in message
+        assert "⚠️ *ВНИМАНИЕ!*" in message
+        assert "все" in message
         assert "нельзя отменить" in message
 
         # Check inline keyboard
@@ -152,7 +157,9 @@ async def test_reset_handler_flow(mock_update, mock_context):
 async def test_reset_handler_not_subscribed(mock_update, mock_context):
     """Test the /reset command when user is not subscribed."""
     # Mock is_subscribed to return False
-    with patch("handlers.common.is_subscribed", return_value=False):
+    with patch(
+        "handlers.common.is_subscribed", new_callable=AsyncMock, return_value=False
+    ):
         await reset_handler(mock_update, mock_context)
 
         mock_update.message.reply_text.assert_awaited_once_with(

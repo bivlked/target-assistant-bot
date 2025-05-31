@@ -37,6 +37,14 @@
 - Оптимизация импортов и удаление неиспользуемого кода
 - Улучшение типизации для лучшей поддержки MyPy
 
+### Fixed
+- Fixed all failing tests after multi-goal architecture migration
+- Fixed mypy type checking errors in handlers and sheets modules
+- Fixed async/await issues in subscription checks
+- Fixed gspread API compatibility issues (update method signature)
+- Fixed test fixtures for multi-goal support
+- Fixed import errors in test modules
+
 ## [Unreleased]
 
 ### 🚀 Добавлено

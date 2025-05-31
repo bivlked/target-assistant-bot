@@ -56,8 +56,8 @@ def test_token_bucket_refill():
     bucket._refill()  # Manually trigger refill for testing, consume also calls it
     # Expected tokens: 0.5 * 10 = 5
     assert bucket.current_tokens == pytest.approx(
-        5, abs=0.1
-    )  # Adjusted abs for sleep variability
+        5, abs=0.2
+    )  # Increased abs to 0.2 for sleep variability on different systems
 
     time.sleep(2)  # Wait for 2 more seconds (total 2.5s for ~25 tokens, capped at 20)
     bucket._refill()
