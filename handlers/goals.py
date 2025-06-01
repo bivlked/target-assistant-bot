@@ -118,8 +118,8 @@ async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(
-            message,
-            parse_mode="Markdown",
+            escape_markdown_v2(message),
+            parse_mode=ParseMode.MARKDOWN_V2,
             reply_markup=reply_markup,
         )
     else:
@@ -197,8 +197,8 @@ async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            message,
-            parse_mode="Markdown",
+            escape_markdown_v2(message),
+            parse_mode=ParseMode.MARKDOWN_V2,
             reply_markup=reply_markup,
         )
 
@@ -465,8 +465,8 @@ async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        summary,
-        parse_mode="Markdown",
+        escape_markdown_v2(summary),
+        parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=reply_markup,
     )
 
@@ -482,7 +482,10 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.answer()
 
     if query.data == "cancel_goal":
-        await query.edit_message_text("❌ Создание цели отменено.")
+        await query.edit_message_text(
+            escape_markdown_v2("❌ Создание цели отменено."),
+            parse_mode=ParseMode.MARKDOWN_V2,
+        )
         return ConversationHandler.END
 
     user_id = query.from_user.id
@@ -572,16 +575,22 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         total_days = len(formatted_plan_for_sheets)
 
         await query.edit_message_text(
-            f"✅ Цель '{goal.name}' успешно создана!\n\n"
-            f"📅 План составлен на {total_days} дней.\n"
-            f"🚀 Начинайте выполнение уже сегодня!\n\n"
-            f"Используйте /today чтобы увидеть задачи на сегодня."
+            escape_markdown_v2(
+                f"✅ Цель '{escape_markdown_v2(goal.name)}' успешно создана!\n\n"
+                f"📅 План составлен на {total_days} дней.\n"
+                f"🚀 Начинайте выполнение уже сегодня!\n\n"
+                f"Используйте /today чтобы увидеть задачи на сегодня."
+            ),
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
 
     except Exception as e:
         logger.error("Error creating goal", exc_info=e)
         await query.edit_message_text(
-            "❌ Произошла ошибка при создании цели.\n" "Попробуйте еще раз позже."
+            escape_markdown_v2(
+                "❌ Произошла ошибка при создании цели.\n" "Попробуйте еще раз позже."
+            ),
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
 
     return ConversationHandler.END
@@ -716,8 +725,8 @@ async def show_goal_details(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(
-        message,
-        parse_mode="Markdown",
+        escape_markdown_v2(message),
+        parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=reply_markup,
     )
 
@@ -737,7 +746,11 @@ async def complete_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await storage.update_goal_status(user_id, goal_id, GoalStatus.COMPLETED)
 
     await query.edit_message_text(
-        "🏆 Поздравляем! Цель успешно завершена!\n\n" "Вы проделали отличную работу! 🎉"
+        escape_markdown_v2(
+            "🏆 Поздравляем! Цель успешно завершена!\n\n"
+            "Вы проделали отличную работу! 🎉"
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
 
@@ -755,7 +768,10 @@ async def archive_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     await storage.archive_goal(user_id, goal_id)
 
-    await query.edit_message_text("📦 Цель перемещена в архив.")
+    await query.edit_message_text(
+        escape_markdown_v2("📦 Цель перемещена в архив."),
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
 
 
 async def delete_goal_confirm(
@@ -780,11 +796,14 @@ async def delete_goal_confirm(
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await query.edit_message_text(
-        "⚠️ *Внимание!*\n\n"
+    message_text = (
+        "⚠️ *ВНИМАНИЕ!*\n\n"
         "Вы уверены, что хотите удалить эту цель?\n"
-        "Все связанные задачи и прогресс будут удалены безвозвратно.",
-        parse_mode="Markdown",
+        "Все связанные задачи и прогресс будут удалены безвозвратно."
+    )
+    await query.edit_message_text(
+        escape_markdown_v2(message_text),
+        parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=reply_markup,
     )
 
@@ -805,7 +824,9 @@ async def delete_goal_execute(
 
     await storage.delete_goal(user_id, goal_id)
 
-    await query.edit_message_text("🗑️ Цель удалена.")
+    await query.edit_message_text(
+        escape_markdown_v2("🗑️ Цель удалена."), parse_mode=ParseMode.MARKDOWN_V2
+    )
 
 
 async def show_spreadsheet_link(
@@ -840,7 +861,10 @@ async def cancel_conversation(
 ) -> int:
     """Cancel goal creation conversation."""
     if update.message:
-        await update.message.reply_text("❌ Операция отменена.")
+        await update.message.reply_text(
+            escape_markdown_v2("❌ Операция отменена."),
+            parse_mode=ParseMode.MARKDOWN_V2,
+        )
     return ConversationHandler.END
 
 

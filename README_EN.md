@@ -5,43 +5,42 @@
   
   <p>
     <strong>Your personal AI assistant for achieving any goals</strong><br>
-    <sub>Smart helper that breaks down big goals into daily tasks and tracks progress</sub>
+    <sub>An intelligent helper that breaks down big goals into daily tasks and tracks progress</sub>
   </p>
 
   <p>
-    <a href="README.md">🌍 Русская версия</a> •
+    <a href="README.md">🇷🇺 Russian Version</a> •
     <a href="#-key-features">✨ Features</a> •
     <a href="#-quick-start">🚀 Quick Start</a> •
-    <a href="#-documentation">📚 Documentation</a> •
-    <a href="#-demo">🎬 Demo</a>
+    <a href="#-documentation">�� Documentation</a>
   </p>
 
-  <!-- Main badges -->
+  <!-- Main Badges -->
   <p>
     <a href="https://github.com/bivlked/target-assistant-bot/releases/latest">
-      <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot?style=for-the-badge&logo=github&label=Version&color=blue" alt="Latest Release">
+      <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot?style=flat-square&logo=github&label=Version&color=blue" alt="Latest Release">
     </a>
     <a href="https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/bivlked/target-assistant-bot/tests.yml?branch=main&style=for-the-badge&logo=github-actions&label=Tests" alt="Tests Status">
+      <img src="https://img.shields.io/github/actions/workflow/status/bivlked/target-assistant-bot/tests.yml?branch=main&style=flat-square&logo=github-actions&label=Tests" alt="Tests Status">
     </a>
     <a href="https://codecov.io/gh/bivlked/target-assistant-bot">
-      <img src="https://img.shields.io/codecov/c/github/bivlked/target-assistant-bot?style=for-the-badge&logo=codecov&label=Coverage" alt="Code Coverage">
+      <img src="https://img.shields.io/codecov/c/github/bivlked/target-assistant-bot?style=flat-square&logo=codecov&label=Coverage" alt="Code Coverage">
     </a>
     <a href="https://github.com/bivlked/target-assistant-bot/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=for-the-badge&label=License" alt="License">
+      <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=flat-square&label=License" alt="License">
     </a>
   </p>
 
   <!-- Technologies -->
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Bot API">
-    <img src="https://img.shields.io/badge/OpenAI-GPT--4-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI">
-    <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=for-the-badge&logo=google-sheets&logoColor=white" alt="Google Sheets">
-    <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0?style=flat-square&logo=telegram&logoColor=white" alt="Telegram Bot API">
+    <img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI">
+    <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=flat-square&logo=google-sheets&logoColor=white" alt="Google Sheets">
+    <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
   </p>
 
-  <!-- Additional badges -->
+  <!-- Additional Badges (Code style, Ruff, MyPy, Commits, Issues) -->
   <p>
     <a href="https://github.com/psf/black">
       <img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square" alt="Code style: black">
@@ -50,7 +49,7 @@
       <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json&style=flat-square" alt="Ruff">
     </a>
     <a href="https://mypy-lang.org/">
-      <img src="https://img.shields.io/badge/type_checker-mypy-blue?style=flat-square" alt="Checked with mypy">
+      <img src="https://img.shields.io/badge/type_checker-mypy-blue.svg?style=flat-square" alt="Checked with mypy">
     </a>
     <a href="https://github.com/bivlked/target-assistant-bot/commits/main">
       <img src="https://img.shields.io/github/last-commit/bivlked/target-assistant-bot?style=flat-square&logo=github" alt="Last Commit">
@@ -67,21 +66,21 @@
   <table>
     <tr>
       <td align="center" width="33%">
-        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Rocket.png" width="100px">
+        🚀
         <br>
         <strong>Instant Start</strong>
         <br>
         <sub>Start achieving goals in 5 minutes</sub>
       </td>
       <td align="center" width="33%">
-        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Brain.png" width="100px">
+        🧠
         <br>
         <strong>Smart AI Planner</strong>
         <br>
-        <sub>GPT-4 creates optimal plans</sub>
+        <sub>GPT-4o-mini creates optimal plans</sub>
       </td>
       <td align="center" width="33%">
-        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Chart%20Increasing.png" width="100px">
+        📈
         <br>
         <strong>Progress Tracking</strong>
         <br>
@@ -89,14 +88,6 @@
       </td>
     </tr>
   </table>
-</div>
-
-## 🎬 Demo
-
-<div align="center">
-  <img src="https://user-images.githubusercontent.com/placeholder/demo.gif" alt="Demo" width="600">
-  <br>
-  <sub>🎥 Watch how Target Assistant Bot helps achieve goals</sub>
 </div>
 
 ## 🌟 Key Features
