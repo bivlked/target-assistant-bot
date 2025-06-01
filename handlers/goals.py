@@ -10,11 +10,14 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from typing import List, Dict, Any
+from datetime import datetime, timezone, timedelta
 
 from core.dependency_injection import get_async_llm, get_async_storage
 from core.models import Goal, GoalPriority, GoalStatus, TaskStatus
 from utils.helpers import format_date, get_day_of_week, escape_markdown_v2
 from utils.subscription import is_subscribed
+from sheets.client import PLAN_HEADERS
 
 logger = structlog.get_logger(__name__)
 
@@ -471,8 +474,6 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         goal_id = await storage.get_next_goal_id(user_id)
 
         # Create goal object
-        from datetime import datetime, timezone
-
         if not context.user_data or not all(
             key in context.user_data
             for key in [
@@ -484,8 +485,15 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "goal_tags",
             ]
         ):
-            await query.edit_message_text("❌ Ошибка: не все данные цели были собраны.")
+            if query:
+                await query.edit_message_text(
+                    escape_markdown_v2("❌ Ошибка: не все данные цели были собраны."),
+                    parse_mode="MarkdownV2",
+                )
             return ConversationHandler.END
+
+        current_time_utc = datetime.now(timezone.utc)
+        goal_start_date_str = format_date(current_time_utc)
 
         goal = Goal(
             goal_id=goal_id,
@@ -493,7 +501,7 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             description=context.user_data["goal_description"],
             deadline=context.user_data["goal_deadline"],
             daily_time=context.user_data["goal_daily_time"],
-            start_date=format_date(datetime.now(timezone.utc)),
+            start_date=goal_start_date_str,
             status=GoalStatus.ACTIVE,
             priority=context.user_data["goal_priority"],
             tags=context.user_data["goal_tags"],
@@ -503,18 +511,40 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # Save goal
         await storage.save_goal_info(user_id, goal)
 
-        # Generate plan
-        plan = await llm.generate_plan(
+        # Generate plan from LLM
+        raw_plan_from_llm: List[Dict[str, Any]] = await llm.generate_plan(
             goal.description,
             goal.deadline,
             goal.daily_time,
         )
 
-        # Save plan
-        await storage.save_plan(user_id, goal_id, plan)
+        # Transform plan to the format expected by SheetsManager
+        start_date_dt = datetime.strptime(goal.start_date, "%d.%m.%Y").replace(
+            tzinfo=timezone.utc
+        )
+        formatted_plan_for_sheets = []
+        for i, item_from_llm in enumerate(raw_plan_from_llm):
+            current_task_date_dt = start_date_dt + timedelta(days=i)
+            task_description = item_from_llm.get(
+                "task", item_from_llm.get("описание", "Нет описания задачи")
+            )
+            if not isinstance(task_description, str):
+                task_description = str(task_description)
 
-        # Calculate total days
-        total_days = len(plan)
+            formatted_plan_for_sheets.append(
+                {
+                    PLAN_HEADERS["Дата"]: format_date(current_task_date_dt),
+                    PLAN_HEADERS["День недели"]: get_day_of_week(current_task_date_dt),
+                    PLAN_HEADERS["Задача"]: task_description,
+                    PLAN_HEADERS["Статус"]: TaskStatus.NOT_DONE.value,
+                }
+            )
+
+        # Save plan
+        await storage.save_plan(user_id, goal_id, formatted_plan_for_sheets)
+
+        # Calculate total days from the formatted plan that was actually saved
+        total_days = len(formatted_plan_for_sheets)
 
         await query.edit_message_text(
             f"✅ Цель '{goal.name}' успешно создана!\n\n"

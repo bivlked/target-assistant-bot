@@ -50,7 +50,7 @@ def escape_markdown_v2(text: str) -> str:
 
     # Step 2: Define other special characters that need escaping.
     # Note: Backslash is handled above and not included here to avoid double escaping it.
-    escape_chars = "_*[]()~`>#+-=|{}"
+    escape_chars = "_*[]()~`>#+-=|{}.!"
 
     # Step 3: Escape each special character.
     for char in escape_chars:
