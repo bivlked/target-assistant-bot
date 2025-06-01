@@ -63,11 +63,11 @@ RESET_SUCCESS_TEXT = (
 )
 
 RESET_CONFIRM_TEXT = (
-    "⚠️ *ВНИМАНИЕ!*\n\n"
-    "Вы собираетесь удалить *все* ваши цели и данные.\n"
-    "Это действие *нельзя отменить*!\n\n"
+    "⚠️ \*ВНИМАНИЕ\!\*\n\n"  # Manually escape * and ! for bold, but allow the literal *
+    "Вы собираетесь удалить \*все\* ваши цели и данные\.\n"
+    "Это действие \*нельзя отменить\*\!\n\n"
     "Вы уверены?"
-)  # This one already contains markdown, be careful
+)
 
 
 def start_handler(scheduler: Scheduler) -> CommandHandler:
@@ -75,6 +75,7 @@ def start_handler(scheduler: Scheduler) -> CommandHandler:
 
     async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command - welcome user and setup."""
+        USER_COMMANDS_TOTAL.labels(command_name="/start").inc()
         if not update.effective_user or not update.message:
             return
 
@@ -112,6 +113,7 @@ def start_handler(scheduler: Scheduler) -> CommandHandler:
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /help command."""
+    USER_COMMANDS_TOTAL.labels(command_name="/help").inc()
     if not update.effective_user or not update.message:
         return
 
@@ -126,6 +128,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /cancel command."""
+    USER_COMMANDS_TOTAL.labels(command_name="/cancel").inc()
     if not update.effective_user or not update.message:
         return
 
@@ -138,6 +141,7 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /reset command - show confirmation dialog."""
+    USER_COMMANDS_TOTAL.labels(command_name="/reset").inc()
     if not update.effective_user or not update.message:
         return
 
@@ -160,7 +164,7 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        escape_markdown_v2(RESET_CONFIRM_TEXT),
+        RESET_CONFIRM_TEXT,
         parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=reply_markup,
     )
@@ -208,6 +212,7 @@ async def cancel_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def unknown_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle unknown commands."""
+    USER_COMMANDS_TOTAL.labels(command_name="/unknown").inc()
     if not update.effective_user or not update.message:
         return
 

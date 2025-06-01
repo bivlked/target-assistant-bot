@@ -45,8 +45,8 @@ sheets_api_latency = Histogram(
 sheets_api_errors = Counter("sheets_api_errors_total", "Total Google Sheets API errors")
 
 # Constants for sheet names and columns
-GOAL_INFO_SHEET = "Информация о цели"  # Legacy single goal sheet
-PLAN_SHEET = "План"  # Legacy single goal sheet
+# GOAL_INFO_SHEET = "Информация о цели"  # Legacy - REMOVED
+# PLAN_SHEET = "План"  # Legacy - REMOVED
 
 # New constants for multi-goal support
 GOALS_LIST_SHEET = "Список целей"
@@ -143,9 +143,6 @@ class SheetsManager:
         # Ensure Goals List sheet exists
         self._ensure_goals_list_sheet(sh)
 
-        # Migrate legacy sheets if they exist
-        self._migrate_legacy_sheets_if_needed(sh)
-
     def _initialize_spreadsheet(self, sh: Spreadsheet) -> None:
         """Initializes a new spreadsheet with multi-goal structure."""
         # Create Goals List sheet
@@ -224,78 +221,6 @@ class SheetsManager:
                 ws.columns_auto_resize(1, 4)
         except Exception as e:
             logger.warning("Failed to format plan sheet: %s", e)
-
-    def _migrate_legacy_sheets_if_needed(self, sh: Spreadsheet) -> None:
-        """Migrates legacy single-goal sheets to multi-goal structure if they exist."""
-        try:
-            # Check if legacy sheets exist
-            goal_info_exists = False
-            plan_exists = False
-
-            try:
-                goal_info_ws = sh.worksheet(GOAL_INFO_SHEET)
-                goal_info_exists = True
-            except gspread.WorksheetNotFound:
-                pass
-
-            try:
-                plan_ws = sh.worksheet(PLAN_SHEET)
-                plan_exists = True
-            except gspread.WorksheetNotFound:
-                pass
-
-            # If both legacy sheets exist, migrate to goal 1
-            if goal_info_exists and plan_exists:
-                logger.info("Migrating legacy sheets for user")
-
-                # Get goal info
-                goal_data = {}
-                if goal_info_exists:
-                    data = goal_info_ws.get_all_values()
-                    goal_data = {
-                        row[0]: row[1] for row in data if row and len(row) >= 2
-                    }
-
-                # Get plan data
-                plan_data = []
-                if plan_exists:
-                    plan_data = plan_ws.get_all_records()
-
-                if goal_data:
-                    # Calculate progress
-                    total_tasks = len(plan_data)
-                    completed_tasks = sum(
-                        1
-                        for t in plan_data
-                        if t.get(COL_STATUS) == USER_FACING_STATUS_DONE
-                    )
-                    progress = (
-                        int(completed_tasks / total_tasks * 100) if total_tasks else 0
-                    )
-
-                    # Add to Goals List
-                    goals_ws = sh.worksheet(GOALS_LIST_SHEET)
-                    goal_row = [
-                        "1",  # ID
-                        "Цель 1",  # Default name
-                        goal_data.get("Глобальная цель", ""),
-                        goal_data.get("Срок выполнения", ""),
-                        goal_data.get("Затраты в день", ""),
-                        goal_data.get("Начало выполнения", ""),
-                        GoalStatus.ACTIVE.value,
-                        GoalPriority.MEDIUM.value,
-                        "",  # No tags
-                        str(progress),
-                        "",  # No completion date
-                    ]
-                    goals_ws.append_row(goal_row)
-
-                    # Rename Plan sheet to "Цель 1"
-                    if plan_exists:
-                        plan_ws.update_title(f"{GOAL_SHEET_PREFIX}1")
-
-        except Exception as e:
-            logger.error("Error during migration", exc_info=e)
 
     # -------------------------------------------------
     # Multi-goal management methods

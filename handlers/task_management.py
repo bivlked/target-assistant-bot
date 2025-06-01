@@ -5,8 +5,10 @@ from __future__ import annotations
 import sentry_sdk
 import structlog
 from datetime import datetime, timezone
+from typing import Optional, Callable
+import random
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -32,6 +34,9 @@ STATUS_MAPPING = {
     "not_done": TaskStatus.NOT_DONE.value,
     "partial": TaskStatus.PARTIALLY_DONE.value,
 }
+
+# Thematic emojis for motivation
+MOTIVATIONAL_EMOJIS = ["💪", "🚀", "🌟", "🎯", "✨", "🎉", "👍", "💡", "🏆", "🔥"]
 
 
 async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -121,51 +126,79 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Handle /status command - show overall progress."""
     USER_COMMANDS_TOTAL.labels(command_name="/status").inc()
 
-    if not update.effective_user or not update.message:
+    query = update.callback_query
+    is_callback = query is not None
+
+    effective_user: Optional[User] = None
+    reply_method: Optional[Callable] = None
+    edit_method: Optional[Callable] = None
+
+    if is_callback and query:
+        if not query.from_user:
+            return
+        await query.answer()
+        effective_user = query.from_user
+        if query.message:  # query.message can be None
+            edit_method = query.edit_message_text
+            # Fallback to send_message if message is not available to edit (e.g. too old)
+            # or if we prefer sending a new message for callbacks in some cases.
+            # For now, we primarily try to edit.
+    elif update.message and update.effective_user:
+        effective_user = update.effective_user
+        reply_method = update.message.reply_text
+    else:
+        logger.warning("status_command called with no user or message/query context")
         return
 
-    user_id = update.effective_user.id
+    if not effective_user:
+        logger.warning("No effective_user in status_command")
+        return
+
+    user_id = effective_user.id
     sentry_sdk.set_tag("user_id", user_id)
 
     if not await is_subscribed(user_id):
-        await update.message.reply_text(
-            escape_markdown_v2(
-                "❌ Вы не подписаны на бота. Используйте /start для начала."
-            ),
-            parse_mode=ParseMode.MARKDOWN_V2,
+        err_msg = escape_markdown_v2(
+            "❌ Вы не подписаны на бота. Используйте /start для начала."
         )
+        if edit_method:
+            await edit_method(text=err_msg, parse_mode=ParseMode.MARKDOWN_V2)
+        elif reply_method:
+            await reply_method(text=err_msg, parse_mode=ParseMode.MARKDOWN_V2)
         return
 
     storage = get_async_storage()
     stats = await storage.get_overall_statistics(user_id)
 
     if stats["total_goals"] == 0:
-        message_text = (
+        no_goals_msg = escape_markdown_v2(
             "📊 У вас пока нет целей.\n"
             "Используйте /add_goal для создания новой цели."
         )
-        await update.message.reply_text(
-            escape_markdown_v2(message_text), parse_mode=ParseMode.MARKDOWN_V2
-        )
+        if edit_method:
+            await edit_method(text=no_goals_msg, parse_mode=ParseMode.MARKDOWN_V2)
+        elif reply_method:
+            await reply_method(text=no_goals_msg, parse_mode=ParseMode.MARKDOWN_V2)
         return
 
     message_parts = []
     message_parts.append("📊 *Общий статус целей*\n\n")
-    message_parts.append("�� *Статистика:*\n")
+    message_parts.append("📈 *Статистика:*\n")
     message_parts.append(f"• Всего целей: {stats['total_goals']}\n")
     message_parts.append(f"• Активных: {stats['active_count']}\n")
     message_parts.append(f"• Завершенных: {stats['completed_count']}\n")
+    message_parts.append(f"• В архиве: {stats.get('archived_count', 0)}\n")
 
     if stats["active_count"] > 0:
         message_parts.append(f"• Общий прогресс: {stats['total_progress']}%\n")
         message_parts.append("\n🎯 *Активные цели:*\n")
-        for goal in stats["active_goals"]:
+        for goal_stat_item in stats["active_goals"]:
             priority_emoji = {"высокий": "🔴", "средний": "🟡", "низкий": "🟢"}.get(
-                goal.priority.value, "🟡"
+                goal_stat_item.priority.value, "🟡"
             )
-            message_parts.append(f"{priority_emoji} *{goal.name}*\n")
+            message_parts.append(f"{priority_emoji} *{goal_stat_item.name}*\n")
             message_parts.append(
-                f"   📊 {goal.progress_percent}% • 📅 {goal.deadline}\n"
+                f"   📊 {goal_stat_item.progress_percent}% • 📅 {goal_stat_item.deadline}\n"
             )
 
     upcoming_tasks_parts = []
@@ -173,17 +206,17 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     for i in range(3):
         date_str = format_date(today_dt.replace(day=today_dt.day + i))
         day_tasks = await storage.get_all_tasks_for_date(user_id, date_str)
-        for task in day_tasks:
-            if task.status != TaskStatus.DONE:
+        for task_stat_item in day_tasks:
+            if task_stat_item.status != TaskStatus.DONE:
                 upcoming_tasks_parts.append(
-                    f"• {date_str}: {task.goal_name or f'Цель {task.goal_id}'} - {task.task}\n"
+                    f"• {date_str}: {task_stat_item.goal_name or f'Цель {task_stat_item.goal_id}'} - {task_stat_item.task}\n"
                 )
 
     if upcoming_tasks_parts:
         message_parts.append("\n📝 *Ближайшие задачи:*\n")
         message_parts.extend(upcoming_tasks_parts[:5])
 
-    full_message = "".join(message_parts)
+    full_message = escape_markdown_v2("".join(message_parts))
 
     keyboard = [
         [InlineKeyboardButton("📋 Мои цели", callback_data="back_to_goals")],
@@ -191,11 +224,30 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        escape_markdown_v2(full_message),
-        parse_mode=ParseMode.MARKDOWN_V2,
-        reply_markup=reply_markup,
-    )
+    if edit_method:
+        await edit_method(
+            text=full_message,
+            parse_mode=ParseMode.MARKDOWN_V2,
+            reply_markup=reply_markup,
+        )
+    elif reply_method:
+        await reply_method(
+            text=full_message,
+            parse_mode=ParseMode.MARKDOWN_V2,
+            reply_markup=reply_markup,
+        )
+    else:  # Fallback if no method determined (should not happen with prior checks)
+        logger.error(
+            "No reply/edit method determined in status_command", user_id=user_id
+        )
+        # Consider sending a new message via context.bot.send_message as a last resort
+        if context.bot:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=full_message,
+                parse_mode=ParseMode.MARKDOWN_V2,
+                reply_markup=reply_markup,
+            )
 
 
 async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -499,7 +551,7 @@ async def motivation_command(
         return
 
     await update.message.reply_text(
-        escape_markdown_v2("⏳ Генерирую мотивационное сообщение..."),
+        escape_markdown_v2("⏳ Давно хотел вам сказать...."),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -519,9 +571,11 @@ async def motivation_command(
         progress_summary = "\n".join(progress_summary_parts)
 
         motivation_text = await llm.generate_motivation(goal_info, progress_summary)
-        message_to_send = (
-            f"💪 *Мотивация для вас:*\n\n{escape_markdown_v2(motivation_text)}"
-        )
+
+        # Select 3 random emojis
+        chosen_emojis = " ".join(random.sample(MOTIVATIONAL_EMOJIS, 3))
+
+        message_to_send = f"{chosen_emojis}\n\n{escape_markdown_v2(motivation_text)}"
         await update.message.reply_text(
             message_to_send, parse_mode=ParseMode.MARKDOWN_V2
         )
