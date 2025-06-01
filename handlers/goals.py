@@ -13,7 +13,7 @@ from telegram.ext import (
 
 from core.dependency_injection import get_async_llm, get_async_storage
 from core.models import Goal, GoalPriority, GoalStatus, TaskStatus
-from utils.helpers import format_date, get_day_of_week
+from utils.helpers import format_date, get_day_of_week, escape_markdown_v2
 from utils.subscription import is_subscribed
 
 logger = structlog.get_logger(__name__)
@@ -198,31 +198,79 @@ async def my_goals_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def add_goal_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Start adding a new goal."""
+    """Start adding a new goal via CallbackQuery."""
     query = update.callback_query
     if not query or not query.from_user:
         return ConversationHandler.END
 
     await query.answer()
-
     user_id = query.from_user.id
-    storage = get_async_storage()
+    reply_method = query.edit_message_text
+    message_to_reply = (
+        query.message
+    )  # For potential error messages not editing the current one
 
-    # Check goal limit
+    storage = get_async_storage()
     active_count = await storage.get_active_goals_count(user_id)
     if active_count >= 10:
-        await query.edit_message_text(
-            "❌ Достигнут лимит активных целей (10).\n"
-            "Завершите или архивируйте существующие цели перед добавлением новых."
+        await reply_method(
+            escape_markdown_v2(
+                "❌ Достигнут лимит активных целей (10).\n"
+                "Завершите или архивируйте существующие цели перед добавлением новых."
+            ),
+            parse_mode="MarkdownV2",
         )
         return ConversationHandler.END
 
-    await query.edit_message_text(
-        "🎯 *Создание новой цели*\n\n"
-        "Шаг 1/6: Введите короткое название цели (например: 'Изучить Python')",
-        parse_mode="Markdown",
+    await reply_method(
+        escape_markdown_v2(
+            "🎯 *Создание новой цели*\n\n"
+            "Шаг 1/6: Введите короткое название цели (например: 'Изучить Python')"
+        ),
+        parse_mode="MarkdownV2",
     )
+    return GOAL_NAME
 
+
+async def add_goal_command_start(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
+    """Start adding a new goal via /add_goal command."""
+    if not update.message or not update.effective_user:
+        return ConversationHandler.END
+
+    user_id = update.effective_user.id
+    reply_method = update.message.reply_text
+
+    # Check subscription status first for command entry
+    if not await is_subscribed(user_id):
+        await reply_method(
+            escape_markdown_v2(
+                "❌ Вы не подписаны на бота. Используйте /start для начала."
+            ),
+            parse_mode="MarkdownV2",
+        )
+        return ConversationHandler.END
+
+    storage = get_async_storage()
+    active_count = await storage.get_active_goals_count(user_id)
+    if active_count >= 10:
+        await reply_method(
+            escape_markdown_v2(
+                "❌ Достигнут лимит активных целей (10).\n"
+                "Завершите или архивируйте существующие цели перед добавлением новых."
+            ),
+            parse_mode="MarkdownV2",
+        )
+        return ConversationHandler.END
+
+    await reply_method(
+        escape_markdown_v2(
+            "🎯 *Создание новой цели*\n\n"
+            "Шаг 1/6: Введите короткое название цели (например: 'Изучить Python')"
+        ),
+        parse_mode="MarkdownV2",
+    )
     return GOAL_NAME
 
 
@@ -239,9 +287,6 @@ async def goal_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "Попробуйте еще раз:"
         )
         return GOAL_NAME
-
-    if not context.user_data:
-        context.user_data = {}
 
     context.user_data["goal_name"] = goal_name
 
@@ -268,9 +313,6 @@ async def goal_description_received(
         )
         return GOAL_DESCRIPTION
 
-    if not context.user_data:
-        context.user_data = {}
-
     context.user_data["goal_description"] = goal_description
 
     await update.message.reply_text(
@@ -289,9 +331,6 @@ async def goal_deadline_received(
     if not update.message or not update.message.text:
         return GOAL_DEADLINE
 
-    if not context.user_data:
-        context.user_data = {}
-
     context.user_data["goal_deadline"] = update.message.text.strip()
 
     await update.message.reply_text(
@@ -309,9 +348,6 @@ async def goal_daily_time_received(
     # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_DAILY_TIME
-
-    if not context.user_data:
-        context.user_data = {}
 
     context.user_data["goal_daily_time"] = update.message.text.strip()
 
@@ -349,9 +385,6 @@ async def goal_priority_received(
         "priority_low": GoalPriority.LOW,
     }
 
-    if not context.user_data:
-        context.user_data = {}
-
     context.user_data["goal_priority"] = priority_map[query.data]
 
     await query.edit_message_text(
@@ -375,9 +408,6 @@ async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
         tags = []
     else:
         tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
-
-    if not context.user_data:
-        context.user_data = {}
 
     context.user_data["goal_tags"] = tags
 
@@ -443,8 +473,18 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # Create goal object
         from datetime import datetime, timezone
 
-        if not context.user_data:
-            await query.edit_message_text("❌ Ошибка: данные не найдены.")
+        if not context.user_data or not all(
+            key in context.user_data
+            for key in [
+                "goal_name",
+                "goal_description",
+                "goal_deadline",
+                "goal_daily_time",
+                "goal_priority",
+                "goal_tags",
+            ]
+        ):
+            await query.edit_message_text("❌ Ошибка: не все данные цели были собраны.")
             return ConversationHandler.END
 
         goal = Goal(
@@ -751,7 +791,10 @@ async def cancel_conversation(
 
 # Create conversation handler for adding goals
 add_goal_conversation = ConversationHandler(
-    entry_points=[CallbackQueryHandler(add_goal_start, pattern="^add_goal$")],
+    entry_points=[
+        CallbackQueryHandler(add_goal_start, pattern="^add_goal$"),
+        CommandHandler("add_goal", add_goal_command_start),  # Added CommandHandler
+    ],
     states={
         GOAL_NAME: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, goal_name_received)

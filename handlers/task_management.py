@@ -61,7 +61,7 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not tasks:
         await update.message.reply_text(
             escape_markdown_v2(
-                f"📅 *Задачи на {escape_markdown_v2(today_str)}*\n\n"
+                f"📅 *Задачи на {today_str}*\n\n"
                 "У вас нет задач на сегодня.\n"
                 "Используйте /my_goals для просмотра ваших целей."
             ),
@@ -70,7 +70,7 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     # Build message
-    message = escape_markdown_v2(f"📅 *Задачи на {escape_markdown_v2(today_str)}*\n\n")
+    message = escape_markdown_v2(f"📅 *Задачи на {today_str}*\n\n")
 
     for task in tasks:
         status_emoji = {
@@ -265,7 +265,6 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             task_item_check.goal_name or f"Цель {task_item_check.goal_id}"
         )
         task_text = escape_markdown_v2(task_item_check.task)
-        today_str_escaped = escape_markdown_v2(today_str)
 
         keyboard = [
             [
@@ -280,7 +279,7 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             escape_markdown_v2(
                 f"📝 *Как дела с задачей?*\n\n"
                 f"🎯 *Цель:* {goal_name}\n"
-                f"📅 *Дата:* {today_str_escaped}\n"
+                f"�� *Дата:* {today_str}\n"
                 f"📋 *Задача:* {task_text}\n\n"
                 f"Выберите статус выполнения:"
             ),
@@ -371,14 +370,13 @@ async def choose_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     goal_name_escaped = escape_markdown_v2(goal_item_choose.name)
-    today_str_escaped = escape_markdown_v2(today_str)
     task_text_escaped = escape_markdown_v2(task_item_choose.task)
 
     await query.edit_message_text(
         escape_markdown_v2(
             f"📝 *Как дела с задачей?*\n\n"
             f"🎯 *Цель:* {goal_name_escaped}\n"
-            f"📅 *Дата:* {today_str_escaped}\n"
+            f"�� *Дата:* {today_str}\n"
             f"📋 *Задача:* {task_text_escaped}\n\n"
             f"Выберите статус выполнения:"
         ),
@@ -574,7 +572,7 @@ async def motivation_command(
         motivation_escaped = escape_markdown_v2(motivation)
 
         await update.message.reply_text(
-            f"�� *Мотивация для вас:*\n\n{motivation_escaped}", parse_mode="MarkdownV2"
+            f" *Мотивация для вас:*\n\n{motivation_escaped}", parse_mode="MarkdownV2"
         )
 
     except Exception as e:
