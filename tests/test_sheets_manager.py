@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 from sheets.client import (
     SheetsManager,
     COL_STATUS,
-    GOAL_INFO_SHEET,
-    PLAN_SHEET,
+    # GOAL_INFO_SHEET, # Removed
+    # PLAN_SHEET, # Removed
     COL_DATE,
     COL_TASK,
     GOALS_LIST_SHEET,
