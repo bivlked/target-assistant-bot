@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file at the very beginning
 
 import asyncio
+import tomllib  # Added import for tomllib (Python 3.11+)
 
 from telegram.ext import (
     Application,
@@ -148,14 +149,11 @@ async def main_async():
 
     # Get version from pyproject.toml
     try:
-        try:
-            import tomllib  # Python 3.11+
-        except ImportError:
-            import toml as tomllib  # type: ignore  # fallback for older Python
-        with open("pyproject.toml", "rb" if hasattr(tomllib, "load") else "r") as f:
+        # Python 3.11+ uses tomllib, which expects a binary file stream for load.
+        with open("pyproject.toml", "rb") as f:
             pyproject = tomllib.load(f)
             version = pyproject.get("project", {}).get("version", "unknown")
-    except Exception:
+    except Exception:  # Broad exception for file not found, parse error, etc.
         version = "0.2.3"  # Fallback version
 
     logger.info("Bot started with multi-goal support", version=version)
