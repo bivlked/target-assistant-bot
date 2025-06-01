@@ -553,11 +553,13 @@ async def goal_confirmed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         formatted_plan_for_sheets = []
         for i, item_from_llm in enumerate(raw_plan_from_llm):
             current_task_date_dt = start_date_dt + timedelta(days=i)
-            task_description = item_from_llm.get(
-                "task", item_from_llm.get("описание", "Нет описания задачи")
-            )
+            task_description = item_from_llm.get("task")
             if not isinstance(task_description, str):
-                task_description = str(task_description)
+                task_description = str(
+                    task_description
+                    if task_description is not None
+                    else "Нет описания задачи"
+                )
 
             formatted_plan_for_sheets.append(
                 {

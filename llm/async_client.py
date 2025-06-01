@@ -123,10 +123,17 @@ class AsyncLLMClient:
         """
         method_name = "generate_plan"
         start_time = time.monotonic()
+        # Enhanced prompt for more accurate plan duration
         prompt = (
-            f"Составь план достижения цели '{goal_text}' с дедлайном '{deadline_str}' "
-            f"и ежедневным временем '{available_time_str}' в формате JSON"
+            f"Составь подробный ежедневный план для достижения цели: '{goal_text}'. "
+            f"Срок выполнения: {deadline_str}. План должен быть рассчитан точно на этот срок. "
+            f"Ежедневно доступно времени: {available_time_str}. "
+            f"Ответ должен быть JSON объектом, содержащим единственный ключ 'tasks', значением которого является список словарей. "
+            f"Каждый словарь в списке представляет один день и должен содержать только два ключа: 'day_number' (int, номер дня, начиная с 1) и 'task' (string, описание задачи на день). "
+            f'Пример: {{ "tasks": [{{ "day_number": 1, "task": "Первый шаг..." }}, {{ "day_number": 2, "task": "Второй шаг..." }}] }}'
         )
+        logger.debug("LLM prompt for plan generation", prompt=prompt)
+
         resp = await self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -140,8 +147,30 @@ class AsyncLLMClient:
             content = resp.choices[0].message.content
             logger.debug("Raw LLM plan response content", content=content)
             LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
-            return self._extract_plan(content)
-        except (json.JSONDecodeError, ValueError) as e:
+
+            # Extract the list from the "tasks" key
+            parsed_json = json.loads(
+                content
+            )  # Assuming LLM adheres to response_format={'type': 'json_object'}
+            if (
+                isinstance(parsed_json, dict)
+                and "tasks" in parsed_json
+                and isinstance(parsed_json["tasks"], list)
+            ):
+                plan_list = parsed_json["tasks"]
+                # Further validation for list items can be added here if needed
+                # e.g., check if each item is a dict with 'day_number' and 'task'
+                return plan_list
+            else:
+                logger.error(
+                    "LLM response for plan is not in the expected format {{'tasks': [...]}}",
+                    received_json=parsed_json,
+                )
+                # Attempt to use the old extraction logic as a fallback if the new format fails,
+                # or if the LLM directly returned a list (less likely with json_object mode).
+                return self._extract_plan(content)  # Fallback to old extraction
+
+        except (json.JSONDecodeError, ValueError, KeyError) as e:  # Added KeyError
             logger.error(
                 "Error processing LLM response",
                 exc_info=e,
