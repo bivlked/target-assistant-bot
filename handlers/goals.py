@@ -282,9 +282,12 @@ async def add_goal_command_start(
 
 async def goal_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle goal name input."""
-    # Убеждаемся что это текстовое сообщение, не callback
     if not update.message or not update.message.text:
-        return GOAL_NAME  # Остаемся в том же состоянии
+        return GOAL_NAME
+
+    # Ensure user_data is initialized for mypy and safety
+    if context.user_data is None:
+        context.user_data = {}
 
     goal_name = update.message.text.strip()
     if len(goal_name) < 3:
@@ -307,9 +310,12 @@ async def goal_description_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle goal description input."""
-    # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_DESCRIPTION
+
+    # Ensure user_data is initialized
+    if context.user_data is None:
+        context.user_data = {}
 
     goal_description = update.message.text.strip()
     if len(goal_description) < 10:
@@ -333,9 +339,12 @@ async def goal_deadline_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle goal deadline input."""
-    # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_DEADLINE
+
+    # Ensure user_data is initialized
+    if context.user_data is None:
+        context.user_data = {}
 
     context.user_data["goal_deadline"] = update.message.text.strip()
 
@@ -351,9 +360,12 @@ async def goal_daily_time_received(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle daily time input."""
-    # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_DAILY_TIME
+
+    # Ensure user_data is initialized
+    if context.user_data is None:
+        context.user_data = {}
 
     context.user_data["goal_daily_time"] = update.message.text.strip()
 
@@ -382,8 +394,11 @@ async def goal_priority_received(
     query = update.callback_query
     if not query or not query.data:
         return GOAL_PRIORITY
-
     await query.answer()
+
+    # Ensure user_data is initialized
+    if context.user_data is None:
+        context.user_data = {}
 
     priority_map = {
         "priority_high": GoalPriority.HIGH,
@@ -404,9 +419,12 @@ async def goal_priority_received(
 
 async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle tags input and show confirmation."""
-    # Убеждаемся что это текстовое сообщение
     if not update.message or not update.message.text:
         return GOAL_TAGS
+
+    # Ensure user_data is initialized
+    if context.user_data is None:
+        context.user_data = {}
 
     tags_text = update.message.text.strip()
 
@@ -418,6 +436,10 @@ async def goal_tags_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["goal_tags"] = tags
 
     # Show summary
+    # Ensure user_data is initialized before accessing multiple keys for summary
+    if context.user_data is None:
+        context.user_data = {}  # Should ideally not happen if populated in prior steps
+
     priority_text = {
         GoalPriority.HIGH: "🔴 Высокий",
         GoalPriority.MEDIUM: "🟡 Средний",
