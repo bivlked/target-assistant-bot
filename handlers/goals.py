@@ -1,5 +1,7 @@
 """Command handlers for multi-goal management."""
 
+from __future__ import annotations
+
 import structlog
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -12,6 +14,7 @@ from telegram.ext import (
 )
 from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
+from telegram.constants import ParseMode
 
 from core.dependency_injection import get_async_llm, get_async_storage
 from core.models import Goal, GoalPriority, GoalStatus, TaskStatus
@@ -803,8 +806,8 @@ async def show_spreadsheet_link(
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(
-        f"📊 *Ваша таблица целей:*\n\n{spreadsheet_url}",
-        parse_mode="Markdown",
+        escape_markdown_v2(f"📊 *Ваша таблица целей:*\n\n{spreadsheet_url}"),
+        parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=reply_markup,
         disable_web_page_preview=True,
     )
