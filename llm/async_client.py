@@ -138,6 +138,7 @@ class AsyncLLMClient:
         )
         try:
             content = resp.choices[0].message.content
+            logger.debug("Raw LLM plan response content", content=content)
             LLM_API_CALLS.labels(method_name=method_name, status="success").inc()
             return self._extract_plan(content)
         except (json.JSONDecodeError, ValueError) as e:
@@ -183,6 +184,7 @@ class AsyncLLMClient:
         )
         try:
             content = resp.choices[0].message.content.strip()
+            logger.debug("Raw LLM motivation response content", content=content)
 
             # Try to parse as JSON first (in case LLM returns JSON despite not being asked to)
             try:

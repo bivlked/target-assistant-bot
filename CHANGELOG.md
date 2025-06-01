@@ -86,12 +86,16 @@
 - Переработан интерфейс настроек уведомлений.
 
 ### 🐛 Исправлено
-- **Проблема с парсингом Markdown**: 
-  - Изменен `parse_mode` на `MarkdownV2` для всех сообщений пользователю.
-  - Реализована и применена функция `escape_markdown_v2` для корректного экранирования спецсимволов MarkdownV2 (точки и восклицательные знаки теперь не экранируются, что исправляет отображение дат).
-  - Исправлены тесты (`tests/test_common_handlers.py`) для соответствия новому формату сообщений и `parse_mode`.
-  - Устранена ошибка `BadRequest: Can't parse entities` при отправке сообщений.
-- **Ошибка `AttributeError` в `add_goal`**: Исправлена проблема с присвоением `context.user_data` в обработчиках диалога создания цели (`handlers/goals.py`).
+- **Проблема с парсингом MarkdownV2**: 
+  - В `utils/helpers.py` функция `escape_markdown_v2` корректно экранирует все необходимые спецсимволы (`.`, `!`, `*`, `_` и т.д.) для MarkdownV2.
+  - Во всех обработчиках (`handlers/common.py`, `handlers/task_management.py`, `handlers/goals.py`) сообщения теперь используют `ParseMode.MARKDOWN_V2` и глобальное экранирование всего текста сообщения с помощью `escape_markdown_v2`. Ошибки `BadRequest` при отправке сообщений устранены.
+- **Ошибка `KeyError: 'Дата'` при создании цели**: 
+  - В `handlers/goals.py` (функция `goal_confirmed`) улучшена трансформация плана, полученного от LLM, в формат, ожидаемый `SheetsManager`. Это включает корректное формирование полей "Дата", "День недели", "Задача", "Статус".
+- **Ошибка `AttributeError` и типизации `mypy` в `add_goal`**: Исправлена проблема с некорректным присвоением `context.user_data` и добавлены проверки на `None` для удовлетворения `mypy` в обработчиках диалога (`handlers/goals.py`).
+- **Ошибка импорта `ParseMode`**: Исправлен импорт `ParseMode` в `handlers/goals.py` (теперь из `telegram.constants`).
+
+### 🚀 Добавлено
+- **Логирование сырых ответов LLM**: В `llm/async_client.py` добавлены debug-логи для ответов от OpenAI при генерации плана и мотивации.
 
 ## [0.2.2] - 2025-05-30
 
@@ -268,112 +272,4 @@
   - Significantly increased test coverage across the project to ~99%.
   - Conducted a thorough review and refactoring of all existing test files.
   - Created new test suites for `handlers/common.py`, `utils/sentry_integration.py`, `utils/retry_decorators.py`, and `sheets/async_client.py`.
-  - Improved mocking strategies, including the adoption of `freezegun` for time-sensitive tests and `pytest-asyncio` for async fixtures.
-  - Addressed and resolved numerous issues identified by `mypy` and improved type hinting.
-- **API Documentation**:
-  - Integrated Sphinx for automatic API documentation generation from docstrings.
-  - Set up GitHub Actions workflow to build and publish Sphinx documentation to GitHub Pages.
-  - Updated `README.md` with instructions for local documentation generation.
-- **CI/CD and Release Process**:
-  - Enhanced `deploy/update-bot.sh` script to support deployments based on Git tags for releases.
-  - Configured Docker CI workflow (`docker.yml`) to build and publish Docker images to GitHub Container Registry (GHCR) upon new tag/release creation.
-
-### Changed
-- **Code Quality**:
-  - Systematically translated a significant portion of comments and docstrings to English.
-  - Resolved various pre-commit hook issues, particularly with `detect-secrets` and `mypy`.
-  - Standardized error handling for LLM and Sheets API calls using custom retry decorators.
-- **LLM Interaction**: Improved robustness of `_extract_plan` in `AsyncLLMClient` for parsing LLM responses.
-- **Dependencies**: Added `freezegun` and `types-requests` to development/test dependencies.
-
-### Removed
-- **Synchronous Clients**: Removed legacy synchronous `llm/client.py` (and its tests) and refactored `sheets/client.py` to be primarily used by `AsyncSheetsManager`.
-- **Redundant Test Files**: Consolidated tests for `period_parser`, removing duplicate test files (`test_period_parser_extra.py`, `test_period_parser_additional.py`).
-- **Redundant `test_sheets.py`**: Merged its relevant tests into `test_sheets_manager.py`.
-
-### Fixed
-- Corrected error in `period_parser` heuristic and LLM fallback logic.
-- Resolved multiple issues in tests related to mocking, asynchronous operations, and date/time handling.
-
-### Added
-- Configurable Prometheus metrics port via `PROMETHEUS_PORT` environment variable
-- Script for dependency analysis (`scripts/analyze_dependencies.py`)
-- Automatic version detection from `pyproject.toml`
-
-### Changed
-- Updated dependencies to latest stable versions:
-  - `openai` >=1.82
-  - `gspread` >=6.1.4
-  - `tenacity` >=9.1
-  - `structlog` >=25.3
-  - `prometheus-client` >=0.21
-  - `sentry-sdk` >=2.29
-
-### Fixed
-- Removed 66 unused imports across the codebase
-- Fixed compatibility with Python 3.10 for reading `pyproject.toml`
-
-### Removed
-- Commented out legacy code in `scheduler/tasks.py`
-- Unnecessary TODO comments that were already addressed
-
-## 1.2 — 2025-05-05
-
-### Added
-- Миграция планировщика на `AsyncIOScheduler` (асинхронный режим по умолчанию).
-- Матрица тестов GitHub-Actions для Python 3.10–3.12 (`tests.yml`).
-- Отчёт о покрытии кода публикуется в Codecov.
-- Заглушки `google_credentials.json` и fallback-файл для стабильного CI.
-- Бейджи `Tests` и актуальные версии Python в README.
-
-### Changed
-- `GoogleConfig` больше не `frozen=True` — позволяет monkeypatch в тестах.
-- README: уточнены названия листов, пути запуска, обновлены ссылки.
-- Тесты `SheetsManager` расширены, фиктивные файлы создаются через `conftest.py`.
-- Удалена зависимость `six`; APScheduler зафиксирован на 3.11.
-
-### Removed
-- Удалена устаревшая ветка `chore/update-changelog-1.1` из origin.
-
-## 1.1 — 2025-05-02
-
-### Added
-- Интеграция структурированного логгирования `structlog` и отправка ошибок в Sentry.
-- CI-workflow GitHub Actions с прогоном тестов и линтера.
-- Асинхронные клиенты Google Sheets и GoalManager (`set_new_goal_async`).
-- Заглушка пути `google_credentials.json` в тестах для независимости окружения.
-
-### Changed
-- Расширены мок-классы `DummySpreadsheet` и `DummyWorksheet` для полного покрытия API.
-- Исправлены smoke-тесты, обновлена проверка `auto_resize`.
-
-### Docs
-- README дополнен разделами Docker Compose и systemd.
-- Обновлена архитектурная документация.
-
-## 1.0 — initial release
-
-### Added
-- Базовый бот Telegram на python-telegram-bot 20.
-- Диалог /setgoal с интеграцией OpenAI.
-- Google Sheets хранение цели и плана.
-- Планировщик напоминаний `apscheduler`.
-- Команды: /start, /help, /today, /check, /status, /motivation, /reset.
-- Автоматический setup_commands.py для BotFather.
-
-### Changed
-- Русифицированы подписи листа «Цель».
-- Формат даты – dd.mm.yyyy.
-
-### Removed
-- Удалены старые каталоги OLD/ и AnotherCrewCode/.
-
-### Docs
-- README, install_ubuntu, architecture, user_guide.
-
-<div align="center">
-  <p>
-    <strong>🚀 Полная история релизов</strong><br>
-    <a href="https://github.com/bivlked/target-assistant-bot/releases">Посмотреть все релизы на GitHub</a>
-  </p>
-</div>
+  - Improved mocking strategies, including the adoption of `
