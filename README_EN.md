@@ -12,7 +12,7 @@
     <a href="README.md">🇷🇺 Russian Version</a> •
     <a href="#-key-features">✨ Features</a> •
     <a href="#-quick-start">🚀 Quick Start</a> •
-    <a href="#-documentation">�� Documentation</a>
+    <a href="#-documentation">📖 Documentation</a>
   </p>
 
   <!-- Main Badges -->
@@ -30,7 +30,6 @@
       <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=flat-square&label=License" alt="License">
     </a>
   </p>
-
   <!-- Technologies -->
   <p>
     <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
@@ -39,7 +38,6 @@
     <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=flat-square&logo=google-sheets&logoColor=white" alt="Google Sheets">
     <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
   </p>
-
   <!-- Additional Badges (Code style, Ruff, MyPy, Commits, Issues) -->
   <p>
     <a href="https://github.com/psf/black">
@@ -98,7 +96,7 @@
 - **Tags** for grouping: #work #health #self-development
 - **Statuses**: ✅ Active • 🏆 Completed • 📦 Archived
 
-### 🤖 AI Planning with GPT-4
+### 🤖 AI Planning with GPT-4o-mini
 - Automatic **SMART plan** creation
 - Breaking down into **daily tasks**
 - Considering your **schedule and capabilities**
@@ -132,7 +130,7 @@ graph TB
     end
     
     subgraph "🧠 AI Services"
-        F[OpenAI GPT-4]
+        F[OpenAI GPT-4o-mini]
         G[Plan Generator]
         H[Motivation Engine]
     end
@@ -313,7 +311,7 @@ Detailed guide: [📖 Ubuntu Installation](docs/install_ubuntu_detailed.md)
     </tr>
     <tr>
       <td><strong>🧠 AI</strong></td>
-      <td>OpenAI GPT-4 API</td>
+      <td>OpenAI GPT-4o-mini API</td>
     </tr>
     <tr>
       <td><strong>💾 Storage</strong></td>
@@ -367,7 +365,7 @@ Detailed guide: [📖 Ubuntu Installation](docs/install_ubuntu_detailed.md)
 
 ## 🤝 How to Contribute
 
-We welcome any contributions to the project!
+We welcome any contributions to the project! 
 
 ```mermaid
 graph LR

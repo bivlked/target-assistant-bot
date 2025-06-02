@@ -6,6 +6,7 @@ import sentry_sdk
 import structlog
 from datetime import datetime, timezone
 from typing import Optional, Callable
+import random
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, User
 from telegram.ext import (
@@ -33,6 +34,9 @@ STATUS_MAPPING = {
     "not_done": TaskStatus.NOT_DONE.value,
     "partial": TaskStatus.PARTIALLY_DONE.value,
 }
+
+# Thematic emojis for motivation
+MOTIVATIONAL_EMOJIS = ["💪", "🚀", "🌟", "🎯", "✨", "🎉", "👍", "💡", "🏆", "🔥"]
 
 
 async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -547,7 +551,7 @@ async def motivation_command(
         return
 
     await update.message.reply_text(
-        escape_markdown_v2("⏳ Генерирую мотивационное сообщение..."),
+        escape_markdown_v2("⏳ Давно хотел вам сказать...."),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -567,9 +571,11 @@ async def motivation_command(
         progress_summary = "\n".join(progress_summary_parts)
 
         motivation_text = await llm.generate_motivation(goal_info, progress_summary)
-        message_to_send = (
-            f"💪 *Мотивация для вас:*\n\n{escape_markdown_v2(motivation_text)}"
-        )
+
+        # Select 3 random emojis
+        chosen_emojis = " ".join(random.sample(MOTIVATIONAL_EMOJIS, 3))
+
+        message_to_send = f"{chosen_emojis}\n\n{escape_markdown_v2(motivation_text)}"
         await update.message.reply_text(
             message_to_send, parse_mode=ParseMode.MARKDOWN_V2
         )
