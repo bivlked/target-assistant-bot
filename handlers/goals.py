@@ -292,15 +292,21 @@ async def goal_name_received(update: Update, context: ContextTypes.DEFAULT_TYPE)
     goal_name = update.message.text.strip()
     if len(goal_name) < 3:
         await update.message.reply_text(
-            "⚠️ Название цели должно содержать минимум 3 символа.\n"
-            "Попробуйте еще раз:"
+            escape_markdown_v2(
+                "⚠️ Название цели должно содержать минимум 3 символа.\n"
+                "Попробуйте еще раз:"
+            ),
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
         return GOAL_NAME
 
     context.user_data["goal_name"] = goal_name
 
     await update.message.reply_text(
-        "Шаг 2/6: Опишите вашу цель подробнее.\n" "Что именно вы хотите достичь?"
+        escape_markdown_v2(
+            "Шаг 2/6: Опишите вашу цель подробнее.\n" "Что именно вы хотите достичь?"
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
     return GOAL_DESCRIPTION
@@ -320,16 +326,22 @@ async def goal_description_received(
     goal_description = update.message.text.strip()
     if len(goal_description) < 10:
         await update.message.reply_text(
-            "⚠️ Описание цели должно быть более подробным (минимум 10 символов).\n"
-            "Попробуйте еще раз:"
+            escape_markdown_v2(
+                "⚠️ Описание цели должно быть более подробным (минимум 10 символов).\n"
+                "Попробуйте еще раз:"
+            ),
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
         return GOAL_DESCRIPTION
 
     context.user_data["goal_description"] = goal_description
 
     await update.message.reply_text(
-        "Шаг 3/6: Укажите срок достижения цели.\n"
-        "Например: '3 месяца', '6 недель', '90 дней'"
+        escape_markdown_v2(
+            "Шаг 3/6: Укажите срок достижения цели.\n"
+            "Например: '3 месяца', '6 недель', '90 дней'"
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
     return GOAL_DEADLINE
@@ -349,8 +361,11 @@ async def goal_deadline_received(
     context.user_data["goal_deadline"] = update.message.text.strip()
 
     await update.message.reply_text(
-        "Шаг 4/6: Сколько времени в день вы готовы уделять этой цели?\n"
-        "Например: '1 час', '30 минут', '2 часа'"
+        escape_markdown_v2(
+            "Шаг 4/6: Сколько времени в день вы готовы уделять этой цели?\n"
+            "Например: '1 час', '30 минут', '2 часа'"
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
     return GOAL_DAILY_TIME
@@ -380,8 +395,9 @@ async def goal_daily_time_received(
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "Шаг 5/6: Выберите приоритет цели:",
+        escape_markdown_v2("Шаг 5/6: Выберите приоритет цели:"),
         reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
     return GOAL_PRIORITY
@@ -409,9 +425,12 @@ async def goal_priority_received(
     context.user_data["goal_priority"] = priority_map[query.data]
 
     await query.edit_message_text(
-        "Шаг 6/6: Добавьте теги для цели (необязательно).\n"
-        "Введите теги через запятую или отправьте '-' чтобы пропустить.\n"
-        "Например: 'программирование, карьера, саморазвитие'"
+        escape_markdown_v2(
+            "Шаг 6/6: Добавьте теги для цели (необязательно).\n"
+            "Введите теги через запятую или отправьте '-' чтобы пропустить.\n"
+            "Например: 'программирование, карьера, саморазвитие'"
+        ),
+        parse_mode=ParseMode.MARKDOWN_V2,
     )
 
     return GOAL_TAGS

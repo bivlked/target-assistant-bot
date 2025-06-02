@@ -12,25 +12,24 @@
     <a href="README_EN.md">🌐 English Version</a> •
     <a href="#-ключевые-возможности">✨ Возможности</a> •
     <a href="#-быстрый-старт">🚀 Быстрый старт</a> •
-    <a href="#-документация">�� Документация</a>
+    <a href="#-документация">📖 Документация</a>
   </p>
 
   <!-- Основные бейджи -->
   <p>
     <a href="https://github.com/bivlked/target-assistant-bot/releases/latest">
-      <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot?style=flat-square&logo=github&label=Версия&color=blue" alt="Latest Release">
+      <img src="https://img.shields.io/github/v/release/bivlked/target-assistant-bot?style=flat-square&logo=github&label=Version&color=blue" alt="Latest Release">
     </a>
     <a href="https://github.com/bivlked/target-assistant-bot/actions/workflows/tests.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/bivlked/target-assistant-bot/tests.yml?branch=main&style=flat-square&logo=github-actions&label=Тесты" alt="Tests Status">
+      <img src="https://img.shields.io/github/actions/workflow/status/bivlked/target-assistant-bot/tests.yml?branch=main&style=flat-square&logo=github-actions&label=Tests" alt="Tests Status">
     </a>
     <a href="https://codecov.io/gh/bivlked/target-assistant-bot">
-      <img src="https://img.shields.io/codecov/c/github/bivlked/target-assistant-bot?style=flat-square&logo=codecov&label=Покрытие" alt="Code Coverage">
+      <img src="https://img.shields.io/codecov/c/github/bivlked/target-assistant-bot?style=flat-square&logo=codecov&label=Coverage" alt="Code Coverage">
     </a>
     <a href="https://github.com/bivlked/target-assistant-bot/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=flat-square&label=Лицензия" alt="License">
+      <img src="https://img.shields.io/github/license/bivlked/target-assistant-bot?style=flat-square&label=License" alt="License">
     </a>
   </p>
-
   <!-- Технологии -->
   <p>
     <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
@@ -39,7 +38,6 @@
     <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=flat-square&logo=google-sheets&logoColor=white" alt="Google Sheets">
     <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
   </p>
-
   <!-- Дополнительные бейджи -->
   <p>
     <a href="https://github.com/psf/black">
@@ -98,7 +96,7 @@
 - **Теги** для группировки: #работа #здоровье #саморазвитие
 - **Статусы**: ✅ Активная • 🏆 Завершенная • 📦 В архиве
 
-### 🤖 AI-планирование с GPT-4
+### 🤖 AI-планирование с GPT-4o-mini
 - Автоматическое создание **SMART-планов**
 - Разбивка на **ежедневные задачи**
 - Учет вашего **расписания и возможностей**
@@ -132,7 +130,7 @@ graph TB
     end
     
     subgraph "🧠 AI Services"
-        F[OpenAI GPT-4]
+        F[OpenAI GPT-4o-mini]
         G[Plan Generator]
         H[Motivation Engine]
     end
@@ -313,7 +311,7 @@ sudo systemctl enable --now targetbot
     </tr>
     <tr>
       <td><strong>🧠 AI</strong></td>
-      <td>OpenAI GPT-4 API</td>
+      <td>OpenAI GPT-4o-mini API</td>
     </tr>
     <tr>
       <td><strong>💾 Хранение</strong></td>
@@ -422,4 +420,4 @@ graph LR
   Нужна помощь? Пишите в <a href="https://t.me/targetassistant_support">Telegram</a>
 </sub>
 
-</div>
+</div> 
