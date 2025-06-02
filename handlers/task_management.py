@@ -333,7 +333,7 @@ async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         reply_markup = InlineKeyboardMarkup(keyboard)
         message_text_parts = [
             "📝 *Выберите задачу для обновления статуса:*\n\n",
-            f"У вас есть {len(incomplete_tasks)} невыполненных задач на сегодня\.",
+            f"У вас есть {len(incomplete_tasks)} невыполненных задач на сегодня\\.",
         ]
         await update.message.reply_text(
             escape_markdown_v2("".join(message_text_parts)),
@@ -562,9 +562,9 @@ async def motivation_command(
             stats = await storage.get_goal_statistics(user_id, goal_item.goal_id)
             goal_name_escaped = escape_markdown_v2(goal_item.name)
             goal_desc_escaped = escape_markdown_v2(goal_item.description)
-            goal_info_parts.append(f"\- {goal_name_escaped}: {goal_desc_escaped}")
+            goal_info_parts.append(f"\\- {goal_name_escaped}: {goal_desc_escaped}")
             progress_summary_parts.append(
-                f"\- {goal_name_escaped}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)"
+                f"\\- {goal_name_escaped}: {stats.progress_percent}% ({stats.completed_tasks}/{stats.total_tasks} задач)"
             )
 
         goal_info = "\n".join(goal_info_parts)
