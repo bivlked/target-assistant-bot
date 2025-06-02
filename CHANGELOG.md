@@ -83,6 +83,11 @@
 - **Улучшены мотивационные сообщения**: Заменен текст перед генерацией и сам заголовок сообщения на случайные эмодзи.
 - **Промпт для генерации плана LLM**: Улучшен промпт в `llm/async_client.py` для более точного следования указанному сроку и формату JSON.
 - **Обработка плана от LLM**: Обновлена логика в `handlers/goals.py` для парсинга нового ожидаемого формата плана от LLM.
+- **Улучшенная архитектура**: полный переход на AsyncStorageInterface и AsyncLLMInterface
+- **Система приоритетов**: высокий, средний, низкий приоритет для целей
+- **Теги для целей**: возможность добавления тегов для лучшей организации
+- **Расширенная статистика**: детальная аналитика по каждой цели и общая статистика
+- **Модуль подписок**: управление подписками пользователей (in-memory)
 
 ### 🐛 Исправлено
 - **Проблема с парсингом MarkdownV2**: 
@@ -273,4 +278,43 @@
   - Significantly increased test coverage across the project to ~99%.
   - Conducted a thorough review and refactoring of all existing test files.
   - Created new test suites for `handlers/common.py`, `utils/sentry_integration.py`, `utils/retry_decorators.py`, and `sheets/async_client.py`.
-  - Improved mocking strategies, including the adoption of `
+  - Improved mocking strategies, including the adoption of `async_mock` for asynchronous methods.
+  - Ensured all tests are compatible with the new asynchronous architecture and multi-goal features.
+- **Documentation Enhancement (Task #31)**:
+  - Overhauled `README.md` and `README_EN.md` with a modern design, including badges, diagrams, and emojis.
+  - Created detailed `FAQ.md`, `examples.md`, and `google_sheets_setup.md`.
+  - Updated installation and deployment instructions.
+  - Removed outdated documentation files.
+- **CI/CD Pipeline Optimization (Task #32)**:
+  - Refined CI/CD workflows in `.github/workflows/`.
+  - Addressed issues with code coverage reporting.
+  - Excluded Python 3.10 from the testing matrix due to Sphinx 8.2+ incompatibility.
+- **Code Quality & MyPy (Task #33)**:
+  - Conducted a full code audit for adherence to modern best practices.
+  - Updated all dependencies to their latest stable versions.
+  - Optimized imports and removed unused code.
+  - Improved type hinting for better MyPy support and resolved various MyPy errors.
+- **Sentry Integration (Task #34)**:
+  - Enhanced Sentry integration for more robust error tracking.
+  - Added detailed Sentry debug log documentation.
+- **User Experience & Interface**:
+  - Redesigned interactive menus and inline buttons for a more intuitive user experience.
+  - Improved the clarity and consistency of bot messages.
+- **Legacy Code Removal**:
+  - Removed the legacy `_migrate_legacy_sheets_if_needed` function and associated constants from `sheets/client.py`.
+
+### Fixed
+- Resolved critical bugs related to event loops between `python-telegram-bot`, `APScheduler`, and `AsyncSheetsManager`.
+- Fixed issues with `RuntimeError: Task got Future attached to a different loop`.
+- Addressed `MyPy` errors in `tests/test_sheets_extended_statistics.py`.
+- Corrected `ParseMode` import in `handlers/goals.py`.
+- Fixed `CallbackQuery` handling in `status_command` within `handlers/task_management.py`.
+- Resolved `AttributeError` in `add_goal` conversation handlers.
+- Fixed `KeyError: 'Дата'` during goal creation due to LLM plan transformation.
+- Corrected MarkdownV2 parsing and escaping for all user-facing messages, resolving `BadRequest: Can't parse entities` errors.
+- Addressed `mypy` issues in `tests/test_sheets_manager.py` and `tests/test_goals_handlers.py` by fixing imports and mock usage.
+
+### Removed
+- Legacy `_migrate_legacy_sheets_if_needed` function and associated constants.
+- Python 3.10 support (due to Sphinx 8.2+ requirements).
+- Outdated documentation files.
