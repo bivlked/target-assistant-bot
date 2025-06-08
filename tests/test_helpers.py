@@ -2,8 +2,9 @@
 
 from datetime import datetime  # Added timezone for clarity
 import pytz  # pytz is used
+from unittest.mock import patch
 
-from utils.helpers import format_date, get_day_of_week
+from utils.helpers import format_date, get_day_of_week, escape_markdown_v2
 
 
 def test_format_date_uses_default_config_tz():
@@ -62,4 +63,57 @@ def test_get_day_of_week_russian():
     assert get_day_of_week(dt_friday_moscow, "UTC") == "Четверг"
 
 
-# Removed test_get_day_of_week_mapping_specific as its cases are covered by test_get_day_of_week_russian
+def test_escape_markdown_v2_empty_string():
+    """Tests escape_markdown_v2 with empty string."""
+    assert escape_markdown_v2("") == ""
+    assert escape_markdown_v2(None) == ""
+
+
+def test_escape_markdown_v2_no_special_chars():
+    """Tests escape_markdown_v2 with text containing no special characters."""
+    text = "Hello World 123"
+    assert escape_markdown_v2(text) == "Hello World 123"
+
+
+def test_escape_markdown_v2_all_special_chars():
+    """Tests escape_markdown_v2 with all special characters."""
+    text = "_*[]()~`>#+-=|{}.!\\"
+    expected = "\\_\\*\\[\\]\\(\\)\\~\\`\\>\\#\\+\\-\\=\\|\\{\\}\\.\\!\\\\"
+    assert escape_markdown_v2(text) == expected
+
+
+def test_escape_markdown_v2_mixed_content():
+    """Tests escape_markdown_v2 with mixed content."""
+    text = "Hello *world*! This is [important] text."
+    expected = "Hello \\*world\\*\\! This is \\[important\\] text\\."
+    assert escape_markdown_v2(text) == expected
+
+
+def test_escape_markdown_v2_backslash_handling():
+    """Tests escape_markdown_v2 properly handles backslashes."""
+    text = "Text with \\ backslash"
+    expected = "Text with \\\\ backslash"
+    assert escape_markdown_v2(text) == expected
+
+    # Test multiple backslashes
+    text = "Text with \\\\ double backslash"
+    expected = "Text with \\\\\\\\ double backslash"
+    assert escape_markdown_v2(text) == expected
+
+
+def test_get_day_of_week_all_days():
+    """Tests get_day_of_week for all days of the week to ensure complete mapping coverage."""
+    # Test all days of the week to ensure mapping is complete
+    test_dates = [
+        (datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.utc), "Понедельник"),  # Monday
+        (datetime(2024, 1, 16, 12, 0, 0, tzinfo=pytz.utc), "Вторник"),  # Tuesday
+        (datetime(2024, 1, 17, 12, 0, 0, tzinfo=pytz.utc), "Среда"),  # Wednesday
+        (datetime(2024, 1, 18, 12, 0, 0, tzinfo=pytz.utc), "Четверг"),  # Thursday
+        (datetime(2024, 1, 19, 12, 0, 0, tzinfo=pytz.utc), "Пятница"),  # Friday
+        (datetime(2024, 1, 20, 12, 0, 0, tzinfo=pytz.utc), "Суббота"),  # Saturday
+        (datetime(2024, 1, 21, 12, 0, 0, tzinfo=pytz.utc), "Воскресенье"),  # Sunday
+    ]
+
+    for test_date, expected_russian in test_dates:
+        result = get_day_of_week(test_date, "UTC")
+        assert result == expected_russian
