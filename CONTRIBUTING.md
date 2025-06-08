@@ -1,70 +1,328 @@
-# Как внести вклад
+# 🤝 Руководство по внесению вклада
 
-Спасибо, что хотите помочь развитию Target Assistant Bot! Мы ценим любой вклад, будь то исправление ошибок, предложение новых функций или улучшение документации.
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People%20with%20professions/Technologist.png" width="100">
+  
+  <p>
+    <strong>Target Assistant Bot - Contribution Guide</strong><br>
+    <sub>Добро пожаловать в нашу команду разработчиков!</sub>
+  </p>
 
-## Начало работы
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/development-rules.md">
+    <img src="https://img.shields.io/badge/📋-Development_Rules-blue?style=flat-square" alt="Development Rules">
+  </a>
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/architecture/modular-architecture-strategy.md">
+    <img src="https://img.shields.io/badge/🏗️-Architecture-green?style=flat-square" alt="Architecture">
+  </a>
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/testing/strategic-testing-framework.md">
+    <img src="https://img.shields.io/badge/🧪-Testing_Framework-orange?style=flat-square" alt="Testing">
+  </a>
+</div>
+
+Спасибо, что хотите помочь развитию Target Assistant Bot! Мы ценим любой вклад и придерживаемся высоких стандартов качества для создания enterprise-grade решения.
+
+---
+
+## 🎯 Архитектурные принципы
+
+Target Assistant Bot следует **Clean Architecture** и **Enterprise Design Patterns**. Перед началом работы обязательно ознакомьтесь:
+
+### 📚 Обязательное чтение
+- **[📋 Development Rules](docs/development-rules.md)** - Правила разработки и стандарты качества
+- **[🏗️ Modular Architecture Strategy](docs/architecture/modular-architecture-strategy.md)** - Архитектурная стратегия
+- **[🧪 Strategic Testing Framework](docs/testing/strategic-testing-framework.md)** - Тестовая стратегия
+
+---
+
+## 🚀 Быстрый старт
 
 ### Требования к окружению
-- Python 3.10–3.12 (рекомендуется использовать `pyenv` для управления версиями Python)
-- Poetry **или** `pip` с виртуальным окружением (`venv`):
-  ```bash
-  # Используя venv (пример)
-  python3 -m venv .venv
-  source .venv/bin/activate  # для Linux/macOS
-  # .venv\Scripts\activate   # для Windows
-  pip install -U pip
-  pip install -r requirements.txt
-  # pip install -r requirements-dev.txt # Раскомментируйте, если dev-зависимости вынесены
-  ```
-- Установлены [pre-commit](https://pre-commit.com/) хуки:
-  ```bash
-  pip install pre-commit
-  pre-commit install
-  ```
-  Это поможет автоматически форматировать код и запускать линтеры перед каждым коммитом.
+- **Python 3.11+** (обязательно, Python 3.10 не поддерживается)
+- **Git 2.25+** с настроенными pre-commit hooks
+- **Poetry** (рекомендуется) или `pip` с виртуальным окружением
 
-### Рабочий процесс (Feature Branches)
-Мы используем Feature Branch Workflow. Пожалуйста, придерживайтесь его:
+### Настройка окружения
 
-1.  **Форк и клонирование**:
-    *   Форкните [основной репозиторий](https://github.com/bivlked/target-assistant-bot) на GitHub.
-    *   Клонируйте ваш форк локально: `git clone https://github.com/YOUR_USERNAME/target-assistant-bot.git`
-    *   Добавьте основной репозиторий как upstream: `git remote add upstream https://github.com/bivlked/target-assistant-bot.git`
+#### Вариант 1: Poetry (рекомендуется)
+```bash
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+poetry install --with dev
+poetry shell
+pre-commit install
+```
 
-2.  **Создание ветки**:
-    *   Перед началом работы убедитесь, что ваша локальная ветка `main` синхронизирована с `upstream/main`:
-        ```bash
-        git checkout main
-        git pull upstream main --rebase
-        ```
-    *   Создайте новую ветку от `main` для вашей задачи:
-        *   Для новой фичи: `git checkout -b feat/краткое-описание-фичи` (например, `feat/telegram-reminders`)
-        *   Для исправления бага: `git checkout -b fix/описание-бага` (например, `fix/cache-invalidation-issue`)
-        *   Используйте префиксы `feat/`, `fix/`, `docs/`, `style/`, `refactor/`, `test/`, `chore/`.
+#### Вариант 2: pip + venv
+```bash
+git clone https://github.com/bivlked/target-assistant-bot.git
+cd target-assistant-bot
+python3.11 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+pip install -r requirements.txt
+pre-commit install
+```
 
-3.  **Внесение изменений**:
-    *   Пишите код, добавляйте тесты для новых функций или исправлений.
-    *   Старайтесь делать атомарные коммиты.
+---
 
-4.  **Проверки перед коммитом и пушем**:
-    *   Запустите `pre-commit run -a` (или он сработает автоматически при `git commit`). Убедитесь, что все хуки (Black, Ruff, MyPy) пройдены успешно.
-    *   Запустите тесты: `pytest -q`. Все тесты должны проходить.
-    *   Проверьте покрытие тестами: `pytest --cov=.` (должно быть не ниже 80%).
+## 🔄 Рабочий процесс (Git Workflow)
 
-5.  **Формирование коммитов**:
-    *   Сообщения коммитов должны соответствовать спецификации [Conventional Commits](https://www.conventionalcommits.org/ru/v1.0.0/). Это помогает нам автоматически генерировать CHANGELOG и понимать историю изменений.
-    *   Пример: `feat: add user authentication via phone number` или `fix: correct typo in welcome message`.
+### 1. 🍴 Подготовка к работе
+```bash
+# Форкните репозиторий через GitHub UI
+git clone https://github.com/YOUR_USERNAME/target-assistant-bot.git
+git remote add upstream https://github.com/bivlked/target-assistant-bot.git
+```
 
-6.  **Push и Pull Request**:
-    *   Отправьте вашу ветку в ваш форк: `git push origin feat/ваша-фича`.
-    *   Создайте Pull Request (PR) из вашей feature-ветки в ветку `main` основного репозитория.
-    *   Заполните шаблон PR, предоставьте понятное описание изменений и ссылку на связанный Issue (если есть).
+### 2. 🌿 Создание feature ветки
+```bash
+# Синхронизация с upstream
+git checkout main
+git fetch upstream
+git rebase upstream/main
 
-## Проверка PR
-*   CI (GitHub Actions) автоматически запустит все проверки (линтеры, тесты на разных версиях Python, анализ покрытия). PR должен быть «зелёным» перед мерджем.
-*   Ожидайте код-ревью. Будьте готовы ответить на вопросы и внести доработки по результатам ревью.
+# Создание feature ветки
+git checkout -b feat/your-feature-name
+```
 
-## Кодекс поведения
-Мы придерживаемся [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Пожалуйста, будьте вежливы, конструктивны и уважайте других участников.
+#### Naming Convention
+- **Features**: `feat/краткое-описание`
+- **Bug fixes**: `fix/описание-проблемы`
+- **Documentation**: `docs/topic`
+- **Refactoring**: `refactor/component`
+- **Tests**: `test/component`
 
-Если у вас есть вопросы, не стесняйтесь создавать Issue или обсуждать их. Спасибо за ваш вклад! 
+### 3. 💻 Разработка
+
+#### Стандарты качества
+- **Код на английском языке** (переменные, функции, комментарии)
+- **UI на русском языке** (пользовательский интерфейс)
+- **Type hints обязательны** для всех функций
+- **Tests** для всего нового функционала
+- **97%+ test coverage** (текущий уровень проекта)
+
+### 4. 🧪 Обязательные проверки
+```bash
+# Автоматические проверки (pre-commit)
+black .                    # Code formatting
+ruff check .              # Linting
+mypy .                    # Type checking
+pytest -xvs              # Basic tests
+
+# Полное тестирование
+pytest --cov=. --cov-report=html --cov-fail-under=97
+```
+
+### 5. 📝 Коммиты (Conventional Commits)
+```bash
+# Примеры правильных сообщений
+feat(goal-manager): add support for goal prioritization
+fix(llm-client): resolve timeout handling in async requests
+docs(architecture): update clean architecture documentation
+test(handlers): add integration tests for goal creation
+```
+
+### 6. 🔄 Pull Request
+```bash
+git push origin feat/your-feature-name
+# Создайте PR через GitHub UI
+```
+
+---
+
+## 📋 Quality Gates (Критерии качества)
+
+### ✅ Обязательные требования для merge
+- **100% Type coverage** - все функции имеют type hints
+- **MyPy в strict mode** - без warnings
+- **97%+ test coverage** - поддержание текущего уровня
+- **Clean Architecture** - соблюдение слоев и dependency rules
+- **Code review approved** - минимум одно approval от maintainer
+
+---
+
+## 🏗️ Архитектурные Guidelines
+
+### Clean Architecture Layers
+```
+📱 Presentation Layer    (handlers/, main.py)
+🔧 Application Layer     (core/goal_manager.py)
+💼 Domain Layer          (core/models.py)
+🗄️ Infrastructure Layer  (sheets/, llm/, utils/)
+```
+
+### Dependency Injection
+```python
+# ✅ Правильно: Clean Architecture
+from core.interfaces import AsyncStorageInterface
+
+class GoalService:
+    def __init__(self, storage: AsyncStorageInterface) -> None:
+        self._storage = storage
+
+# ❌ Неправильно: Direct dependency
+import gspread
+class GoalService:
+    def __init__(self):
+        self.client = gspread.service_account()
+```
+
+---
+
+## 🧪 Testing Guidelines
+
+### Test Structure (пирамида тестирования)
+```
+    🔺 E2E Tests (5%)
+   🔸🔸 Contract Tests (15%)
+  🔹🔹🔹 Integration (30%)
+ 🔸🔸🔸🔸 Unit Tests (50%)
+```
+
+### Test Example
+```python
+class TestGoalManager:
+    @pytest.fixture
+    def goal_manager(self, mock_storage, mock_llm):
+        return GoalManager(storage=mock_storage, llm=mock_llm)
+    
+    async def test_create_goal_success(self, goal_manager):
+        # Given
+        goal_data = {"title": "Test Goal", "priority": "high"}
+        
+        # When
+        result = await goal_manager.create_goal(goal_data)
+        
+        # Then
+        assert result.title == "Test Goal"
+```
+
+---
+
+## 📖 Documentation Standards
+
+### Code Documentation
+```python
+class AsyncLLMClient:
+    """Asynchronous client for LLM operations.
+    
+    This client provides async methods for interacting with OpenAI API,
+    including plan generation and motivation messages.
+    
+    Args:
+        api_key: OpenAI API key for authentication
+        model: GPT model to use (default: gpt-4o-mini)
+    
+    Example:
+        >>> client = AsyncLLMClient(api_key="your-key")
+        >>> plan = await client.generate_plan("Learn Python", days=30)
+    """
+    
+    async def generate_plan(
+        self, 
+        goal: str, 
+        days: int,
+        priority: Priority = Priority.MEDIUM
+    ) -> Plan:
+        """Generate execution plan for the given goal.
+        
+        Args:
+            goal: Goal description in natural language
+            days: Number of days for plan execution
+            priority: Goal priority affecting task complexity
+            
+        Returns:
+            Plan object with organized tasks and timeline
+            
+        Raises:
+            LLMAPIError: If API request fails
+            ValidationError: If goal description is invalid
+        """
+        pass
+```
+
+---
+
+## 🔒 Security Guidelines
+
+### Secure Coding Practices
+```python
+# ✅ Secure: Input validation
+from pydantic import BaseModel, validator
+
+class GoalInput(BaseModel):
+    title: str
+    
+    @validator('title')
+    def validate_title(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Title cannot be empty')
+        return v.strip()
+
+# ✅ Secure: Environment variables
+import os
+def get_api_key() -> str:
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise ValueError('API key not set')
+    return api_key
+```
+
+---
+
+## 🤝 Code Review Process
+
+### Review Checklist for Authors
+- [ ] Self-review completed
+- [ ] Tests added/updated
+- [ ] Documentation updated
+- [ ] Performance impact assessed
+- [ ] Security considerations checked
+
+### Review Checklist for Reviewers
+- [ ] Architecture compliance
+- [ ] Code quality
+- [ ] Test coverage
+- [ ] Performance
+- [ ] Security
+
+---
+
+## 📞 Получение помощи
+
+### Каналы коммуникации
+- **GitHub Issues** - баги, feature requests
+- **GitHub Discussions** - архитектурные вопросы
+- **Pull Request Reviews** - конкретные вопросы по коду
+
+### Ожидания по времени ответа
+- **Critical bugs** - в течение 24 часов
+- **Feature requests** - в течение 1 недели
+- **Code reviews** - в течение 2 рабочих дней
+
+---
+
+## 📜 Кодекс поведения
+
+Мы придерживаемся [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+### Наши ценности
+- **Respect** - уважение ко всем участникам
+- **Constructive feedback** - конструктивная критика
+- **Collaboration** - работа в команде
+- **Learning** - постоянное обучение и рост
+
+---
+
+<div align="center">
+  <h2>🙏 Спасибо за ваш вклад!</h2>
+  <p>
+    <strong>Target Assistant Bot</strong> становится лучше благодаря таким разработчикам как вы.<br>
+    <sub>Вместе мы создаем enterprise-grade решение для достижения целей!</sub>
+  </p>
+</div>
+
+---
+
+**Последнее обновление**: Декабрь 2024  
+**Версия документа**: v2.0  
+**Соответствует проекту**: v0.2.4+ 

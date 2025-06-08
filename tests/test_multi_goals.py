@@ -92,12 +92,3 @@ def test_dependency_injection():
 
     assert storage is mock_storage
     assert llm is mock_llm
-
-
-if __name__ == "__main__":
-    print("Running basic multi-goal tests...")
-    test_goal_creation()
-    test_task_creation()
-    test_goal_from_sheet_row()
-    test_dependency_injection()
-    print("✅ All tests passed!")

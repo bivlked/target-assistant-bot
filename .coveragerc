@@ -10,6 +10,7 @@ omit =
     venv/*
     */site-packages/*
     scripts/*
+    domain/*
 
 [report]
 exclude_lines =
