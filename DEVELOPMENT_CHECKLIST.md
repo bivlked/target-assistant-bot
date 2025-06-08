@@ -324,7 +324,7 @@
 - [ ] Architecture compliance verified ✅
 
 ### 🔧 Code Standards
-- **Python 3.11+** с полной типизацией ✅
+- **Python 3.12+** с полной типизацией ✅
 - **Black + Ruff** для форматирования и линтинга ✅
 - **MyPy (strict mode)** для статической типизации ✅
 - **Conventional Commits** для changelog automation ✅

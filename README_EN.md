@@ -303,7 +303,7 @@ Detailed guide: [📖 Ubuntu Installation](docs/install_ubuntu_detailed.md)
     </tr>
     <tr>
       <td><strong>🐍 Language</strong></td>
-      <td>Python 3.11+ with full typing</td>
+      <td>Python 3.12+ with full typing</td>
     </tr>
     <tr>
       <td><strong>🤖 Telegram</strong></td>
