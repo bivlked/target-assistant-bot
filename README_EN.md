@@ -387,7 +387,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information.
 ## 📈 Project Statistics
 
 <div align="center">
-  <img src="https://repobeats.axiom.co/api/embed/YOUR_EMBED_KEY.svg" alt="Repobeats analytics" />
+  <img src="https://repobeats.axiom.co/api/embed/9df92afe031ab7ae4a8df6f266e0c923f6561425.svg" alt="Repobeats analytics" />
 </div>
 
 ## 🏆 Contributors
