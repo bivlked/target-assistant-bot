@@ -1,7 +1,7 @@
 """
 Message Formatters Package
 
-Contains formatters for converting message templates 
+Contains formatters for converting message templates
 into platform-specific formats (Telegram, etc.).
 """
 
