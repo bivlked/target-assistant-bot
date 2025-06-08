@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Removed Python 3.10 due to incompatibility with Sphinx 8.2+
-        # Sphinx 8.2+ requires Python >=3.11
-        python-version: ["3.12", "3.11"]
+        # Updated to Python 3.12+ only for consistency with project requirements
+        # Python 3.12 is now the minimum required version
+        python-version: ["3.12"]
 
     steps:
     - uses: actions/checkout@v4

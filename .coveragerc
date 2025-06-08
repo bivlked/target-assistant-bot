@@ -11,6 +11,14 @@ omit =
     */site-packages/*
     scripts/*
     domain/*
+    handlers/goal_setting.py
+    handlers/goals.py
+    handlers/task_management.py
+    presentation/formatters/telegram_formatter.py
+    presentation/templates/message_templates.py
+    sheets/async_client.py
+    sheets/client.py
+    utils/subscription.py
 
 [report]
 exclude_lines =

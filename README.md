@@ -303,7 +303,7 @@ sudo systemctl enable --now targetbot
     </tr>
     <tr>
       <td><strong>🐍 Язык</strong></td>
-      <td>Python 3.11+ с полной типизацией</td>
+      <td>Python 3.12+ с полной типизацией</td>
     </tr>
     <tr>
       <td><strong>🤖 Telegram</strong></td>
