@@ -448,10 +448,10 @@ class TelegramFormatter:
 class TelegramMessageBuilder:
     """Helper class for building complex Telegram messages"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.formatter = TelegramFormatter()
-        self.parts = []
-        self.buttons = []
+        self.parts: List[str] = []
+        self.buttons: List[ActionButton] = []
 
     def add_header(
         self, text: str, emoji_key: Optional[str] = None
