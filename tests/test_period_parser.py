@@ -3,7 +3,7 @@ focusing on the heuristic part and overall logic.
 """
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from utils.period_parser import (
     parse_period,
@@ -64,6 +64,19 @@ def test_heuristic_days_parsing(phrase: str, expected_days: int | None):
     assert _heuristic_days(phrase) == expected_days
 
 
+def test_heuristic_days_invalid_number_format():
+    """Tests that _heuristic_days handles invalid number formats gracefully."""
+    # Test with a string that contains numbers but will cause ValueError in float()
+    # When regex finds a number but float() conversion fails, the function should return None
+    test_phrase = "1.2.3 месяц"  # This number format is invalid for float()
+
+    result = _heuristic_days(test_phrase)
+
+    # Since float() conversion fails for "1.2.3", and the code doesn't fall back
+    # to keyword search when a number is found but invalid, it should return None
+    assert result is None
+
+
 # --- Tests for parse_period (main function) ---
 
 
@@ -100,6 +113,40 @@ def test_parse_period_raises_value_error_if_all_fail(mock_llm_days):
     with pytest.raises(ValueError, match="Failed to parse the period."):
         parse_period(phrase)
     mock_llm_days.assert_called_once_with(phrase)
+
+
+@patch("utils.period_parser._get_client")
+def test_llm_days_empty_response_choices(mock_get_client):
+    """Tests that _llm_days handles empty response choices correctly."""
+    from utils.period_parser import _llm_days
+
+    # Mock the OpenAI client to return empty choices
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.choices = []  # Empty choices list
+    mock_client.chat.completions.create.return_value = mock_response
+    mock_get_client.return_value = mock_client
+
+    result = _llm_days("test phrase")
+    assert result is None
+
+
+@patch("utils.period_parser._get_client")
+def test_llm_days_none_content(mock_get_client):
+    """Tests that _llm_days handles None content in response correctly."""
+    from utils.period_parser import _llm_days
+
+    # Mock the OpenAI client to return None content
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_choice = Mock()
+    mock_choice.message.content = None  # None content
+    mock_response.choices = [mock_choice]
+    mock_client.chat.completions.create.return_value = mock_response
+    mock_get_client.return_value = mock_client
+
+    result = _llm_days("test phrase")
+    assert result is None
 
 
 # Note: Tests for _llm_days itself (requiring OpenAI mock) should be in a separate
