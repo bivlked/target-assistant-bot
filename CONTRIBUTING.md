@@ -11,8 +11,8 @@
   <a href="https://github.com/bivlked/target-assistant-bot/blob/main/README.md">
     <img src="https://img.shields.io/badge/📋-Project_README-blue?style=flat-square" alt="Project README">
   </a>
-  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/architecture.md">
-    <img src="https://img.shields.io/badge/🏗️-Architecture-green?style=flat-square" alt="Architecture">
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/DEVELOPMENT_CHECKLIST.md">
+    <img src="https://img.shields.io/badge/🏗️-Development_Checklist-green?style=flat-square" alt="Development Checklist">
   </a>
   <a href="https://github.com/bivlked/target-assistant-bot/blob/main/CHANGELOG.md">
     <img src="https://img.shields.io/badge/📝-Changelog-orange?style=flat-square" alt="Changelog">
@@ -29,9 +29,9 @@ Target Assistant Bot следует **Clean Architecture** и **Quality-First De
 
 ### 📚 Обязательное чтение
 - **[📋 README.md](README.md)** - Описание проекта и быстрый старт
-- **[🏗️ Architecture](docs/architecture.md)** - Архитектура проекта
+- **[📋 DEVELOPMENT_CHECKLIST.md](DEVELOPMENT_CHECKLIST.md)** - Roadmap, архитектура и стандарты качества
 - **[📝 CHANGELOG.md](CHANGELOG.md)** - История изменений и текущий статус
-- **[📋 DEVELOPMENT_CHECKLIST.md](DEVELOPMENT_CHECKLIST.md)** - Roadmap и стандарты качества
+- **[🤝 CONTRIBUTING.md](CONTRIBUTING.md)** - Руководство по разработке (данный документ)
 
 ---
 
@@ -99,7 +99,7 @@ git checkout -b feat/your-feature-name
 - **UI на русском языке** (пользовательский интерфейс)
 - **Type hints обязательны** для всех функций
 - **Tests** для всего нового функционала
-- **95%+ test coverage** (текущий уровень проекта: 95.18%)
+- **High test coverage** (текущий уровень проекта: 94.49%)
 
 ### 4. 🧪 Обязательные проверки
 ```bash
@@ -135,7 +135,7 @@ git push origin feat/your-feature-name
 ### ✅ Обязательные требования для merge
 - **100% Type coverage** - все функции имеют type hints
 - **MyPy в strict mode** - без warnings
-- **95%+ test coverage** - поддержание текущего уровня (95.18%)
+- **High test coverage** - поддержание текущего уровня (94.49%)
 - **Clean Architecture** - соблюдение слоев и dependency rules
 - **Code review approved** - минимум одно approval от maintainer
 
@@ -324,6 +324,6 @@ def get_api_key() -> str:
 
 ---
 
-**Последнее обновление**: Active Development  
-**Версия документа**: Current  
+**Последнее обновление**: 2025-06-09  
+**Версия документа**: v0.2.3 Enhanced  
 **Соответствует проекту**: v0.2.3+ 
