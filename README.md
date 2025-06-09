@@ -32,7 +32,7 @@
   </p>
   <!-- Технологии -->
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
     <img src="https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0?style=flat-square&logo=telegram&logoColor=white" alt="Telegram Bot API">
     <img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI">
     <img src="https://img.shields.io/badge/Google%20Sheets-API-34A853?style=flat-square&logo=google-sheets&logoColor=white" alt="Google Sheets">
@@ -177,7 +177,10 @@ cp .env.example .env
 # - OPENAI_API_KEY (получите на platform.openai.com)
 # - Добавьте google_credentials.json
 
-# 4. Запустите бота
+# 4. Зарегистрируйте команды бота у BotFather
+python setup_commands.py
+
+# 5. Запустите бота
 docker compose up -d
 ```
 
@@ -200,7 +203,10 @@ pip install -r requirements.txt
 cp .env.example .env
 # Отредактируйте .env файл
 
-# 4. Запустите бота
+# 4. Зарегистрируйте команды бота у BotFather
+python setup_commands.py
+
+# 5. Запустите бота
 python main.py
 ```
 
@@ -213,7 +219,7 @@ python main.py
 
 ```bash
 # 1. Установите зависимости
-sudo apt update && sudo apt install -y python3.11 python3.11-venv git
+sudo apt update && sudo apt install -y python3.12 python3.12-venv git
 
 # 2. Создайте пользователя для бота
 sudo useradd -m -s /bin/bash targetbot
@@ -222,11 +228,14 @@ sudo -u targetbot -i
 # 3. Клонируйте и настройте
 git clone https://github.com/bivlked/target-assistant-bot.git
 cd target-assistant-bot
-python3.11 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 4. Настройте systemd сервис
+# 4. Зарегистрируйте команды бота у BotFather
+python setup_commands.py
+
+# 5. Настройте systemd сервис
 sudo cp deploy/targetbot.service /etc/systemd/system/
 sudo systemctl enable --now targetbot
 ```

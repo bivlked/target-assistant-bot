@@ -12,11 +12,11 @@
    :target: https://codecov.io/gh/bivlked/target-assistant-bot
    :alt: Coverage Status
 
-.. image:: https://img.shields.io/badge/python-3.10%2B-blue.svg
+.. image:: https://img.shields.io/badge/python-3.12%2B-blue.svg
    :target: https://www.python.org/downloads/
    :alt: Python Version
 
-**Версия**: v0.1.1 | **Лицензия**: MIT | **GitHub**: `bivlked/target-assistant-bot <https://github.com/bivlked/target-assistant-bot>`_
+**Версия**: v0.2.4 | **Лицензия**: MIT | **GitHub**: `bivlked/target-assistant-bot <https://github.com/bivlked/target-assistant-bot>`_
 
 ---
 
@@ -112,8 +112,8 @@
 📊 Статистика проекта
 ====================
 
-* **Покрытие тестами**: ~99.13% ✅
-* **Поддерживаемые Python**: 3.10+ (рекомендуется 3.11-3.12)
+* **Покрытие тестами**: 98.62% ✅
+* **Поддерживаемые Python**: 3.12+ (рекомендуется 3.12)
 * **Основные зависимости**:
   
   * ``python-telegram-bot`` 22.0
