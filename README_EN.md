@@ -100,18 +100,18 @@
 - Automatic **SMART plan** creation
 - Breaking down into **daily tasks**
 - Considering your **schedule and capabilities**
-- **Adaptive plan** adjustments
+- **Smart plan generation** based on your goals
 
 ### 📊 Analytics and Reports
 - **Real progress** for each goal
 - **Task completion** statistics
-- **Goal achievement** predictions
+- **Detailed analytics** in Google Sheets
 - **Export to Google Sheets**
 
 ### 💬 User-Friendly Interface
 - **Inline buttons** for quick actions
 - **Step-by-step wizard** for goal creation
-- **Smart reminders** at the right time
+- **Configurable reminders** (via environment variables)
 - **Motivational messages** from AI
 
 ## 📊 System Architecture
@@ -319,7 +319,7 @@ Detailed guide: [📖 Ubuntu Installation](docs/install_ubuntu_detailed.md)
     </tr>
     <tr>
       <td><strong>🔄 Async</strong></td>
-      <td>asyncio, aiohttp</td>
+      <td>asyncio</td>
     </tr>
     <tr>
       <td><strong>⏰ Scheduler</strong></td>
