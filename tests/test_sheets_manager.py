@@ -592,7 +592,7 @@ def test_get_extended_statistics(manager_instance: tuple[SheetsManager, MagicMoc
 
 
 def test_get_extended_statistics_no_active_goals(
-    manager_instance: tuple[SheetsManager, MagicMock]
+    manager_instance: tuple[SheetsManager, MagicMock],
 ):
     """Test get_extended_statistics when user has no active goals."""
     manager, mock_spreadsheet = manager_instance
@@ -616,7 +616,7 @@ def test_get_extended_statistics_no_active_goals(
 
 
 def test_format_goals_list_sheet_indirectly_via_create(
-    manager_instance: tuple[SheetsManager, MagicMock]
+    manager_instance: tuple[SheetsManager, MagicMock],
 ):
     """Test _format_goals_list_sheet indirectly through spreadsheet creation (resolves TODO comment)."""
     manager, mock_spreadsheet = manager_instance
@@ -632,7 +632,7 @@ def test_format_goals_list_sheet_indirectly_via_create(
 
 
 def test_format_plan_sheet_comprehensive_formatting(
-    manager_instance: tuple[SheetsManager, MagicMock]
+    manager_instance: tuple[SheetsManager, MagicMock],
 ):
     """Test comprehensive plan sheet formatting including edge cases."""
     manager, mock_spreadsheet = manager_instance
@@ -684,7 +684,7 @@ def test_format_plan_sheet_comprehensive_formatting(
 
 
 def test_overall_statistics_comprehensive(
-    manager_instance: tuple[SheetsManager, MagicMock]
+    manager_instance: tuple[SheetsManager, MagicMock],
 ):
     """Test get_overall_statistics with multiple goals for comprehensive coverage."""
     manager, mock_spreadsheet = manager_instance
