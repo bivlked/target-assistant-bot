@@ -226,13 +226,4 @@ async def test_async_delete_spreadsheet(
     mock_sync.delete_spreadsheet.assert_called_once_with(user_id)
 
 
-# TODO: Добавить аналогичные тесты для:
-# - get_goal_info
-# - get_task_for_date
-# - update_task_status
-# - batch_update_task_statuses
-# - get_spreadsheet_url
-# - get_extended_statistics
-# - delete_spreadsheet
-
-# TODO: Добавить тесты для всех остальных методов AsyncSheetsManager
+# All main AsyncSheetsManager methods are now tested above

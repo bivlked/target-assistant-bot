@@ -296,7 +296,4 @@ def test_retry_openai_llm_no_reraise_fails_all_attempts_returns_none(
     assert failing_func_mock.call_count == 2
 
 
-# --- Placeholder for decorator tests (to be implemented next) ---
-# TODO: Add tests for retry_google_sheets
-# TODO: Add tests for retry_openai_llm
-# TODO: Add tests for retry_openai_llm_no_reraise
+# All retry decorators are tested above with comprehensive test cases
