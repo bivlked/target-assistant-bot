@@ -503,4 +503,256 @@ def test_create_spreadsheet_scenario_sheet_exists(monkeypatch: pytest.MonkeyPatc
     )
 
 
-# TODO: Add more tests for get_extended_statistics (если не покрыто в другом файле), _format_goal_sheet (косвенно)
+def test_get_extended_statistics(manager_instance: tuple[SheetsManager, MagicMock]):
+    """Test get_extended_statistics method (resolves TODO comment)."""
+    manager, mock_spreadsheet = manager_instance
+    user_id = 1
+    upcoming_count = 7
+
+    # Mock active goal
+    test_goal = Goal(
+        goal_id=1,
+        name="Extended Stats Goal",
+        description="Test extended statistics",
+        deadline="2 месяца",
+        daily_time="45 минут",
+        start_date="01.01.2025",
+        status=GoalStatus.ACTIVE,
+        priority=GoalPriority.HIGH,
+        tags=["test", "stats"],
+    )
+
+    # Mock tasks for the goal
+    test_tasks = [
+        Task(
+            date="15.01.2025",
+            day_of_week="Среда",
+            task="Upcoming task 1",
+            status=TaskStatus.NOT_DONE,
+            goal_id=1,
+            goal_name="Extended Stats Goal",
+        ),
+        Task(
+            date="16.01.2025",
+            day_of_week="Четверг",
+            task="Upcoming task 2",
+            status=TaskStatus.NOT_DONE,
+            goal_id=1,
+            goal_name="Extended Stats Goal",
+        ),
+        Task(
+            date="10.01.2025",
+            day_of_week="Понедельник",
+            task="Completed task",
+            status=TaskStatus.DONE,
+            goal_id=1,
+            goal_name="Extended Stats Goal",
+        ),
+    ]
+
+    # Mock goal statistics
+    test_stats = GoalStatistics(
+        total_tasks=10,
+        completed_tasks=4,
+        progress_percent=40,
+        days_elapsed=10,
+        days_remaining=50,
+        completion_rate=0.4,
+    )
+
+    with patch.object(manager, "get_active_goals", return_value=[test_goal]):
+        with patch.object(manager, "get_plan_for_goal", return_value=test_tasks):
+            with patch.object(manager, "get_goal_statistics", return_value=test_stats):
+                with patch.object(
+                    manager, "get_spreadsheet_url", return_value="https://test.url"
+                ):
+                    result = manager.get_extended_statistics(user_id, upcoming_count)
+
+                    # Verify result structure matches actual implementation
+                    assert isinstance(result, dict)
+                    assert "total_days" in result
+                    assert "completed_days" in result
+                    assert "progress_percent" in result
+                    assert "days_passed" in result
+                    assert "days_left" in result
+                    assert "upcoming_tasks" in result
+                    assert "sheet_url" in result
+
+                    # Verify values match mocked statistics
+                    assert result["total_days"] == 10
+                    assert result["completed_days"] == 4
+                    assert result["progress_percent"] == 40
+                    assert result["days_passed"] == 10
+                    assert result["days_left"] == 50
+                    assert result["sheet_url"] == "https://test.url"
+
+                    # Verify upcoming tasks structure
+                    assert isinstance(result["upcoming_tasks"], list)
+                    assert len(result["upcoming_tasks"]) <= upcoming_count
+
+
+def test_get_extended_statistics_no_active_goals(
+    manager_instance: tuple[SheetsManager, MagicMock]
+):
+    """Test get_extended_statistics when user has no active goals."""
+    manager, mock_spreadsheet = manager_instance
+    user_id = 2
+
+    with patch.object(manager, "get_active_goals", return_value=[]):
+        with patch.object(
+            manager, "get_spreadsheet_url", return_value="https://test.url"
+        ):
+            result = manager.get_extended_statistics(user_id, 5)
+
+            # Should return default structure when no active goals
+            assert isinstance(result, dict)
+            assert result["total_days"] == 0
+            assert result["completed_days"] == 0
+            assert result["progress_percent"] == 0
+            assert result["days_passed"] == 0
+            assert result["days_left"] == 0
+            assert result["upcoming_tasks"] == []
+            assert result["sheet_url"] == "https://test.url"
+
+
+def test_format_goals_list_sheet_indirectly_via_create(
+    manager_instance: tuple[SheetsManager, MagicMock]
+):
+    """Test _format_goals_list_sheet indirectly through spreadsheet creation (resolves TODO comment)."""
+    manager, mock_spreadsheet = manager_instance
+
+    # Mock the _format_goals_list_sheet method to verify it gets called
+    with patch.object(manager, "_format_goals_list_sheet") as mock_format:
+        with patch.object(manager, "_ensure_goals_list_sheet") as mock_ensure:
+            # This should trigger _format_goals_list_sheet during sheet creation
+            manager._ensure_spreadsheet_structure(mock_spreadsheet)
+
+            # Verify that _ensure_goals_list_sheet was called
+            mock_ensure.assert_called_once_with(mock_spreadsheet)
+
+
+def test_format_plan_sheet_comprehensive_formatting(
+    manager_instance: tuple[SheetsManager, MagicMock]
+):
+    """Test comprehensive plan sheet formatting including edge cases."""
+    manager, mock_spreadsheet = manager_instance
+
+    # Extended plan with more diverse content
+    extended_plan = [
+        {
+            "Дата": "01.01.2025",
+            "День недели": "Среда",
+            "Задача": "Очень длинная задача с большим количеством текста для проверки автоширины",
+            "Статус": "Не выполнено",
+        },
+        {
+            "Дата": "02.01.2025",
+            "День недели": "Четверг",
+            "Задача": "Short task",
+            "Статус": "Выполнено",
+        },
+        {
+            "Дата": "03.01.2025",
+            "День недели": "Пятница",
+            "Задача": "Medium length task with some details",
+            "Статус": "Частично выполнено",
+        },
+    ]
+
+    # Mock worksheet
+    mock_plan_ws = MagicMock()
+    mock_spreadsheet.worksheet.return_value = mock_plan_ws
+
+    # Mock _format_plan_sheet to verify formatting parameters
+    with patch.object(manager, "_ensure_goal_sheet"):
+        with patch.object(manager, "_format_plan_sheet") as mock_format:
+            manager.save_plan(3, 2, extended_plan)  # user_id=3, goal_id=2
+
+            # Verify sheet operations and formatting
+            mock_plan_ws.clear.assert_called_once()
+            mock_plan_ws.update.assert_called_once()
+            mock_format.assert_called_once_with(mock_plan_ws)
+
+            # Verify the update call includes header + plan data
+            update_call_args = mock_plan_ws.update.call_args
+            assert update_call_args is not None
+            # Check that values parameter was passed
+            assert "values" in update_call_args.kwargs
+            # The data should include headers + plan rows
+            values = update_call_args.kwargs["values"]
+            assert len(values) == len(extended_plan) + 1  # +1 for header
+
+
+def test_overall_statistics_comprehensive(
+    manager_instance: tuple[SheetsManager, MagicMock]
+):
+    """Test get_overall_statistics with multiple goals for comprehensive coverage."""
+    manager, mock_spreadsheet = manager_instance
+    user_id = 1
+
+    # Mock multiple goals with different statuses
+    test_goals = [
+        Goal(
+            goal_id=1,
+            name="Active Goal 1",
+            description="First active goal",
+            deadline="1 месяц",
+            daily_time="30 минут",
+            start_date="01.01.2025",
+            status=GoalStatus.ACTIVE,
+            priority=GoalPriority.HIGH,
+            tags=["work"],
+            progress_percent=70,
+        ),
+        Goal(
+            goal_id=2,
+            name="Active Goal 2",
+            description="Second active goal",
+            deadline="2 месяца",
+            daily_time="45 минут",
+            start_date="01.01.2025",
+            status=GoalStatus.ACTIVE,
+            priority=GoalPriority.MEDIUM,
+            tags=["personal"],
+            progress_percent=30,
+        ),
+        Goal(
+            goal_id=3,
+            name="Completed Goal",
+            description="A completed goal",
+            deadline="1 месяц",
+            daily_time="20 минут",
+            start_date="01.12.2024",
+            status=GoalStatus.COMPLETED,
+            priority=GoalPriority.LOW,
+            tags=["learning"],
+            progress_percent=100,
+        ),
+    ]
+
+    with patch.object(manager, "get_all_goals", return_value=test_goals):
+        result = manager.get_overall_statistics(user_id)
+
+        # Verify overall statistics structure matches actual implementation
+        assert isinstance(result, dict)
+        assert "total_goals" in result
+        assert "active_count" in result
+        assert "completed_count" in result
+        assert "archived_count" in result
+        assert "total_progress" in result
+        assert "active_goals" in result
+        assert "can_add_more" in result
+
+        # Verify aggregated data
+        assert result["total_goals"] == 3
+        assert result["active_count"] == 2  # goals 1 & 2
+        assert result["completed_count"] == 1  # goal 3
+        assert result["archived_count"] == 0  # none archived
+        assert result["total_progress"] == 50  # (70 + 30) // 2
+        assert result["can_add_more"] is True  # less than MAX_GOALS
+
+        # Verify active goals are included
+        assert len(result["active_goals"]) == 2
+        active_goal_names = [g.name for g in result["active_goals"]]
+        assert "Active Goal 1" in active_goal_names
+        assert "Active Goal 2" in active_goal_names

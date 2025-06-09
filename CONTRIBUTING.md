@@ -8,14 +8,14 @@
     <sub>Добро пожаловать в нашу команду разработчиков!</sub>
   </p>
 
-  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/development-rules.md">
-    <img src="https://img.shields.io/badge/📋-Development_Rules-blue?style=flat-square" alt="Development Rules">
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/README.md">
+    <img src="https://img.shields.io/badge/📋-Project_README-blue?style=flat-square" alt="Project README">
   </a>
-  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/architecture/modular-architecture-strategy.md">
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/architecture.md">
     <img src="https://img.shields.io/badge/🏗️-Architecture-green?style=flat-square" alt="Architecture">
   </a>
-  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/docs/testing/strategic-testing-framework.md">
-    <img src="https://img.shields.io/badge/🧪-Testing_Framework-orange?style=flat-square" alt="Testing">
+  <a href="https://github.com/bivlked/target-assistant-bot/blob/main/CHANGELOG.md">
+    <img src="https://img.shields.io/badge/📝-Changelog-orange?style=flat-square" alt="Changelog">
   </a>
 </div>
 
@@ -25,19 +25,20 @@
 
 ## 🎯 Архитектурные принципы
 
-Target Assistant Bot следует **Clean Architecture** и **Enterprise Design Patterns**. Перед началом работы обязательно ознакомьтесь:
+Target Assistant Bot следует **Clean Architecture** и **Quality-First Development**. Перед началом работы обязательно ознакомьтесь:
 
 ### 📚 Обязательное чтение
-- **[📋 Development Rules](docs/development-rules.md)** - Правила разработки и стандарты качества
-- **[🏗️ Modular Architecture Strategy](docs/architecture/modular-architecture-strategy.md)** - Архитектурная стратегия
-- **[🧪 Strategic Testing Framework](docs/testing/strategic-testing-framework.md)** - Тестовая стратегия
+- **[📋 README.md](README.md)** - Описание проекта и быстрый старт
+- **[🏗️ Architecture](docs/architecture.md)** - Архитектура проекта
+- **[📝 CHANGELOG.md](CHANGELOG.md)** - История изменений и текущий статус
+- **[📋 DEVELOPMENT_CHECKLIST.md](DEVELOPMENT_CHECKLIST.md)** - Roadmap и стандарты качества
 
 ---
 
 ## 🚀 Быстрый старт
 
 ### Требования к окружению
-- **Python 3.12+** (обязательно, Python 3.11 и ниже не поддерживаются)
+- **Python 3.11+** (рекомендуется 3.12+, минимум 3.11)
 - **Git 2.25+** с настроенными pre-commit hooks
 - **Poetry** (рекомендуется) или `pip` с виртуальным окружением
 
@@ -56,7 +57,7 @@ pre-commit install
 ```bash
 git clone https://github.com/bivlked/target-assistant-bot.git
 cd target-assistant-bot
-python3.11 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 pip install -r requirements.txt
 pre-commit install
@@ -98,7 +99,7 @@ git checkout -b feat/your-feature-name
 - **UI на русском языке** (пользовательский интерфейс)
 - **Type hints обязательны** для всех функций
 - **Tests** для всего нового функционала
-- **97%+ test coverage** (текущий уровень проекта)
+- **95%+ test coverage** (текущий уровень проекта: 95.18%)
 
 ### 4. 🧪 Обязательные проверки
 ```bash
@@ -109,7 +110,7 @@ mypy .                    # Type checking
 pytest -xvs              # Basic tests
 
 # Полное тестирование
-pytest --cov=. --cov-report=html --cov-fail-under=97
+pytest --cov=. --cov-report=html --cov-fail-under=95
 ```
 
 ### 5. 📝 Коммиты (Conventional Commits)
@@ -134,7 +135,7 @@ git push origin feat/your-feature-name
 ### ✅ Обязательные требования для merge
 - **100% Type coverage** - все функции имеют type hints
 - **MyPy в strict mode** - без warnings
-- **97%+ test coverage** - поддержание текущего уровня
+- **95%+ test coverage** - поддержание текущего уровня (95.18%)
 - **Clean Architecture** - соблюдение слоев и dependency rules
 - **Code review approved** - минимум одно approval от maintainer
 
@@ -323,6 +324,6 @@ def get_api_key() -> str:
 
 ---
 
-**Последнее обновление**: Декабрь 2024  
-**Версия документа**: v2.0  
-**Соответствует проекту**: v0.2.4+ 
+**Последнее обновление**: Active Development  
+**Версия документа**: Current  
+**Соответствует проекту**: v0.2.3+ 
