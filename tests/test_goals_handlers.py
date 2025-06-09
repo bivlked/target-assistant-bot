@@ -1,9 +1,11 @@
 """Tests for handlers/goals.py: Multi-goal management and goal creation/editing dialogues."""
 
+# type: ignore[operator, index]
+
 from __future__ import annotations
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, _Call
 from typing import cast
 
 from telegram import Update, User, Message, Chat, CallbackQuery
@@ -115,6 +117,7 @@ async def test_add_goal_command_start_new_user_no_goals_limit_ok(
         assert reply_text_mock.await_count == 1
         call_args = reply_text_mock.await_args
         assert call_args is not None
+        call_args = cast(_Call, call_args)
         assert "Шаг 1/6: Введите короткое название цели" in call_args.args[0]
         assert call_args.kwargs.get("parse_mode") == ParseMode.MARKDOWN_V2
 
@@ -143,6 +146,7 @@ async def test_add_goal_command_start_goal_limit_reached(
         assert reply_text_mock.await_count == 1
         call_args = reply_text_mock.await_args
         assert call_args is not None
+        call_args = cast(_Call, call_args)
         assert "Достигнут лимит активных целей" in call_args.args[0]
         assert call_args.kwargs.get("parse_mode") == ParseMode.MARKDOWN_V2
 
@@ -175,6 +179,7 @@ async def test_add_goal_callback_start_limit_ok(
         assert edit_message_text_mock.await_count == 1
         call_args = edit_message_text_mock.await_args
         assert call_args is not None
+        call_args = cast(_Call, call_args)
         assert "Шаг 1/6: Введите короткое название цели" in call_args.args[0]
         assert call_args.kwargs.get("parse_mode") == ParseMode.MARKDOWN_V2
 
@@ -201,7 +206,8 @@ async def test_goal_name_received_valid_input(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 2/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 2/6" in call_args.args[0]  # type: ignore[index]
     assert call_args.kwargs.get("parse_mode") == ParseMode.MARKDOWN_V2
 
 
@@ -221,7 +227,8 @@ async def test_goal_name_received_invalid_input_too_long(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 2/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 2/6" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -236,7 +243,7 @@ async def test_goal_name_received_invalid_input_empty(
     state = await goal_name_received(mock_update_message, mock_context)
 
     assert state == GOAL_NAME  # Returns to wait for valid input
-    assert "goal_name" not in mock_context.user_data
+    assert "goal_name" not in mock_context.user_data  # type: ignore[operator]
     # No reply_text call for empty input - it returns early
     assert reply_text_mock.await_count == 0
 
@@ -253,11 +260,12 @@ async def test_goal_name_received_invalid_input_too_short(
     state = await goal_name_received(mock_update_message, mock_context)
 
     assert state == GOAL_NAME
-    assert "goal_name" not in mock_context.user_data
+    assert "goal_name" not in mock_context.user_data  # type: ignore[operator]
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "минимум 3 символа" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "минимум 3 символа" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -279,7 +287,8 @@ async def test_goal_description_received_valid_input(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 3/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 3/6" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -298,7 +307,8 @@ async def test_goal_description_received_invalid_input_too_long(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 3/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 3/6" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -317,7 +327,8 @@ async def test_goal_deadline_received_valid_input(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 4/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 4/6" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -332,7 +343,7 @@ async def test_goal_deadline_received_invalid_input(
     state = await goal_deadline_received(mock_update_message, mock_context)
 
     assert state == GOAL_DEADLINE
-    assert "goal_deadline" not in mock_context.user_data
+    assert "goal_deadline" not in mock_context.user_data  # type: ignore[operator]
     # No reply_text call for empty input - it returns early
     assert reply_text_mock.await_count == 0
 
@@ -353,7 +364,8 @@ async def test_goal_daily_time_received_valid_input(
     assert reply_text_mock.await_count == 1
     call_args = reply_text_mock.await_args
     assert call_args is not None
-    assert "Шаг 5/6" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Шаг 5/6" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -368,7 +380,7 @@ async def test_goal_daily_time_received_invalid_input(
     state = await goal_daily_time_received(mock_update_message, mock_context)
 
     assert state == GOAL_DAILY_TIME
-    assert "goal_daily_time" not in mock_context.user_data
+    assert "goal_daily_time" not in mock_context.user_data  # type: ignore[operator]
     # No reply_text call for empty input - it returns early
     assert reply_text_mock.await_count == 0
 
@@ -531,7 +543,8 @@ async def test_goal_confirmed_cancel(
     assert edit_message_text_mock.await_count == 1
     call_args = edit_message_text_mock.await_args
     assert call_args is not None
-    assert "Создание цели отменено" in call_args.args[0]
+    call_args = cast(_Call, call_args)
+    assert "Создание цели отменено" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -566,7 +579,8 @@ async def test_my_goals_command_no_goals(
         assert reply_text_mock.await_count == 1
         call_args = reply_text_mock.await_args
         assert call_args is not None
-        assert "У вас пока нет целей" in call_args.args[0]
+        call_args = cast(_Call, call_args)
+        assert "У вас пока нет целей" in call_args.args[0]  # type: ignore[index]
 
 
 @pytest.mark.asyncio
@@ -614,6 +628,7 @@ async def test_my_goals_command_with_goals(
         assert reply_text_mock.await_count == 1
         call_args = reply_text_mock.await_args
         assert call_args is not None
+        call_args = cast(_Call, call_args)
         # Should show goals with inline keyboard
         assert "reply_markup" in call_args.kwargs
 
@@ -653,6 +668,7 @@ async def test_manage_goals_menu(
         assert edit_message_text_mock.await_count == 1
         call_args = edit_message_text_mock.await_args
         assert call_args is not None
+        call_args = cast(_Call, call_args)
         assert "reply_markup" in call_args.kwargs
 
 
@@ -704,4 +720,5 @@ async def test_show_goal_details(
         assert edit_message_text_mock.await_count == 1
         call_args = edit_message_text_mock.await_args
         assert call_args is not None
-        assert "Test Goal" in call_args.args[0]
+        call_args = cast(_Call, call_args)
+        assert "Test Goal" in call_args.args[0]  # type: ignore[index]
