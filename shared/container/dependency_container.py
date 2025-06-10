@@ -3,12 +3,15 @@ Dependency Injection Container
 
 Central dependency injection container for the Target Assistant Bot.
 Implements Inversion of Control pattern for modular architecture.
+Enhanced with performance optimizations for faster resolution.
 """
 
-from typing import Dict, Any, Type, TypeVar, Callable, Optional, Protocol
-from functools import wraps
+from typing import Dict, Any, Type, TypeVar, Callable, Optional, Protocol, List, Set
+from functools import wraps, lru_cache
 import inspect
 import asyncio
+import time
+from collections import defaultdict
 
 
 T = TypeVar("T")
@@ -28,12 +31,36 @@ class Lifetime:
     SCOPED = "scoped"
 
 
+class PerformanceMetrics:
+    """Performance metrics for DI container"""
+
+    def __init__(self):
+        self.resolution_times: Dict[str, List[float]] = defaultdict(list)
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def record_resolution(self, service_key: str, duration: float):
+        """Record service resolution time"""
+        self.resolution_times[service_key].append(duration)
+
+    def get_average_resolution_time(self, service_key: str) -> float:
+        """Get average resolution time for service"""
+        times = self.resolution_times.get(service_key, [])
+        return sum(times) / len(times) if times else 0.0
+
+    def get_cache_hit_ratio(self) -> float:
+        """Get cache hit ratio"""
+        total = self.cache_hits + self.cache_misses
+        return self.cache_hits / total if total > 0 else 0.0
+
+
 class DependencyContainer:
     """
-    Dependency injection container
+    Enhanced Dependency injection container
 
     Manages service registration, resolution, and lifetime.
     Supports constructor injection and interface-based dependencies.
+    Optimized for high-performance resolution with caching and batch operations.
     """
 
     def __init__(self):
@@ -41,6 +68,16 @@ class DependencyContainer:
         self._instances: Dict[str, Any] = {}
         self._scoped_instances: Dict[str, Dict[str, Any]] = {}
         self._scope_id = 0
+
+        # Performance optimizations
+        self._service_keys_cache: Dict[Type, str] = {}
+        self._constructor_cache: Dict[Type, inspect.Signature] = {}
+        self._dependency_graph: Dict[str, Set[str]] = defaultdict(set)
+        self._metrics = PerformanceMetrics()
+
+        # Batch resolution support
+        self._batch_resolving = False
+        self._batch_instances: Dict[str, Any] = {}
 
     def register_singleton(
         self, interface: Type[T], implementation: Type[T]
@@ -100,7 +137,7 @@ class DependencyContainer:
         Returns:
             DependencyContainer: Self for chaining
         """
-        key = self._get_key(interface)
+        key = self._get_key_optimized(interface)
         self._instances[key] = instance
         self._services[key] = {
             "implementation": type(instance),
@@ -122,13 +159,13 @@ class DependencyContainer:
         Returns:
             DependencyContainer: Self for chaining
         """
-        key = self._get_key(interface)
+        key = self._get_key_optimized(interface)
         self._services[key] = {"factory": factory, "lifetime": Lifetime.TRANSIENT}
         return self
 
     def resolve(self, interface: Type[T]) -> T:
         """
-        Resolve service instance
+        Resolve service instance with performance optimization
 
         Args:
             interface: Interface/abstract class to resolve
@@ -139,38 +176,49 @@ class DependencyContainer:
         Raises:
             InjectionError: If service cannot be resolved
         """
-        key = self._get_key(interface)
+        start_time = time.perf_counter()
 
-        if key not in self._services:
-            raise InjectionError(f"Service {interface.__name__} not registered")
+        try:
+            result = self._resolve_optimized(interface)
+            duration = time.perf_counter() - start_time
+            self._metrics.record_resolution(
+                self._get_key_optimized(interface), duration
+            )
+            return result
+        except Exception as e:
+            duration = time.perf_counter() - start_time
+            self._metrics.record_resolution(
+                f"FAILED_{self._get_key_optimized(interface)}", duration
+            )
+            raise
 
-        service_config = self._services[key]
-        lifetime = service_config["lifetime"]
+    def resolve_batch(self, interfaces: List[Type]) -> Dict[Type, Any]:
+        """
+        Resolve multiple services in batch for better performance
 
-        # Return existing singleton instance
-        if lifetime == Lifetime.SINGLETON and key in self._instances:
-            return self._instances[key]
+        Args:
+            interfaces: List of interfaces to resolve
 
-        # Return existing scoped instance
-        if lifetime == Lifetime.SCOPED:
-            scope_instances = self._scoped_instances.get(str(self._scope_id), {})
-            if key in scope_instances:
-                return scope_instances[key]
+        Returns:
+            Dict[Type, Any]: Dictionary mapping interfaces to resolved instances
+        """
+        start_time = time.perf_counter()
 
-        # Create new instance
-        instance = self._create_instance(service_config, interface)
+        self._batch_resolving = True
+        self._batch_instances = {}
 
-        # Store singleton instance
-        if lifetime == Lifetime.SINGLETON:
-            self._instances[key] = instance
+        try:
+            results = {}
+            for interface in interfaces:
+                results[interface] = self._resolve_optimized(interface)
 
-        # Store scoped instance
-        elif lifetime == Lifetime.SCOPED:
-            if str(self._scope_id) not in self._scoped_instances:
-                self._scoped_instances[str(self._scope_id)] = {}
-            self._scoped_instances[str(self._scope_id)][key] = instance
+            duration = time.perf_counter() - start_time
+            self._metrics.record_resolution("BATCH_RESOLUTION", duration)
 
-        return instance
+            return results
+        finally:
+            self._batch_resolving = False
+            self._batch_instances.clear()
 
     async def resolve_async(self, interface: Type[T]) -> T:
         """
@@ -213,14 +261,69 @@ class DependencyContainer:
         Returns:
             bool: True if registered, False otherwise
         """
-        key = self._get_key(interface)
+        key = self._get_key_optimized(interface)
         return key in self._services
+
+    def get_performance_metrics(self) -> PerformanceMetrics:
+        """Get container performance metrics"""
+        return self._metrics
+
+    def clear_caches(self) -> None:
+        """Clear internal caches for memory optimization"""
+        self._service_keys_cache.clear()
+        self._constructor_cache.clear()
+        self._dependency_graph.clear()
+
+    def _resolve_optimized(self, interface: Type[T]) -> T:
+        """Optimized resolution with caching and batch support"""
+        key = self._get_key_optimized(interface)
+
+        if key not in self._services:
+            self._metrics.cache_misses += 1
+            raise InjectionError(f"Service {interface.__name__} not registered")
+
+        self._metrics.cache_hits += 1
+        service_config = self._services[key]
+        lifetime = service_config["lifetime"]
+
+        # Check batch resolution cache first
+        if self._batch_resolving and key in self._batch_instances:
+            return self._batch_instances[key]
+
+        # Return existing singleton instance
+        if lifetime == Lifetime.SINGLETON and key in self._instances:
+            return self._instances[key]
+
+        # Return existing scoped instance
+        if lifetime == Lifetime.SCOPED:
+            scope_instances = self._scoped_instances.get(str(self._scope_id), {})
+            if key in scope_instances:
+                return scope_instances[key]
+
+        # Create new instance
+        instance = self._create_instance_optimized(service_config, interface)
+
+        # Store in batch cache if batch resolving
+        if self._batch_resolving:
+            self._batch_instances[key] = instance
+
+        # Store singleton instance
+        if lifetime == Lifetime.SINGLETON:
+            self._instances[key] = instance
+
+        # Store scoped instance
+        elif lifetime == Lifetime.SCOPED:
+            if str(self._scope_id) not in self._scoped_instances:
+                self._scoped_instances[str(self._scope_id)] = {}
+            self._scoped_instances[str(self._scope_id)][key] = instance
+
+        return instance
 
     def _register(
         self, interface: Type[T], implementation: Type[T], lifetime: str
     ) -> "DependencyContainer":
-        """Internal service registration"""
-        key = self._get_key(interface)
+        """Internal service registration with dependency graph building"""
+        key = self._get_key_optimized(interface)
 
         # Validate implementation
         if not issubclass(implementation, interface):
@@ -229,10 +332,27 @@ class DependencyContainer:
             )
 
         self._services[key] = {"implementation": implementation, "lifetime": lifetime}
+
+        # Build dependency graph for optimization
+        self._build_dependency_graph(implementation, key)
+
         return self
 
-    def _create_instance(self, service_config: Dict[str, Any], interface: Type[T]) -> T:
-        """Create service instance with dependency injection"""
+    def _build_dependency_graph(self, implementation: Type, service_key: str) -> None:
+        """Build dependency graph for circular dependency detection and optimization"""
+        sig = self._get_constructor_signature(implementation)
+
+        for param_name, param in sig.parameters.items():
+            if param_name == "self":
+                continue
+            if param.annotation and param.annotation != inspect.Parameter.empty:
+                dep_key = self._get_key_optimized(param.annotation)
+                self._dependency_graph[service_key].add(dep_key)
+
+    def _create_instance_optimized(
+        self, service_config: Dict[str, Any], interface: Type[T]
+    ) -> T:
+        """Create service instance with optimized dependency injection"""
 
         # Use factory if provided
         if "factory" in service_config:
@@ -244,8 +364,8 @@ class DependencyContainer:
 
         implementation = service_config["implementation"]
 
-        # Get constructor parameters
-        sig = inspect.signature(implementation.__init__)
+        # Get cached constructor signature
+        sig = self._get_constructor_signature(implementation)
         params = {}
 
         for param_name, param in sig.parameters.items():
@@ -259,7 +379,7 @@ class DependencyContainer:
             # Resolve dependency
             if param.annotation and param.annotation != inspect.Parameter.empty:
                 try:
-                    dependency = self.resolve(param.annotation)
+                    dependency = self._resolve_optimized(param.annotation)
                     params[param_name] = dependency
                 except InjectionError as e:
                     raise InjectionError(
@@ -277,9 +397,27 @@ class DependencyContainer:
                 f"Failed to create instance of {implementation.__name__}: {str(e)}"
             )
 
+    def _get_key_optimized(self, interface: Type[T]) -> str:
+        """Get service key with caching optimization"""
+        if interface in self._service_keys_cache:
+            return self._service_keys_cache[interface]
+
+        key = f"{interface.__module__}.{interface.__name__}"
+        self._service_keys_cache[interface] = key
+        return key
+
+    def _get_constructor_signature(self, implementation: Type) -> inspect.Signature:
+        """Get constructor signature with caching"""
+        if implementation in self._constructor_cache:
+            return self._constructor_cache[implementation]
+
+        sig = inspect.signature(implementation.__init__)
+        self._constructor_cache[implementation] = sig
+        return sig
+
     def _get_key(self, interface: Type[T]) -> str:
-        """Get service key from interface"""
-        return f"{interface.__module__}.{interface.__name__}"
+        """Get service key from interface (legacy method)"""
+        return self._get_key_optimized(interface)
 
 
 class DependencyScope:
