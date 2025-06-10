@@ -77,22 +77,28 @@ class ModernHTTPClient:
         self._total_time = 0.0
         self._error_count = 0
 
-        # Create httpx clients
-        client_kwargs = {
-            "timeout": httpx.Timeout(timeout),
-            "limits": httpx.Limits(
-                max_connections=pool_connections,
-                max_keepalive_connections=pool_maxsize,
-            ),
-            "http2": enable_http2,
-            "headers": self.default_headers,
-        }
+        # Create httpx clients using explicit keyword arguments to satisfy mypy
+        timeout_conf = httpx.Timeout(timeout)
+        limits_conf = httpx.Limits(
+            max_connections=pool_connections,
+            max_keepalive_connections=pool_maxsize,
+        )
 
-        if base_url:
-            client_kwargs["base_url"] = base_url
+        self._sync_client = httpx.Client(
+            timeout=timeout_conf,
+            limits=limits_conf,
+            http2=enable_http2,
+            headers=self.default_headers,
+            base_url=base_url or None,
+        )
 
-        self._sync_client = httpx.Client(**client_kwargs)
-        self._async_client = httpx.AsyncClient(**client_kwargs)
+        self._async_client = httpx.AsyncClient(
+            timeout=timeout_conf,
+            limits=limits_conf,
+            http2=enable_http2,
+            headers=self.default_headers,
+            base_url=base_url or None,
+        )
 
     def __enter__(self):
         """Context manager support for sync client"""
@@ -370,7 +376,7 @@ class ModernHTTPClient:
         Returns:
             List[httpx.Response]: List of responses
         """
-        responses = []
+        responses: List[httpx.Response] = []
         for url in urls:
             try:
                 response = self.get(url, **kwargs)
