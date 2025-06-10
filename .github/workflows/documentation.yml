@@ -1,0 +1,311 @@
+name: Documentation Quality Check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - 'README*.md'
+      - 'CONTRIBUTING*.md'
+      - 'DEVELOPMENT_CHECKLIST*.md'
+      - 'CHANGELOG.md'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - 'README*.md'
+      - 'CONTRIBUTING*.md'
+      - 'DEVELOPMENT_CHECKLIST*.md'
+      - 'CHANGELOG.md'
+
+jobs:
+  documentation-check:
+    runs-on: ubuntu-latest
+    name: 📚 Documentation Quality Assurance
+    
+    steps:
+      - name: 🚀 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml
+          
+      - name: 🔍 Check Bilingual Synchronization
+        id: sync-check
+        run: |
+          echo "🌐 Running bilingual documentation synchronization check..."
+          python .github/scripts/sync-check.py
+        continue-on-error: true
+        
+      - name: 🔗 Validate Documentation Links
+        id: link-check
+        run: |
+          echo "🔗 Checking for broken links in documentation..."
+          python -c "
+          import requests
+          import re
+          import os
+          from pathlib import Path
+          
+          def check_links_in_file(file_path):
+              broken_links = []
+              try:
+                  with open(file_path, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  # Find markdown links [text](url)
+                  link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+                  links = re.findall(link_pattern, content)
+                  
+                  for link_text, url in links:
+                      if url.startswith(('http://', 'https://')):
+                          try:
+                              response = requests.head(url, timeout=10, allow_redirects=True)
+                              if response.status_code >= 400:
+                                  broken_links.append(f'❌ {url} (Status: {response.status_code})')
+                              else:
+                                  print(f'✅ {url}')
+                          except Exception as e:
+                              broken_links.append(f'❌ {url} (Error: {str(e)})')
+                      elif not url.startswith('#'):
+                          # Check local file links
+                          link_path = Path(file_path).parent / url
+                          if not link_path.exists():
+                              broken_links.append(f'❌ Local link broken: {url}')
+              except Exception as e:
+                  broken_links.append(f'❌ Error reading {file_path}: {str(e)}')
+              
+              return broken_links
+          
+          # Check key documentation files
+          files_to_check = [
+              'README.md', 'README_EN.md', 
+              'CONTRIBUTING.md', 'CONTRIBUTING_EN.md',
+              'DEVELOPMENT_CHECKLIST.md', 'DEVELOPMENT_CHECKLIST_EN.md'
+          ]
+          
+          all_broken_links = []
+          for file_path in files_to_check:
+              if os.path.exists(file_path):
+                  print(f'📄 Checking {file_path}...')
+                  broken_links = check_links_in_file(file_path)
+                  if broken_links:
+                      all_broken_links.extend([f'In {file_path}: {link}' for link in broken_links])
+          
+          if all_broken_links:
+              print('❌ Broken links found:')
+              for link in all_broken_links:
+                  print(f'  {link}')
+              exit(1)
+          else:
+              print('✅ All links are valid!')
+          "
+        continue-on-error: true
+        
+      - name: 📋 Validate Template Compliance
+        id: template-check
+        run: |
+          echo "📋 Checking template compliance..."
+          python -c "
+          import os
+          import re
+          
+          def check_yaml_frontmatter(file_path):
+              issues = []
+              try:
+                  with open(file_path, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  if not content.startswith('---'):
+                      return ['Missing YAML front matter']
+                  
+                  # Check for required fields in YAML front matter
+                  yaml_end = content.find('---', 3)
+                  if yaml_end == -1:
+                      return ['Invalid YAML front matter format']
+                  
+                  yaml_content = content[3:yaml_end]
+                  required_fields = ['language:', 'type:', 'audience:', 'last_updated:']
+                  
+                  for field in required_fields:
+                      if field not in yaml_content:
+                          issues.append(f'Missing required field: {field}')
+                  
+              except Exception as e:
+                  issues.append(f'Error reading file: {str(e)}')
+              
+              return issues
+          
+          # Check files with YAML front matter
+          files_to_check = [
+              'CONTRIBUTING_EN.md',
+              'DEVELOPMENT_CHECKLIST_EN.md'
+          ]
+          
+          all_issues = []
+          for file_path in files_to_check:
+              if os.path.exists(file_path):
+                  print(f'📄 Checking template compliance for {file_path}...')
+                  issues = check_yaml_frontmatter(file_path)
+                  if issues:
+                      all_issues.extend([f'{file_path}: {issue}' for issue in issues])
+                  else:
+                      print(f'✅ {file_path} template compliance OK')
+          
+          if all_issues:
+              print('❌ Template compliance issues found:')
+              for issue in all_issues:
+                  print(f'  {issue}')
+              exit(1)
+          else:
+              print('✅ All files comply with templates!')
+          "
+        continue-on-error: true
+        
+      - name: 📊 Generate Documentation Report
+        if: always()
+        run: |
+          echo "📊 Generating comprehensive documentation report..."
+          
+          # Check if sync report exists
+          if [ -f "doc-sync-report.json" ]; then
+            echo "📄 Sync report found, parsing results..."
+            python -c "
+            import json
+            try:
+                with open('doc-sync-report.json', 'r', encoding='utf-8') as f:
+                    report = json.load(f)
+                
+                summary = report.get('summary', {})
+                print(f'📊 DOCUMENTATION QUALITY SUMMARY:')
+                print(f'  📄 Total files checked: {summary.get(\"total_files_checked\", \"N/A\")}')
+                print(f'  🔄 Files in sync: {summary.get(\"files_in_sync\", \"N/A\")}')
+                print(f'  📈 Sync percentage: {summary.get(\"sync_percentage\", \"N/A\")}%')
+                print(f'  📋 Template issues: {summary.get(\"template_compliance_issues\", \"N/A\")}')
+                print(f'  🔗 Broken links: {summary.get(\"broken_links_found\", \"N/A\")}')
+                
+                recommendations = report.get('recommendations', [])
+                if recommendations:
+                    print(f'💡 RECOMMENDATIONS:')
+                    for rec in recommendations:
+                        print(f'  {rec}')
+            except Exception as e:
+                print(f'❌ Error parsing sync report: {e}')
+            "
+          else
+            echo "📄 No sync report found, skipping detailed analysis"
+          fi
+          
+      - name: 💬 Comment PR with Results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let reportContent = '## 📚 Documentation Quality Check Results\n\n';
+            
+            // Check if sync report exists
+            if (fs.existsSync('doc-sync-report.json')) {
+              try {
+                const syncReport = JSON.parse(fs.readFileSync('doc-sync-report.json', 'utf8'));
+                const summary = syncReport.summary || {};
+                
+                reportContent += '### 📊 Synchronization Status\n';
+                reportContent += `- **Files checked**: ${summary.total_files_checked || 'N/A'}\n`;
+                reportContent += `- **Files in sync**: ${summary.files_in_sync || 'N/A'}\n`;
+                reportContent += `- **Sync percentage**: ${summary.sync_percentage || 'N/A'}%\n`;
+                reportContent += `- **Template compliance issues**: ${summary.template_compliance_issues || 'N/A'}\n`;
+                reportContent += `- **Broken links found**: ${summary.broken_links_found || 'N/A'}\n\n`;
+                
+                const recommendations = syncReport.recommendations || [];
+                if (recommendations.length > 0) {
+                  reportContent += '### 💡 Recommendations\n';
+                  recommendations.forEach(rec => {
+                    reportContent += `- ${rec}\n`;
+                  });
+                  reportContent += '\n';
+                }
+                
+                // Determine overall status
+                const syncPercentage = summary.sync_percentage || 0;
+                const hasIssues = (summary.template_compliance_issues || 0) > 0 || (summary.broken_links_found || 0) > 0;
+                
+                if (syncPercentage === 100 && !hasIssues) {
+                  reportContent += '### ✅ Status: All Checks Passed!\n';
+                  reportContent += 'Documentation is properly synchronized and compliant.\n';
+                } else {
+                  reportContent += '### ⚠️ Status: Issues Found\n';
+                  reportContent += 'Please review and address the issues mentioned above.\n';
+                }
+              } catch (error) {
+                reportContent += `### ❌ Error Processing Report\n`;
+                reportContent += `Unable to parse sync report: ${error.message}\n`;
+              }
+            } else {
+              reportContent += '### 📄 No Detailed Report Available\n';
+              reportContent += 'Sync check script may have failed to generate a report.\n';
+            }
+            
+            reportContent += '\n---\n';
+            reportContent += '*This comment was automatically generated by the Documentation Quality Check workflow.*';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: reportContent
+            });
+            
+      - name: 📤 Upload Documentation Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-quality-report
+          path: |
+            doc-sync-report.json
+          retention-days: 30
+          
+      - name: ✅ Final Status Check
+        if: always()
+        run: |
+          echo "📋 Final documentation quality assessment..."
+          
+          # Check sync-check exit code
+          if [ -f "doc-sync-report.json" ]; then
+            python -c "
+            import json
+            import sys
+            
+            try:
+                with open('doc-sync-report.json', 'r', encoding='utf-8') as f:
+                    report = json.load(f)
+                
+                summary = report.get('summary', {})
+                sync_percentage = summary.get('sync_percentage', 0)
+                template_issues = summary.get('template_compliance_issues', 0)
+                broken_links = summary.get('broken_links_found', 0)
+                
+                if sync_percentage < 100 or template_issues > 0 or broken_links > 0:
+                    print('❌ Documentation quality checks failed!')
+                    print(f'   Sync: {sync_percentage}%, Template issues: {template_issues}, Broken links: {broken_links}')
+                    sys.exit(1)
+                else:
+                    print('✅ All documentation quality checks passed!')
+                    sys.exit(0)
+            except Exception as e:
+                print(f'❌ Error assessing final status: {e}')
+                sys.exit(1)
+            "
+          else
+            echo "❌ No sync report found - documentation quality check failed"
+            exit 1
+          fi 
