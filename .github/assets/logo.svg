@@ -1,28 +1,32 @@
-<svg width="250" height="250" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="125" cy="125" r="120" fill="#2CA5E0" opacity="0.1"/>
+<svg width="250" height="250" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250">
+  <!-- Градиентные определения -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4da6ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0066cc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
   
-  <!-- Target circles -->
-  <circle cx="125" cy="125" r="100" fill="none" stroke="#2CA5E0" stroke-width="3"/>
-  <circle cx="125" cy="125" r="75" fill="none" stroke="#45B7D1" stroke-width="3"/>
-  <circle cx="125" cy="125" r="50" fill="none" stroke="#5DADE2" stroke-width="3"/>
-  <circle cx="125" cy="125" r="25" fill="#E74C3C" stroke="#C0392B" stroke-width="2"/>
+  <!-- Основной круг -->
+  <circle cx="125" cy="125" r="110" fill="url(#bgGradient)" stroke="#0066cc" stroke-width="3"/>
   
-  <!-- Center dot -->
-  <circle cx="125" cy="125" r="8" fill="#FFFFFF"/>
+  <!-- Внутренние кольца -->
+  <circle cx="125" cy="125" r="85" fill="none" stroke="url(#ringGradient)" stroke-width="2" opacity="0.6"/>
+  <circle cx="125" cy="125" r="65" fill="none" stroke="url(#ringGradient)" stroke-width="2" opacity="0.4"/>
   
-  <!-- Bot icon (simplified robot) -->
-  <g transform="translate(125, 125)">
-    <!-- Robot head -->
-    <rect x="-20" y="-60" width="40" height="30" rx="5" fill="#34495E" opacity="0.8"/>
-    <!-- Robot eyes -->
-    <circle cx="-10" cy="-50" r="3" fill="#FFFFFF"/>
-    <circle cx="10" cy="-50" r="3" fill="#FFFFFF"/>
-    <!-- Antenna -->
-    <line x1="0" y1="-60" x2="0" y2="-70" stroke="#34495E" stroke-width="2"/>
-    <circle cx="0" cy="-72" r="3" fill="#E74C3C"/>
-  </g>
+  <!-- Центральная мишень -->
+  <circle cx="125" cy="125" r="35" fill="#ff6b6b" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="125" cy="125" r="20" fill="#ffffff" stroke="#ff6b6b" stroke-width="2"/>
+  <circle cx="125" cy="125" r="8" fill="#ff6b6b"/>
   
-  <!-- Text (optional) -->
-  <text x="125" y="220" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#2C3E50">Target Assistant</text>
-</svg> 
+  <!-- Эмодзи цель в центре -->
+  <text x="125" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="#333">🎯</text>
+  
+  <!-- Название проекта -->
+  <text x="125" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0066cc">Target Assistant</text>
+  <text x="125" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Bot</text>
+</svg>
