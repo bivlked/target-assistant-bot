@@ -1,6 +1,7 @@
 <div align="center">
   <!-- Улучшенное отображение логотипа с кэш-бастингом -->
-  <img src="https://raw.githubusercontent.com/bivlked/target-assistant-bot/main/.github/assets/logo.svg?v=2025" alt="Target Assistant Bot Logo" width="250" height="250" loading="lazy">
+  <img src="https://raw.githubusercontent.com/bivlked/target-assistant-bot/main/.github/assets/logo.png?v=2025" alt="Target Assistant Bot Logo" width="250" height="250" loading="lazy">
+  
   
   <h1>🎯 Target Assistant Bot</h1>
   
