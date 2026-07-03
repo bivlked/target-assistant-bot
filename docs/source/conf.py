@@ -64,6 +64,11 @@ intersphinx_mapping = {
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
+# Do not emit raw reStructuredText sources or "View page source" links.
+# The _sources/*.rst.txt files are low-value pages that pollute the search index.
+html_copy_source = False
+html_show_sourcelink = False
+
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
 
