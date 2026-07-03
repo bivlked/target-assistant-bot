@@ -35,7 +35,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]  # Exclude build directo
 language = "ru"
 
 # -- Options for autodoc -----------------------------------------------------
-aputodoc_member_order = "bysource"  # Order members by source order
+autodoc_member_order = "bysource"  # Order members by source order
 
 # -- Options for Napoleon (Google/NumPy docstrings) -------------------------
 napoleon_google_docstring = True
